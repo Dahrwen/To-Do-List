@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Productivity Tracker</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel = "stylesheet" href="main.css">
+        <!--FONTS-->
+        <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Jeju+Gothic&display=swap" rel="stylesheet">
+        <!--CSS
+        <link href="bootstrap-5.3.6-dist/css/bootstrap.min.css" rel="stylesheet">-->
+    </head>
+    <body>
+
+        <!--Search Bar Design only not working yet-->
+        <header class="topbar">
+            <table style="width: 184vh;">
+                <tr>
+                    <th style="width:80%;">
+                        <div class="searchbar">
+                            <button id="searchId" class="searchButton" ><img class="logo" src = "Pictures/Find.png"></button>
+                            <input id="searchTextId" class = "searchBox" type="text" placeholder="Search">
+                        </div>
+                    </th>
+                    <th style="width:20%;">
+                        <div class="gmailp">
+                            <img class="logo" src="Pictures/Gmail.png">
+                            <p>Random Email</p>
+                        </div>
+                    </th>
+                </tr>
+            </table>
+        </header>
+        
+        <!--Mini Calendar Section-->
+        <section id="calendarSection" class="wrapper container">
+            <b id = "left" class="btn">&lt</b>
+            <ul id = "dates" class = "carousel child">
+                <!--THIS IS WHERE THE CARDS WILL GO-->
+            </ul>
+            <b id = "right" class="btn">&gt</b>
+        </section>
+
+        <!--Buttons Section-->
+        <section class="sectButton">
+            <button id="todo" class="mybutton"><img src="Pictures/TO-DO.png"><b> To-Do List</b></button> 
+            <button id = "Calendar" class="mybutton"><img src="Pictures/Calendar.png"><b>Calendar</b></button> 
+            <button id = "addTask"class="mybutton addbutton"><img src="Pictures/Add.png" ><b>Add task</b></button> 
+        </section>
+
+        <section class="popUp">
+            <div class="close-btn">&times;</div>    
+            <form id="taskForm">
+                <h2>Add New Task</h2>
+                <div class = "form-element">
+                    <label for="task">Enter Task Name: </label>
+                    <input type="text" id="task" required placeholder="New task...">
+                    <label>Pick type of task:</label><br>
+                    <label style="font-size: 1.5vh;">(Choose all that applies)</label><br>
+                    <input type="checkbox" id="type1">
+                    <label for="type1">Personal</label><br>
+                    <input type="checkbox" id="type2">
+                    <label for="type2">Urgent</label><br>
+                    <input type="checkbox" id="type3">
+                    <label for="type3">Growth</label><br>
+                    <input type="checkbox" id="type4">
+                    <label for="type4">Academics</label><br>
+                    <input type="checkbox" id="type5">
+                    <label for="type5">Interactive</label><br>
+                    <input type="checkbox" id="type6">
+                    <label for="type6">Social</label><br>
+                    <label for="deadLine">Deadline: </label>
+                    <input type="date" id="deadLine"><br><br>
+                    <button id="addSubmit" type="submit" class="btn">Submit</button>
+                </div>
+            </form>
+        </section><br>
+
+        <section class = "taskCont">
+            <ul id = "tasks">
+                <!--THIS IS WHERE THE CARDS WILL GO-->
+            </ul>
+        </section>
+
+        <section class = "calendarBig hidden-section">
+
+            <div class = "header">
+                <b id = "prev" >&lt</b>
+                <h1 id="month-year"></h1>
+                <b id = "next" >&gt</b>
+            </div>
+
+            <div class = "weekdays" id="weekdays">
+                <ul id = "weekdayList">
+                    <li>Sun</li>
+                    <li>Mon</li>
+                    <li>Tue</li>
+                    <li>Wed</li>
+                    <li>Thu</li>
+                    <li>Fri</li>
+                    <li>Sat</li>
+                </ul>
+            </div>
+
+            <div class = "days" id = "days">
+
+            </div>
+        </section>
+
+        <!--JavaScript-->
+        <script src="script.js" defer></script>
+    </body>
+</html>

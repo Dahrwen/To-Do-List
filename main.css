@@ -1,0 +1,473 @@
+body{
+    font-family: 'Poppins', 'sans serif';
+    margin-top: 1vh;
+    background-color: #f1f1f1;
+    margin-left: 3%;
+    margin-right: 7%;
+    user-select: none;
+}
+
+/*TOP searchbar etc*/
+.topbar{
+    margin-left: 1%;
+}
+
+.searchbar{
+    background-color: #e6e6e6;
+    width: 143vh;
+    height: 8vh;
+    border-radius: 20px;
+    border-style: solid;
+    border-color: black;
+    border-width: 3px;
+    padding-left: 1vh;
+    display: flex;
+    align-items: center;
+}
+
+.searchBox{
+    background-color: #e6e6e6;
+    border: none;
+    outline: none;
+    font-family: 'Jeju Gothic', sans-serif;
+    font-weight: 300;
+    font-size: 4vh;
+    display: inline;
+    width: 100%;
+}
+
+.searchButton{
+    outline: none;
+    background-color: #e6e6e6;
+    border: none;
+}
+
+img.logo{
+    width: 7vh;
+    height: 7vh;
+}
+
+.gmailp{
+    display: flex;
+    align-items: center;
+    gap: 1vh;
+}
+
+.gmailp p{
+    font-family: 'Jeju Gothic', sans-serif;
+    color: rgb(0, 0, 0);
+    font-weight: 300;
+    font-size: 3vh;
+    display: inline;
+}
+
+th {
+    padding: 2vh;              
+    text-align: left;         
+    vertical-align: middle;
+}
+
+/*Days Cards*/
+.container {
+    display: flex;           
+    justify-content: center; 
+}
+
+.child {
+    background-color: inherit;
+    padding-left: 4vh;
+    padding-right: 0;
+}
+
+.wrapper{
+    box-sizing: border-box;
+    max-width: 90%;
+    position: relative;
+    margin-left: 14vh;
+}
+
+.wrapper .carousel{
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: calc((100% / 6) - .6%);
+    gap: 1.1vh;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: 0;
+    scroll-behavior: smooth;
+    margin-left: -3.7vh;
+    height: 22vh;
+}
+
+.carousel::-webkit-scrollbar{
+    display: none;
+}
+
+.wrapper h2,
+.wrapper h4,
+.wrapper p,
+.wrapper b{
+    margin: 0;
+}
+
+.wrapper p{
+    color: rgb(201, 15, 15);
+}
+
+.wrapper b{
+    display: inline-block;
+    height: 5vh;
+    width: 5vh;
+    line-height: 5vh;
+    background-color: #e9e7e7;
+    border-radius: 50%;
+    text-align: center;
+    border-style: solid;
+    border-color: black;
+    border-width: 2px;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    box-shadow: 0, 3px, 6px, rgba(0, 0, 0, 0.356);
+    cursor: pointer;
+    user-select: none;
+}
+
+.wrapper b:first-child{
+    left: -9vh
+}
+.wrapper b:last-child{
+    right: -5.5vh
+}
+
+.carousel .card{
+    cursor: pointer;
+    list-style: none;
+    background-color: #e9e7e7;
+    border-radius: 10px;
+    border-style: solid;
+    border-color: black;
+    border-width: 3px;
+    height: 18vh;
+    padding: 1vh;
+    max-width: 20vh;
+    box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
+}
+
+.carousel.dragging{
+    scroll-behavior: auto;
+}
+
+.carousel.dragging .card{
+    cursor:grab;
+    user-select: none;
+}
+
+@media screen and (max-width: 200vh){
+    .wrapper .carousel{
+        grid-auto-columns: calc((100% / 5) - .6%);
+    }
+}
+
+@media screen and (max-width: 160vh){
+    .wrapper .carousel{
+        grid-auto-columns: calc((100% / 4) - .6%);
+    }
+}
+
+@media screen and (max-width: 130vh){
+    .wrapper .carousel{
+        grid-auto-columns: calc((100% / 3) - .6%);
+    }
+}
+
+@media screen and (max-width: 100vh){
+    .wrapper .carousel{
+        grid-auto-columns: calc((100% / 2) - .6%);
+    }
+}
+
+@media screen and (max-width: 65vh){
+    .wrapper .carousel{
+        grid-auto-columns: 100%;
+    }
+}
+
+/*Buttons*/
+.sectButton{
+    margin-left: 4.7vh;
+}
+
+.mybutton{
+    margin-left: 2vh;
+    height: 6vh;
+    width: 20vh;
+    background-color: #e9e7e7;
+    cursor: pointer;
+    border-radius: 1vh;
+    border-width: .35vh;
+    border-color: black;
+    font-size: 2vh;
+
+    display: inline-flex;         
+    align-items: center;        
+    justify-content: center;
+    gap: 1vh;
+}
+
+.addbutton{
+    background-color: #6BA1F0;
+}
+
+.sectButton img {
+    height: 4vh;
+}
+
+/*Pop-Up*/
+.popUp{
+    position: absolute;
+    top: -150%;
+    left: 50%;
+    opacity: 0;
+    transform:translate(-50%, -50%) scale(1.25);
+    box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
+    background-color: #e6e6e6;
+    width: 60vh;
+    padding: 5vh;
+    border-style: solid;
+    border-color: black;
+    border-width: .35vh;
+    border-radius: 15px;
+    margin-bottom: 10vh;
+    transition: opacity 200ms 200ms ease,
+                transform 1ms 1ms ease,
+                box-shadow .1ms .1ms ease;
+}
+
+.popUp.active {
+    top: 50%;
+    opacity: 1;
+    transform:translate(-50%, -50%) scale(1);
+    transition: opacity 200ms 200ms ease,
+                transform 1ms 1ms ease,
+                box-shadow .1ms .1ms ease;
+}
+
+.popUp .close-btn{
+    position: absolute;
+    top: 1vh;
+    right: 1vh;
+    font-size: 4vh;
+    width: 4vh;
+    height: 4vh;
+    background-color: #cacaca;
+    border-style: solid;
+    border-color: black;
+    border-width: .2vh;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 4.25vh;
+    cursor: pointer;
+}
+
+.popUp h2{
+    text-align: center;
+    font-size: 3vh;
+}
+
+.popUp label, p{
+    font-size: 2vh;
+}
+
+.popUp input[type="text"]{
+    font-size: 2vh;
+    border-radius: 9px;
+    display: block;
+    width: 95%;
+    height: 3vh;
+    padding: 1vh;
+    border-color: #aaa;
+}
+
+.popUp input[type="checkbox"]{
+    width: 2vh;
+    height: 2vh;
+    padding: 1vh;
+}
+
+.popUp .btn[type="submit"]{
+    width: 100%;
+    height: 5vh;
+    background-color: black;
+    color: #f5f5f5;
+    border-radius: 15px;
+    font-size: 2vh;
+}
+
+.popUp input[type = "date"]{
+    font-size: 1.75vh;
+    width: 13vh;
+}
+
+/*Tasks*/
+.taskCont{
+    margin-left: 2.5%;          
+}
+
+#tasks {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 9vh;
+    row-gap: 4vh;
+    list-style: none;
+    justify-content: flex-start;
+}
+
+.taskList{
+    cursor: pointer;
+    list-style: none;
+    background-color: #e9e7e7;
+    border-radius: 10px;
+    border-style: solid;
+    border-color: black;
+    border-width: 3px;
+    height: 15vh;
+    padding: 2vh;
+    width: 30vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
+}
+
+.taskList h2,
+.taskList h4,
+.taskList p{
+    margin: 0vh;
+}
+
+.Personal{color: #3C42BC}
+
+.Urgent{color: #B40E0E}
+
+.Growth{color: #BC773C}
+
+.Academics{color: #507939}
+
+.Interactive{color: #8F3070}
+
+.Social{color: #4AA0BF}
+
+/* Button Effect - Updated */
+#calendarSection {
+    opacity: 1;
+    visibility: visible;
+    transition: visibility .5s, opacity .5s, max-height 0.5s ease-in-out, transform 0.5s ease-in-out;
+    transform: translateY(0);
+    max-height: 500px; /* Give it enough room for the cards */
+    
+    overflow: visible;
+}
+
+.hidden-section {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transform: translateY(-50px);
+    max-height: 0 !important;
+    overflow: hidden !important;
+}
+
+/*Calendar na malaki*/
+.calendarBig{
+    opacity: 1;
+    visibility: visible;
+    transition: visibility .5s, opacity .5s, max-height 0.5s ease-in-out, transform 0.5s ease-in-out;
+    transform: translateY(0);
+    max-height: 500px; /* Give it enough room for the cards */
+    
+    overflow: visible;
+}
+
+.weekdays{
+    margin-left: 2.5vh;
+    width: 190vh;
+}
+
+#weekdayList{
+    display: flex;
+    flex-wrap: wrap;
+    list-style: none;   
+}
+
+#weekdayList li{
+    font-size: 2vh;
+    font-weight: 1000;
+    text-align: center;
+    width: 22.9vh;
+    padding: 1vh;
+}
+
+.days{
+    margin-top: -2vh;
+    margin-left: 4vh;
+    cursor: pointer;
+    list-style: none;
+    background-color: #e9e7e7;
+    border-radius: 10px;
+    border-style: solid;
+    border-color: black;
+    border-width: 3px;
+    padding: 2vh;
+    width: 175vh;
+    min-height: 54vh;
+    box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
+
+    overflow: hidden;
+}
+
+.header{
+    margin-left: 6.5vh;
+    display: flex;
+    justify-content:center;
+    align-items: center;
+    gap: 10vh;
+    padding: 1vh;
+    margin-bottom: 0;
+    margin-top: -7vh;
+    margin-bottom: -3vh;
+}
+
+.btn{
+    cursor: pointer;
+}
+
+.days{
+    display: flex;
+    flex-wrap: wrap;
+    height: 20vh;
+}
+
+.days div{
+    width: 23vh;
+    height: 8vh;
+    text-align: center;
+    padding: 1vh;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+
+}
+
+.days div:hover{
+    background-color: white;
+    color: black;
+}
+
+.days .today{
+    background-color: rgb(49, 98, 204);
+    color: white;
+}
+
+.fade{
+    color: gray;
+}

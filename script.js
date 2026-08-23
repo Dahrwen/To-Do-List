@@ -1,3 +1,8 @@
+const SUPABASE_URL = 'https://hymbrkwlqywczpuosqpb.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_3utGhQnynDTSF2CBVzm9Gg_2BXe-pXN';
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
 const monthsFull = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -67,56 +72,103 @@ const addSubmit = document.getElementById("addSubmit");
 const taskTypes = ["Personal", "Urgent", "Growth", "Academics", "Interactive", "Social"];
 let taskArr = [];
 
-document.getElementById("taskForm").addEventListener("submit", function(e){
+// 1. Function to render tasks array into HTML
+function renderTasksUI() {
+    const tasksContainer = document.getElementById("tasks");
+    tasksContainer.innerHTML = ""; // Clear existing list to prevent duplicates
+
+    taskArr.forEach(task => {
+        const categoryHTML = task.categories
+            .map(cat => `<div class="${cat}">${cat}</div>`)
+            .join('');
+
+        tasksContainer.innerHTML += `
+            <li class="taskList" data-id="${task.id || ''}">
+                <h2>${task.name}</h2>
+                <p class="category-container">
+                    ${categoryHTML}
+                </p>
+                <h4>${task.deadLine}</h4>
+            </li>
+        `;
+    });
+}
+
+// 2. Fetch tasks from Supabase and rebuild taskArr on page load
+async function loadTasks() {
+    const { data: tasks, error } = await supabaseClient
+        .from('Tasks')
+        .select('*');
+
+    if (error) {
+        console.error('Error fetching tasks from Supabase:', error.message);
+        return;
+    }
+
+    // Convert database structure to matches your taskArr objects
+    taskArr = tasks.map(task => {
+        let selectedTypes = [];
+        if (task.Type1) selectedTypes.push(taskTypes[0]);
+        if (task.Type2) selectedTypes.push(taskTypes[1]);
+        if (task.Type3) selectedTypes.push(taskTypes[2]);
+        if (task.Type4) selectedTypes.push(taskTypes[3]);
+        if (task.Type5) selectedTypes.push(taskTypes[4]);
+        if (task.Type6) selectedTypes.push(taskTypes[5]);
+
+        let dateString = "No due date";
+        if (task.Deadline) {
+            let dateObj = new Date(task.Deadline);
+            dateString = dateObj.toDateString().split(' ').slice(1).join(' ');
+        }
+
+        return {
+            id: task.id,
+            name: task.TaskName,
+            categories: selectedTypes,
+            deadLine: dateString
+        };
+    });
+
+    renderTasksUI();
+}
+
+// 3. Submit Handler - Insert into Supabase
+document.getElementById("taskForm").addEventListener("submit", async function(e){
     e.preventDefault(); 
 
-    let selectedTypes = [];
-    
-    // We loop through all checkboxes (type1 to type6)
-    for (let i = 1; i <= 6; i++) {
-        let checkbox = document.getElementById("type" + i);
-        
-        if (checkbox.checked) {
-            selectedTypes.push(taskTypes[i - 1]);
-        }
+    let dateInput = document.getElementById("deadLine").value; // e.g., "2026-01-29"
+
+    // Insert task row directly into Supabase
+    const { data, error } = await supabaseClient
+        .from('Tasks')
+        .insert([
+            {
+                TaskName: document.getElementById("task").value,
+                Type1: document.getElementById("type1").checked,
+                Type2: document.getElementById("type2").checked,
+                Type3: document.getElementById("type3").checked,
+                Type4: document.getElementById("type4").checked,
+                Type5: document.getElementById("type5").checked,
+                Type6: document.getElementById("type6").checked,
+                Deadline: dateInput || null
+            }
+        ]);
+
+    if (error) {
+        console.error("Error inserting task into Supabase:", error.message);
+        return;
     }
 
-    let dateInput = document.getElementById("deadLine").value; // "2026-01-29"
-    let dateObj = new Date(dateInput);
-    let dateString = dateObj.toDateString();
-
-    if(!dateInput){
-        dateString = "No due date";
-    }else{
-        dateString.split(' ').slice(1).join(' ')
-    }
-
-    let newTask = {
-        name: document.getElementById("task").value,
-        categories: selectedTypes, // This now contains ["Urgent", "Social"], etc.
-        deadLine: dateString
-    };
-    taskArr.push(newTask);
-    
-    // UI Cleanup
+    // Reset UI inputs
     document.querySelector(".popUp").classList.remove("active");
     document.getElementById("taskForm").reset();
 
-    // Create a string of HTML elements for the categories
-    const categoryHTML = newTask.categories.map(cat => `<div class = "${cat}">${cat}</div>`).join('');
+    // Re-fetch from DB to display the updated task list
+    loadTasks();
+});
 
-    document.getElementById("tasks").innerHTML += `
-        <li class="taskList">
-            <h2>${newTask.name}</h2>
-            <p class="category-container">
-                ${categoryHTML}
-            </p>
-            <h4>${newTask.deadLine}</h4>
-        </li>
-    `;
-    
-    document.querySelector(".popUp").classList.remove("active");
-})
+// Load existing tasks on startup
+loadTasks();
 
 //Big Callendar
 document.addEventListener('DOMContentLoaded', function(){

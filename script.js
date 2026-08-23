@@ -72,7 +72,7 @@ const addSubmit = document.getElementById("addSubmit");
 const taskTypes = ["Personal", "Urgent", "Growth", "Academics", "Interactive", "Social"];
 let taskArr = [];
 
-// 1. Function to render tasks array into HTML
+//Function to render tasks array into HTML
 function renderTasksUI() {
     const tasksContainer = document.getElementById("tasks");
     tasksContainer.innerHTML = ""; // Clear existing list to prevent duplicates
@@ -94,7 +94,7 @@ function renderTasksUI() {
     });
 }
 
-// 2. Fetch tasks from Supabase and rebuild taskArr on page load
+//Fetch tasks from Supabase and rebuild taskArr on page load
 async function loadTasks() {
     const { data: tasks, error } = await supabaseClient
         .from('Tasks')
@@ -132,11 +132,11 @@ async function loadTasks() {
     renderTasksUI();
 }
 
-// 3. Submit Handler - Insert into Supabase
+//Submit Handler - Insert into Supabase
 document.getElementById("taskForm").addEventListener("submit", async function(e){
     e.preventDefault(); 
 
-    let dateInput = document.getElementById("deadLine").value; // e.g., "2026-01-29"
+    let dateInput = document.getElementById("deadLine").value;
 
     // Insert task row directly into Supabase
     const { data, error } = await supabaseClient

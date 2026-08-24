@@ -92,10 +92,16 @@ function renderTasksUI() {
 }
 
 //Fetch tasks from Supabase and rebuild taskArr on page load
-async function loadTasks() {
-    const { data: tasks, error } = await supabaseClient
+async function loadTasks(searchTask) {
+    query = supabaseClient
         .from('Tasks')
         .select('*');
+
+    if(searchTask && searchTask.trim() != ""){
+        query = query.ilike('TaskName',`%${searchTask.trim()}%`);
+    }
+
+    const { data: tasks, error } = await query
 
     if (error) {
         console.error('Error fetching tasks from Supabase:', error.message);
@@ -162,6 +168,16 @@ document.getElementById("taskForm").addEventListener("submit", async function(e)
 
     // Re-fetch from DB to display the updated task list
     loadTasks();
+});
+
+//Searching for Task
+const searchTask = document.getElementById("searchTextId");
+
+searchTask.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") {
+        loadTasks(searchTask.value);
+        searchTask.value = "";
+    }
 });
 
 // Load existing tasks on startup

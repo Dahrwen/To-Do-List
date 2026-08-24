@@ -1,6 +1,3 @@
-const SUPABASE_URL = 'https://hymbrkwlqywczpuosqpb.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_3utGhQnynDTSF2CBVzm9Gg_2BXe-pXN';
-
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];

@@ -76,7 +76,7 @@ function renderTasksUI() {
 
     taskArr.forEach(task => {
         const categoryHTML = task.categories
-            .map(cat => `<div class="${cat}">${cat}</div>`)
+            .map(cat => `<div style="font-size: 2vh" class="${cat}">${cat}</div>`)
             .join('');
 
         tasksContainer.innerHTML += `

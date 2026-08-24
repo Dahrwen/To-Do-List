@@ -14,7 +14,7 @@ body{
 
 .searchbar{
     background-color: #e6e6e6;
-    width: 143vh;
+    width: 73vw;
     height: 8vh;
     border-radius: 20px;
     border-style: solid;
@@ -225,6 +225,7 @@ th {
 
 /*Pop-Up*/
 .popUp{
+    z-index: 10;
     position: absolute;
     top: -150%;
     left: 50%;
@@ -311,7 +312,7 @@ th {
 
 /*Tasks*/
 .taskCont{
-    margin-left: 2.5%;          
+    margin-left: 5%;       
 }
 
 #tasks {
@@ -333,7 +334,7 @@ th {
     border-width: 3px;
     height: 15vh;
     padding: 2vh;
-    width: 30vh;
+    width: 14.5vw;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -364,7 +365,7 @@ th {
     visibility: visible;
     transition: visibility .5s, opacity .5s, max-height 0.5s ease-in-out, transform 0.5s ease-in-out;
     transform: translateY(0);
-    max-height: 500px; /* Give it enough room for the cards */
+    max-height: 500px;
     
     overflow: visible;
 }
@@ -383,14 +384,14 @@ th {
     visibility: visible;
     transition: visibility .5s, opacity .5s, max-height 0.5s ease-in-out, transform 0.5s ease-in-out;
     transform: translateY(0);
-    max-height: 500px; /* Give it enough room for the cards */
-    
+    max-height: 70vh; 
     overflow: visible;
+    width: 94vw;
 }
 
 .weekdays{
     margin-left: 2.5vh;
-    width: 190vh;
+    width: 95vw;
 }
 
 #weekdayList{
@@ -403,8 +404,9 @@ th {
     font-size: 2vh;
     font-weight: 1000;
     text-align: center;
-    width: 22.9vh;
+    width: 11.4vw;
     padding: 1vh;
+    padding: .5vw;
 }
 
 .days{
@@ -418,7 +420,7 @@ th {
     border-color: black;
     border-width: 3px;
     padding: 2vh;
-    width: 175vh;
+    width: 88vw;
     min-height: 54vh;
     box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
 
@@ -431,7 +433,7 @@ th {
     justify-content:center;
     align-items: center;
     gap: 10vh;
-    padding: 1vh;
+    padding: 0vh;
     margin-bottom: 0;
     margin-top: -7vh;
     margin-bottom: -3vh;
@@ -445,10 +447,11 @@ th {
     display: flex;
     flex-wrap: wrap;
     height: 20vh;
+
 }
 
 .days div{
-    width: 23vh;
+    width: 11.6vw;
     height: 8vh;
     text-align: center;
     padding: 1vh;

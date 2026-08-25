@@ -264,6 +264,7 @@ document.querySelectorAll("#Calendar").forEach(button => {
             document.querySelector("#tasks").classList.remove("hidden-section");
             repeat = false;
         }
+        document.querySelector(".popUp").classList.remove("active");
     };
 });
 
@@ -285,5 +286,6 @@ document.querySelectorAll("#todo").forEach(button => {
             document.querySelector("#tasks").classList.remove("hidden-section");
             repeat = false;
         }
+        document.querySelector(".popUp").classList.remove("active");
     };
 });

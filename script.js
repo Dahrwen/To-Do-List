@@ -72,7 +72,7 @@ let taskArr = [];
 //Function to render tasks array into HTML
 function renderTasksUI() {
     const tasksContainer = document.getElementById("tasks");
-    tasksContainer.innerHTML = ""; // Clear existing list to prevent duplicates
+    tasksContainer.innerHTML = "";
 
     taskArr.forEach(task => {
         const categoryHTML = task.categories
@@ -97,12 +97,28 @@ function renderTasksUI() {
             document.querySelector(".popUp2").classList.add("active2");
             
             const taskId = taskItem.dataset.id;
-            console.log("Clicked task ID:", taskId);
+            editTask(taskId);
         }
     });
 }
 
-//Fetch tasks from Supabase and rebuild taskArr on page load
+async function editTask(taskId){
+    const { data: tasks, error } = await supabaseClient
+            .from('Tasks')
+            .select('*')
+            .eq('id', taskId);
+
+            const task = tasks[0]
+
+            const categoryHTML = task.categories
+
+            document.getElementById("taskDetails").innerHTML = `
+            <h1>${task.TaskName}</h1>
+            <h3>Category</h3>
+            `
+}
+
+//Loads Task
 async function loadTasks(searchTask) {
     query = supabaseClient
         .from('Tasks')
@@ -119,7 +135,7 @@ async function loadTasks(searchTask) {
         return;
     }
 
-    // Convert database structure to matches your taskArr objects
+    // Convert database structure to match taskArr objects
     taskArr = tasks.map(task => {
         let selectedTypes = [];
         if (task.Type1) selectedTypes.push(taskTypes[0]);
@@ -146,13 +162,13 @@ async function loadTasks(searchTask) {
     renderTasksUI();
 }
 
-//Submit Handler - Insert into Supabase
+//Submit Handler
 document.getElementById("taskForm").addEventListener("submit", async function(e){
     e.preventDefault(); 
 
     let dateInput = document.getElementById("deadLine").value;
 
-    // Insert task row directly into Supabase
+    // Insert task
     const { data, error } = await supabaseClient
         .from('Tasks')
         .insert([
@@ -173,11 +189,10 @@ document.getElementById("taskForm").addEventListener("submit", async function(e)
         return;
     }
 
-    // Reset UI inputs
     document.querySelector(".popUp").classList.remove("active");
     document.getElementById("taskForm").reset();
 
-    // Re-fetch from DB to display the updated task list
+    // Rr-Load
     loadTasks();
 });
 

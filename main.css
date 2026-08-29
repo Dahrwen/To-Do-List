@@ -223,13 +223,15 @@ th {
     height: 4vh;
 }
 
-/*Pop-Up*/
+/*Pop-Up Add Task*/
 .popUp{
     z-index: 10;
     position: absolute;
     top: -150%;
     left: 50%;
     opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
     transform:translate(-50%, -50%) scale(1.25);
     box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
     background-color: #e6e6e6;
@@ -248,6 +250,8 @@ th {
 .popUp.active {
     top: 50%;
     opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
     transform:translate(-50%, -50%) scale(1);
     transition: opacity 200ms 200ms ease,
                 transform 1ms 1ms ease,
@@ -473,4 +477,39 @@ th {
 
 .fade{
     color: gray;
+}
+
+/*Pop-Up Add Task*/
+.popUp2{
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    z-index: 10;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1.25);
+    box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
+    background-color: #e6e6e6;
+    width: 40vw;
+    height: 50vh;
+    padding: 5vh;
+    border-style: solid;
+    border-color: black;
+    border-width: .35vh;
+    border-radius: 15px;
+    margin-bottom: 10vh;
+    transition: opacity 200ms 200ms ease,
+                transform 1ms 1ms ease,
+                box-shadow .1ms .1ms ease;
+}
+.popUp2.active2 {
+    top: 50%;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform:translate(-50%, -50%) scale(1);
+    transition: opacity 200ms 200ms ease,
+                transform 1ms 1ms ease,
+                box-shadow .1ms .1ms ease;
 }

@@ -89,6 +89,17 @@ function renderTasksUI() {
             </li>
         `;
     });
+
+    tasksContainer.addEventListener("click", function(event) {
+        const taskItem = event.target.closest(".taskList");
+        
+        if (taskItem) {
+            document.querySelector(".popUp2").classList.add("active2");
+            
+            const taskId = taskItem.dataset.id;
+            console.log("Clicked task ID:", taskId);
+        }
+    });
 }
 
 //Fetch tasks from Supabase and rebuild taskArr on page load

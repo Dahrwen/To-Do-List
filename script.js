@@ -110,11 +110,38 @@ async function editTask(taskId){
 
             const task = tasks[0]
 
-            const categoryHTML = task.categories
+            const currentTaskInArr = taskArr.find(t => t.id == taskId);
+
+            const categoryHTML = currentTaskInArr?.categories
+            ?.map(cat => `<div style="font-size: 2vh" class="${cat}">${cat}</div>`)
+            .join('') || '';
 
             document.getElementById("taskDetails").innerHTML = `
-            <h1>${task.TaskName}</h1>
-            <h3>Category</h3>
+            <form id="editForm">
+                <h1 style = "text-align: center">${task.TaskName}<div style="font-size:2vh; color:#ad1313;">Edit Task</div></h1>
+                <div class = "form-element">
+                    <label for="task">Enter Task Name: </label>
+                    <input type="text" id="etask" required placeholder="${task.TaskName}">
+                    <label>Pick type of task:</label><br>
+                    <label style="font-size: 1.5vh;">(Choose all that applies)</label><br>
+                    <input type="checkbox" id="etype1">
+                    <label for="type1">Personal</label><br>
+                    <input type="checkbox" id="etype2">
+                    <label for="type2">Urgent</label><br>
+                    <input type="checkbox" id="etype3">
+                    <label for="type3">Growth</label><br>
+                    <input type="checkbox" id="etype4">
+                    <label for="type4">Academics</label><br>
+                    <input type="checkbox" id="etype5">
+                    <label for="type5">Interactive</label><br>
+                    <input type="checkbox" id="etype6">
+                    <label for="type6">Social</label><br>
+                    <label for="deadLine">Deadline: </label>
+                    <input type="date" id="edeadLine"><br><br>
+                    <button id="" type="submit" class="btn">Submit</button>
+                    <button id="" type="reset" class="btn">Reset</button>
+                </div>
+            </form>
             `
 }
 

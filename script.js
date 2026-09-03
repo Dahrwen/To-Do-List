@@ -111,13 +111,13 @@ async function editTask(taskId){
             const task = tasks[0]
 
             const currentTaskInArr = taskArr.find(t => t.id == taskId);
+            document.getElementById("editForm").dataset.taskId = taskId;
 
             const categoryHTML = currentTaskInArr?.categories
             ?.map(cat => `<div style="font-size: 2vh" class="${cat}">${cat}</div>`)
             .join('') || '';
 
-            document.getElementById("taskDetails").innerHTML = `
-            <form id="editForm">
+            document.getElementById("editForm").innerHTML = `
                 <h1 style = "text-align: center">${task.TaskName}<div style="font-size:2vh; color:#ad1313;">Edit Task</div></h1>
                 <div class = "form-element">
                     <label for="task">Enter Task Name: </label>
@@ -141,7 +141,6 @@ async function editTask(taskId){
                     <button id="" type="submit" class="btn">Submit</button>
                     <button id="" type="reset" class="btn">Reset</button>
                 </div>
-            </form>
             `
 }
 
@@ -218,6 +217,43 @@ document.getElementById("taskForm").addEventListener("submit", async function(e)
 
     document.querySelector(".popUp").classList.remove("active");
     document.getElementById("taskForm").reset();
+
+    // Rr-Load
+    loadTasks();
+});
+
+//Edit Handler
+document.getElementById("editForm").addEventListener("submit", async function(e){
+    e.preventDefault(); 
+
+    let dateInput = document.getElementById("edeadLine").value;
+    const taskId = this.dataset.taskId;
+
+    // Insert task
+    const { data, error } = await supabaseClient
+        .from('Tasks')
+        .update([
+            {
+                TaskName: document.getElementById("etask").value,
+                Type1: document.getElementById("etype1").checked,
+                Type2: document.getElementById("etype2").checked,
+                Type3: document.getElementById("etype3").checked,
+                Type4: document.getElementById("etype4").checked,
+                Type5: document.getElementById("etype5").checked,
+                Type6: document.getElementById("etype6").checked,
+                Deadline: dateInput || null
+            }
+        ])
+        .eq('id', taskId);
+
+    if (error) {
+        console.error("Error inserting task into Supabase:", error.message);
+        return;
+    }
+
+    //doesn't work yet
+    document.querySelector(".popUp2").classList.remove("active2");
+    document.getElementById("editForm").reset();
 
     // Rr-Load
     loadTasks();

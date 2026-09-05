@@ -137,7 +137,10 @@ async function editTask(taskId){
                     <input type="checkbox" id="etype6">
                     <label for="type6">Social</label><br>
                     <label for="deadLine">Deadline: </label>
-                    <input type="date" id="edeadLine"><br><br>
+                    <input type="date" id="edeadLine"><br>
+                    <label for="edescription">Add a description: </label>
+                    <textarea id="edescription" rows="3" placeholder="Add a comment..."></textarea>
+
                     <button id="" type="submit" class="btn">Submit</button>
                     <button id="" type="reset" class="btn">Reset</button>
                 </div>

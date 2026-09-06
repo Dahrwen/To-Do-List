@@ -61,6 +61,15 @@ document.querySelector(".popUp .close-btn").addEventListener("click", function()
     document.querySelector(".popUp").classList.remove("active");
 });
 
+document.querySelector(".popUp2 .close-btn").addEventListener("click", function(){
+    document.querySelector(".popUp2").classList.remove("active2");
+});
+
+document.querySelector(".popUpDesc .close-btn").addEventListener("click", function(){
+    document.querySelector(".popUpDesc").classList.remove("activeDesc");
+});
+
+
 const minDate = currentDate.toISOString().split('T')[0]; 
 document.getElementById("deadLine").setAttribute("min", minDate);
 
@@ -94,12 +103,61 @@ function renderTasksUI() {
         const taskItem = event.target.closest(".taskList");
         
         if (taskItem) {
-            document.querySelector(".popUp2").classList.add("active2");
+            document.querySelector(".popUpDesc").classList.add("activeDesc");
             
             const taskId = taskItem.dataset.id;
-            editTask(taskId);
+            taskDesc(taskId);
         }
     });
+}
+
+async function taskDesc(taskId){
+    const { data: tasks, error } = await supabaseClient
+            .from('Tasks')
+            .select('*')
+            .eq('id', taskId);
+
+            const task = tasks[0]
+
+            const currentTaskInArr = taskArr.find(t => t.id == taskId);
+            document.getElementById("editForm").dataset.taskId = taskId;
+
+            const categoryHTML = currentTaskInArr?.categories
+            ?.map(cat => `<li style="font-size: 2.5vh" class="${cat}">${cat}</li>`)
+            .join('') || '';
+
+            let Description
+            if(!task.Description){
+                Description = "Edit to add description"
+            }else{
+                Description = task.Description
+            }
+
+            let Deadline
+            if (!task.Deadline){
+                Deadline = "No Due Date";
+            }else{
+                Deadline = task.Deadline;
+            }
+
+            document.getElementById("taskDesc").innerHTML = `
+            <h1 style = "text-align: center">Task Details</h1>
+            <p><b>Task Name: </b>${task.TaskName}</p>
+            <ul>${categoryHTML}</ul>
+            <p><b>Deadline: </b>${Deadline}</p>
+            <b>Task Description:</b>
+            <p style="font-size:2vh">${Description}<p>
+            <button class="eButton" id="editButton">Edit</button>
+            <img style="height: 5vh; position: absolute; bottom: 4vh; right: 2vh;" src="Pictures/TrashCan.png">
+            `
+
+            document.getElementById("taskDesc").addEventListener("click", function(e){
+                    e.preventDefault();
+                    document.querySelector(".popUp2").classList.add("active2");
+                    document.querySelector(".popUpDesc").classList.remove("activeDesc");
+                    editTask(taskId);
+
+            })
 }
 
 async function editTask(taskId){
@@ -112,10 +170,6 @@ async function editTask(taskId){
 
             const currentTaskInArr = taskArr.find(t => t.id == taskId);
             document.getElementById("editForm").dataset.taskId = taskId;
-
-            const categoryHTML = currentTaskInArr?.categories
-            ?.map(cat => `<div style="font-size: 2vh" class="${cat}">${cat}</div>`)
-            .join('') || '';
 
             document.getElementById("editForm").innerHTML = `
                 <h1 style = "text-align: center">${task.TaskName}<div style="font-size:2vh; color:#ad1313;">Edit Task</div></h1>
@@ -141,8 +195,8 @@ async function editTask(taskId){
                     <label for="edescription">Add a description: </label>
                     <textarea id="edescription" rows="3" placeholder="Add a comment..."></textarea>
 
-                    <button id="" type="submit" class="btn">Submit</button>
-                    <button id="" type="reset" class="btn">Reset</button>
+                    <button type="submit" class="btn">Submit</button>
+                    <button type="reset" class="btn">Reset</button>
                 </div>
             `
 }
@@ -244,7 +298,8 @@ document.getElementById("editForm").addEventListener("submit", async function(e)
                 Type4: document.getElementById("etype4").checked,
                 Type5: document.getElementById("etype5").checked,
                 Type6: document.getElementById("etype6").checked,
-                Deadline: dateInput || null
+                Deadline: dateInput || null,
+                Description: document.getElementById("edescription").value
             }
         ])
         .eq('id', taskId);

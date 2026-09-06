@@ -330,7 +330,7 @@ form input[type = "date"]{
     border-radius: 8px;
     outline: none;
     font-family: inherit;
-    font-size: 1rem;
+    font-size: 2vh;
     box-sizing: border-box;
     background-color: #ffffff;
     min-height: 80px;
@@ -503,7 +503,7 @@ form input[type = "date"]{
     color: gray;
 }
 
-/*Pop-Up Add Task*/
+/*Pop-Up Edit Task*/
 .popUp2{
     opacity: 0;
     visibility: hidden;
@@ -516,7 +516,7 @@ form input[type = "date"]{
     box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
     background-color: #e6e6e6;
     width: 30vw;
-    height: 69vh;
+    height: 70vh;
     padding: 5vh;
     padding-top: 2vh;
     border-style: solid;
@@ -537,4 +537,140 @@ form input[type = "date"]{
     transition: opacity 200ms 200ms ease,
                 transform 1ms 1ms ease,
                 box-shadow .1ms .1ms ease;
+}
+
+.popUp2 .close-btn{
+    position: absolute;
+    top: 1vh;
+    right: 1vh;
+    font-size: 4vh;
+    width: 4vh;
+    height: 4vh;
+    background-color: #cacaca;
+    border-style: solid;
+    border-color: black;
+    border-width: .2vh;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 4.25vh;
+    cursor: pointer;
+}
+
+/*PopUp Description*/
+
+.popUpDesc{
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    z-index: 10;
+    position: absolute;
+    top: -150%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1.25);
+    box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
+    background-color: #e6e6e6;
+    width: 30vw;
+    height: 43vh;
+    padding: 5vh;
+    padding-top: 2vh;
+    border-style: solid;
+    border-color: black;
+    border-width: .35vh;
+    border-radius: 15px;
+    margin-bottom: 10vh;
+    transition: opacity 200ms 200ms ease,
+                transform 1ms 1ms ease,
+                box-shadow .1ms .1ms ease;
+}
+.popUpDesc.activeDesc {
+    top: 50%;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform:translate(-50%, -50%) scale(1);
+    transition: opacity 200ms 200ms ease,
+                transform 1ms 1ms ease,
+                box-shadow .1ms .1ms ease;
+}
+
+.popUpDesc b, p{
+    font-size: 3vh;
+    margin-bottom: .5vh;
+    margin-top: .5vh;
+}
+
+.popUpDesc ul{
+    display: flex;
+    flex-direction: row; 
+    gap: 10px; 
+    padding: 0; 
+    margin: 0;
+}
+
+.popUpDesc li {
+    list-style: none;
+    border: solid 2px black;
+    border-radius: 15px;
+    padding: 2px;
+    padding-left: 1vw;
+    padding-right: 1vw;
+}
+
+.popUpDesc .Personal{
+    background-color: #969ae9;
+    color: black;
+}
+
+.popUpDesc .Urgent{
+    background-color: #ff7171;
+    color: black;
+}
+
+.popUpDesc .Growth{
+    background-color: #f8af6e;
+    color: black;
+}
+
+.popUpDesc .Academics{
+    background-color: #a4f079;
+    color: black;
+}
+
+.popUpDesc .Interactive{
+    background-color: #fd7ed3;
+    color: black;
+}
+
+.popUpDesc .Social{
+    background-color: #83deff;
+    color: black;
+}
+
+.popUpDesc .close-btn{
+    position: absolute;
+    top: 1vh;
+    right: 1vh;
+    font-size: 4vh;
+    width: 4vh;
+    height: 4vh;
+    background-color: #cacaca;
+    border-style: solid;
+    border-color: black;
+    border-width: .2vh;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 4.25vh;
+    cursor: pointer;
+}
+
+.eButton{
+    width: 20%;
+    height: 5vh;
+    background-color: rgb(8, 8, 8);
+    color: #f5f5f5;
+    border-radius: 15px;
+    font-size: 2vh;
+    position: absolute;
+    bottom: 4vh;
+    left: 5vh;
 }

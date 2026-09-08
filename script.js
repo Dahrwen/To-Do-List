@@ -5,7 +5,7 @@ const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", 
 const monthsFull = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 let currentDate = new Date();
 
-for(let x = 0; x < 14 ; x++){
+for (let x = 0; x < 14; x++) {
     let d = new Date();
     d.setDate(currentDate.getDate() + x);
 
@@ -25,7 +25,7 @@ let isDragging = false, startX, startScrollLeft;
 // Calculate scroll distance dynamically on click instead of a fixed initial calculation
 // This ensures scrolling always moves by exactly one card width on any monitor resolution
 arrowBtns.forEach(btn => {
-    btn.addEventListener ("click", () =>{
+    btn.addEventListener("click", () => {
         const firstCard = carousel.querySelector(".card");
         if (!firstCard) return;
         const carouselStyle = window.getComputedStyle(carousel);
@@ -44,7 +44,7 @@ const dragStart = (e) => {
 }
 
 const dragging = (e) => {
-    if(!isDragging) return; //Stop when not dragging
+    if (!isDragging) return; //Stop when not dragging
     //Updates the scroll position
     carousel.scrollLeft = startScrollLeft - (e.pageX - startX);
 }
@@ -58,23 +58,23 @@ carousel.addEventListener("mousemove", dragging);
 document.addEventListener("mouseup", dragStop);
 
 //popUp button
-document.querySelector("#addTask").addEventListener("click", function(){
+document.querySelector("#addTask").addEventListener("click", function () {
     document.querySelector(".popUp").classList.add("active");
 });
-document.querySelector(".popUp .close-btn").addEventListener("click", function(){
+document.querySelector(".popUp .close-btn").addEventListener("click", function () {
     document.querySelector(".popUp").classList.remove("active");
 });
 
-document.querySelector(".popUp2 .close-btn").addEventListener("click", function(){
+document.querySelector(".popUp2 .close-btn").addEventListener("click", function () {
     document.querySelector(".popUp2").classList.remove("active2");
 });
 
-document.querySelector(".popUpDesc .close-btn").addEventListener("click", function(){
+document.querySelector(".popUpDesc .close-btn").addEventListener("click", function () {
     document.querySelector(".popUpDesc").classList.remove("activeDesc");
 });
 
 
-const minDate = currentDate.toISOString().split('T')[0]; 
+const minDate = currentDate.toISOString().split('T')[0];
 document.getElementById("deadLine").setAttribute("min", minDate);
 
 const addSubmit = document.getElementById("addSubmit");
@@ -103,48 +103,47 @@ function renderTasksUI() {
         `;
     });
 
-    tasksContainer.addEventListener("click", function(event) {
+    tasksContainer.addEventListener("click", function (event) {
         const taskItem = event.target.closest(".taskList");
-        
+
         if (taskItem) {
             document.querySelector(".popUpDesc").classList.add("activeDesc");
-            
-            const taskId = taskItem.dataset.id;
+            let taskId = null;
+            taskId = taskItem.dataset.id;
             taskDesc(taskId);
         }
     });
 }
 
-async function taskDesc(taskId){
+async function taskDesc(taskId) {
     const { data: tasks, error } = await supabaseClient
-            .from('Tasks')
-            .select('*')
-            .eq('id', taskId);
+        .from('Tasks')
+        .select('*')
+        .eq('id', taskId);
 
-            const task = tasks[0]
+    const task = tasks[0]
 
-            const currentTaskInArr = taskArr.find(t => t.id == taskId);
-            document.getElementById("editForm").dataset.taskId = taskId;
+    const currentTaskInArr = taskArr.find(t => t.id == taskId);
 
-            const categoryHTML = currentTaskInArr?.categories
-            ?.map(cat => `<li style="font-size: 2.5vh" class="${cat}">${cat}</li>`)
-            .join('') || '';
+    const categoryHTML = currentTaskInArr?.categories
+        ?.map(cat => `<li style="font-size: 2.5vh" class="${cat}">${cat}</li>`)
+        .join('') || '';
 
-            let Description
-            if(!task.Description){
-                Description = "Edit to add description"
-            }else{
-                Description = task.Description
-            }
+    let Description
+    if (!task.Description) {
+        Description = "Edit to add description"
+    } else {
+        Description = task.Description
+    }
 
-            let Deadline
-            if (!task.Deadline){
-                Deadline = "No Due Date";
-            }else{
-                Deadline = task.Deadline;
-            }
+    let Deadline
+    if (!task.Deadline) {
+        Deadline = "No Due Date";
+    } else {
+        Deadline = task.Deadline;
+    }
 
-            document.getElementById("taskDesc").innerHTML = `
+    document.getElementById("taskDesc").innerHTML = `
             <h1 style = "text-align: center">Task Details</h1>
             <p><b>Task Name: </b>${task.TaskName}</p>
             <ul>${categoryHTML}</ul>
@@ -156,27 +155,23 @@ async function taskDesc(taskId){
             <img style="height: clamp(26px, 4vh, 34px); position: absolute; bottom: 20px; right: 24px; cursor: pointer;" src="Pictures/TrashCan.png">
             `
 
-            document.getElementById("taskDesc").addEventListener("click", function(e){
-                    e.preventDefault();
-                    document.querySelector(".popUp2").classList.add("active2");
-                    document.querySelector(".popUpDesc").classList.remove("activeDesc");
-                    editTask(taskId);
-
-            })
+    document.getElementById("editButton").addEventListener("click", function (e) {
+        e.preventDefault();
+        document.querySelector(".popUp2").classList.add("active2");
+        document.querySelector(".popUpDesc").classList.remove("activeDesc");
+        editTask(taskId);
+    }, { once: true });
 }
 
-async function editTask(taskId){
+async function editTask(taskId) {
     const { data: tasks, error } = await supabaseClient
-            .from('Tasks')
-            .select('*')
-            .eq('id', taskId);
+        .from('Tasks')
+        .select('*')
+        .eq('id', taskId);
 
-            const task = tasks[0]
+    const task = tasks[0]
 
-            const currentTaskInArr = taskArr.find(t => t.id == taskId);
-            document.getElementById("editForm").dataset.taskId = taskId;
-
-            document.getElementById("editForm").innerHTML = `
+    document.getElementById("editForm").innerHTML = `
                 <h1 style = "text-align: center">${task.TaskName}<div style="font-size:2vh; color:#ad1313;">Edit Task</div></h1>
                 <div class = "form-element">
                     <label for="task">Enter Task Name: </label>
@@ -212,8 +207,8 @@ async function loadTasks(searchTask) {
         .from('Tasks')
         .select('*');
 
-    if(searchTask && searchTask.trim() != ""){
-        query = query.ilike('TaskName',`%${searchTask.trim()}%`);
+    if (searchTask && searchTask.trim() != "") {
+        query = query.ilike('TaskName', `%${searchTask.trim()}%`);
     }
 
     const { data: tasks, error } = await query
@@ -251,8 +246,8 @@ async function loadTasks(searchTask) {
 }
 
 //Submit Handler
-document.getElementById("taskForm").addEventListener("submit", async function(e){
-    e.preventDefault(); 
+document.getElementById("taskForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
 
     let dateInput = document.getElementById("deadLine").value;
 
@@ -285,8 +280,8 @@ document.getElementById("taskForm").addEventListener("submit", async function(e)
 });
 
 //Edit Handler
-document.getElementById("editForm").addEventListener("submit", async function(e){
-    e.preventDefault(); 
+document.getElementById("editForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
 
     let dateInput = document.getElementById("edeadLine").value;
     const taskId = this.dataset.taskId;
@@ -325,7 +320,7 @@ document.getElementById("editForm").addEventListener("submit", async function(e)
 //Searching for Task
 const searchTask = document.getElementById("searchTextId");
 
-searchTask.addEventListener("keydown", function(e) {
+searchTask.addEventListener("keydown", function (e) {
     if (e.key === "Enter") {
         loadTasks(searchTask.value);
         searchTask.value = "";
@@ -336,14 +331,14 @@ searchTask.addEventListener("keydown", function(e) {
 loadTasks();
 
 //Big Callendar
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', function () {
     const monthYear = document.getElementById('month-year');
     const daysCont = document.getElementById('days');
     const prevButton = document.getElementById('prev');
     const nextButton = document.getElementById('next');
-    
+
     let today = new Date();
-    function renderCalendar(date){
+    function renderCalendar(date) {
         const year = date.getFullYear();
         const month = date.getMonth();
         const firstDay = new Date(year, month, 1).getDay();
@@ -355,7 +350,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
         //Prev Month
         const prevMonthLastDay = new Date(year, month, 0).getDate();
-        for(let i = firstDay; i > 0; i--){
+        for (let i = firstDay; i > 0; i--) {
             const dayDiv = document.createElement('div');
             dayDiv.textContent = prevMonthLastDay - i + 1;
             dayDiv.classList.add('fade');
@@ -363,10 +358,10 @@ document.addEventListener('DOMContentLoaded', function(){
         }
 
         //Current Month
-        for(let i = 1; i <= lastDay; i++){
+        for (let i = 1; i <= lastDay; i++) {
             const dayDiv = document.createElement('div');
             dayDiv.textContent = i;
-            if(i==today.getDate() && month == today.getMonth() && year == today.getFullYear()){
+            if (i == today.getDate() && month == today.getMonth() && year == today.getFullYear()) {
                 dayDiv.classList.add('today');
             }
             daysCont.appendChild(dayDiv);
@@ -374,7 +369,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
         //Next Month
         const nextMonthStartDay = 7 - new Date(year, month + 1, 0).getDay() - 1;
-        for(let i = 1; i <= nextMonthStartDay; i++){
+        for (let i = 1; i <= nextMonthStartDay; i++) {
             const dayDiv = document.createElement('div');
             dayDiv.textContent = i;
             dayDiv.classList.add('fade');
@@ -383,34 +378,34 @@ document.addEventListener('DOMContentLoaded', function(){
 
     }
 
-    prevButton.addEventListener('click', function(){
+    prevButton.addEventListener('click', function () {
         currentDate.setMonth(currentDate.getMonth() - 1);
         renderCalendar(currentDate);
     })
 
-    nextButton.addEventListener('click', function(){
+    nextButton.addEventListener('click', function () {
         currentDate.setMonth(currentDate.getMonth() + 1);
         renderCalendar(currentDate);
     })
 
     renderCalendar(currentDate);
-}) 
+})
 
 
 //Button Effect of doom
 let repeat = false;
 
 document.querySelectorAll("#Calendar").forEach(button => {
-    button.onclick = function(e) {
+    button.onclick = function (e) {
         const calendar = document.getElementById("calendarSection");
         const buttonClicked = e.target.id;
 
-        if(repeat == false){
+        if (repeat == false) {
             calendar.classList.add("hidden-section");
             document.querySelector("#tasks").classList.add("hidden-section");
             document.querySelector(".calendarBig").classList.remove("hidden-section");
             repeat = true;
-        }else{
+        } else {
             calendar.classList.remove("hidden-section");
             document.querySelector(".calendarBig").classList.add("hidden-section");
             document.querySelector("#tasks").classList.remove("hidden-section");
@@ -423,16 +418,16 @@ document.querySelectorAll("#Calendar").forEach(button => {
 let repeat2 = repeat;
 
 document.querySelectorAll("#todo").forEach(button => {
-    button.onclick = function(e) {
+    button.onclick = function (e) {
         const calendar = document.getElementById("calendarSection");
         const buttonClicked = e.target.id;
 
-        if(repeat == false){
+        if (repeat == false) {
             calendar.classList.add("hidden-section");
             document.querySelector(".calendarBig").classList.add("hidden-section");
             document.querySelector("#tasks").classList.remove("hidden-section");
             repeat = true;
-        }else{
+        } else {
             calendar.classList.remove("hidden-section");
             document.querySelector(".calendarBig").classList.add("hidden-section");
             document.querySelector("#tasks").classList.remove("hidden-section");

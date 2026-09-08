@@ -1,124 +1,177 @@
-body{
+/* Global Box-Sizing: ensures padding and borders are included in element dimensions, preventing layout overflow across different screen sizes */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
     font-family: 'Poppins', 'sans serif';
     margin-top: 1vh;
     background-color: #f1f1f1;
+    /* Responsive side margins: 3% on both sides centers the content cleanly without horizontal overflow */
     margin-left: 3%;
-    margin-right: 7%;
+    margin-right: 3%;
     user-select: none;
+    /* Prevent accidental horizontal scrollbars when resizing or on different aspect-ratio monitors */
+    overflow-x: hidden;
 }
 
 /*TOP searchbar etc*/
-.topbar{
-    margin-left: 1%;
+.topbar {
+    /* Use 100% of container width so it aligns naturally with the rest of the page */
+    width: 100%;
 }
 
-.searchbar{
+.topbar table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* Auto-width allows the search column to expand across available space */
+.searchCol {
+    width: auto;
+    /* Clean spacing between the search bar and the profile email, removing unnecessary white space on the left of email */
+    padding-right: clamp(12px, 2vw, 28px);
+}
+
+/* 1% width tightly shrink-wraps the email profile column, eliminating empty white space on its left */
+.profileCol {
+    width: 1%;
+    white-space: nowrap;
+    padding-left: 0;
+}
+
+.searchbar {
     background-color: #e6e6e6;
-    width: 73vw;
-    height: 8vh;
+    /* 100% width fills the header column; clamp maintains the original chunky 8vh height across all screen resolutions */
+    width: 100%;
+    height: clamp(64px, 8vh, 85px);
     border-radius: 20px;
     border-style: solid;
     border-color: black;
     border-width: 3px;
-    padding-left: 1vh;
+    padding-left: clamp(10px, 1vh, 16px);
+    padding-right: clamp(12px, 1.2vh, 18px);
     display: flex;
     align-items: center;
 }
 
-.searchBox{
+.searchBox {
     background-color: #e6e6e6;
     border: none;
     outline: none;
     font-family: 'Jeju Gothic', sans-serif;
     font-weight: 300;
-    font-size: 4vh;
+    /* Restored original bold 4vh font size with clamp so it scales appropriately across monitor sizes */
+    font-size: clamp(24px, 4vh, 38px);
     display: inline;
     width: 100%;
+    padding-left: 6px;
 }
 
-.searchButton{
+.searchButton {
     outline: none;
     background-color: #e6e6e6;
     border: none;
-}
-
-img.logo{
-    width: 7vh;
-    height: 7vh;
-}
-
-.gmailp{
+    cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 1vh;
+    padding: 0;
 }
 
-.gmailp p{
+img.logo {
+    /* Restored original prominent 7vh icon sizing with clamp */
+    width: clamp(46px, 7vh, 65px);
+    height: clamp(46px, 7vh, 65px);
+    object-fit: contain;
+}
+
+.gmailp {
+    display: flex;
+    align-items: center;
+    gap: clamp(8px, 1vh, 16px);
+    /* Keeps user email and icon on a single line on narrower monitor widths */
+    white-space: nowrap;
+}
+
+.gmailp p {
     font-family: 'Jeju Gothic', sans-serif;
     color: rgb(0, 0, 0);
     font-weight: 300;
-    font-size: 3vh;
+    /* Restored original 3vh profile font size with clamp */
+    font-size: clamp(20px, 3vh, 30px);
     display: inline;
+    margin: 0;
 }
 
 th {
-    padding: 2vh;              
-    text-align: left;         
+    /* Restored original 2vh padding with clamp */
+    padding: clamp(10px, 2vh, 20px);
+    text-align: left;
     vertical-align: middle;
 }
 
 /*Days Cards*/
 .container {
-    display: flex;           
-    justify-content: center; 
+    display: flex;
+    justify-content: center;
 }
 
 .child {
     background-color: inherit;
-    padding-left: 4vh;
-    padding-right: 0;
+    padding: 0;
 }
 
-.wrapper{
+.wrapper {
     box-sizing: border-box;
-    max-width: 90%;
+    /* Full width within container; padding-inline reserves space for the < and > navigation buttons */
+    width: 100%;
     position: relative;
-    margin-left: 14vh;
+    margin: 1.5vh 0 2vh 0;
+    padding: 0 45px;
 }
 
-.wrapper .carousel{
+.wrapper .carousel {
     display: grid;
     grid-auto-flow: column;
-    grid-auto-columns: calc((100% / 6) - .6%);
-    gap: 1.1vh;
+    /* Calculates 6 equal columns accounting for the wider 22px gaps between cards */
+    grid-auto-columns: calc((100% - (5 * 22px)) / 6);
+    /* Widened gap between calendar cards as requested for a cleaner, more spacious look */
+    gap: 22px;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
-    scrollbar-width: 0;
+    scrollbar-width: none;
     scroll-behavior: smooth;
-    margin-left: -3.7vh;
-    height: 22vh;
+    height: auto;
+    /* Minimum height accommodates the 185px card height and card drop-shadow */
+    min-height: 215px;
+    /* Padding accommodates card box-shadow without clipping */
+    padding: 6px 4px 18px 4px;
 }
 
-.carousel::-webkit-scrollbar{
+.carousel::-webkit-scrollbar {
     display: none;
 }
 
 .wrapper h2,
 .wrapper h4,
 .wrapper p,
-.wrapper b{
+.wrapper b {
     margin: 0;
 }
 
-.wrapper p{
+.wrapper p {
     color: rgb(201, 15, 15);
 }
 
-.wrapper b{
-    display: inline-block;
-    height: 5vh;
-    width: 5vh;
-    line-height: 5vh;
+.wrapper b {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Responsive circle button size */
+    height: clamp(34px, 4.5vh, 42px);
+    width: clamp(34px, 4.5vh, 42px);
     background-color: #e9e7e7;
     border-radius: 50%;
     text-align: center;
@@ -128,19 +181,22 @@ th {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    box-shadow: 0, 3px, 6px, rgba(0, 0, 0, 0.356);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.356);
     cursor: pointer;
     user-select: none;
+    z-index: 2;
 }
 
-.wrapper b:first-child{
-    left: -9vh
-}
-.wrapper b:last-child{
-    right: -5.5vh
+/* Positioned cleanly inside wrapper padding so arrows never clip or float off-screen */
+.wrapper b:first-child {
+    left: 2px;
 }
 
-.carousel .card{
+.wrapper b:last-child {
+    right: 2px;
+}
+
+.carousel .card {
     cursor: pointer;
     list-style: none;
     background-color: #e9e7e7;
@@ -148,103 +204,140 @@ th {
     border-style: solid;
     border-color: black;
     border-width: 3px;
-    height: 18vh;
-    padding: 1vh;
-    max-width: 20vh;
+    /* Height matched to the reference screenshot: squarish proportions with room for future content */
+    height: 185px;
+    padding: clamp(10px, 1.5vh, 16px);
     box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
 }
 
-.carousel.dragging{
+.carousel.dragging {
     scroll-behavior: auto;
 }
 
-.carousel.dragging .card{
-    cursor:grab;
+.carousel.dragging .card {
+    cursor: grab;
     user-select: none;
 }
 
-@media screen and (max-width: 200vh){
-    .wrapper .carousel{
-        grid-auto-columns: calc((100% / 5) - .6%);
+/* Breakpoints based on screen width (px) instead of viewport height (vh) for correct responsive behavior */
+@media screen and (max-width: 1200px) {
+    .wrapper .carousel {
+        /* Shows 5 cards on smaller laptops or narrower windows with spacious gaps */
+        grid-auto-columns: calc((100% - (4 * 18px)) / 5);
+        gap: 18px;
     }
 }
 
-@media screen and (max-width: 160vh){
-    .wrapper .carousel{
-        grid-auto-columns: calc((100% / 4) - .6%);
+@media screen and (max-width: 992px) {
+    .wrapper .carousel {
+        /* Shows 4 cards on tablets or medium screens */
+        grid-auto-columns: calc((100% - (3 * 16px)) / 4);
+        gap: 16px;
     }
 }
 
-@media screen and (max-width: 130vh){
-    .wrapper .carousel{
-        grid-auto-columns: calc((100% / 3) - .6%);
+@media screen and (max-width: 768px) {
+    .wrapper .carousel {
+        /* Shows 3 cards on compact screens */
+        grid-auto-columns: calc((100% - (2 * 14px)) / 3);
+        gap: 14px;
     }
 }
 
-@media screen and (max-width: 100vh){
-    .wrapper .carousel{
-        grid-auto-columns: calc((100% / 2) - .6%);
+@media screen and (max-width: 520px) {
+    .wrapper .carousel {
+        /* Shows 2 cards on mobile */
+        grid-auto-columns: calc((100% - 12px) / 2);
+        gap: 12px;
     }
 }
 
-@media screen and (max-width: 65vh){
-    .wrapper .carousel{
-        grid-auto-columns: 100%;
+@media screen and (max-width: 768px) {
+    .wrapper .carousel {
+        /* Shows 3 cards on compact screens */
+        grid-auto-columns: calc((100% - (2 * 10px)) / 3);
+    }
+}
+
+@media screen and (max-width: 520px) {
+    .wrapper .carousel {
+        /* Shows 2 cards on mobile */
+        grid-auto-columns: calc((100% - 8px) / 2);
     }
 }
 
 /*Buttons*/
-.sectButton{
-    margin-left: 4.7vh;
+.sectButton {
+    /* Flexible spacing aligns buttons with the grid without fixed negative offsets */
+    margin-left: 1%;
+    margin-top: 1vh;
+    margin-bottom: 2.5vh;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
 }
 
-.mybutton{
-    margin-left: 2vh;
-    height: 6vh;
-    width: 20vh;
+.mybutton {
+    margin-left: 0;
+    /* Responsive height and min-width with clamp prevents cramped text on smaller monitors */
+    height: clamp(40px, 5.5vh, 48px);
+    min-width: clamp(130px, 11vw, 165px);
+    padding: 0 clamp(12px, 1.5vw, 18px);
     background-color: #e9e7e7;
     cursor: pointer;
-    border-radius: 1vh;
-    border-width: .35vh;
+    border-radius: 10px;
+    border-width: 3px;
+    border-style: solid;
     border-color: black;
-    font-size: 2vh;
+    font-size: clamp(14px, 1.8vh, 17px);
+    font-family: inherit;
 
-    display: inline-flex;         
-    align-items: center;        
+    display: inline-flex;
+    align-items: center;
     justify-content: center;
-    gap: 1vh;
+    gap: 8px;
+    box-shadow: 1px 3px 6px rgba(0, 0, 0, 0.15);
 }
 
-.addbutton{
+.addbutton {
     background-color: #6BA1F0;
 }
 
 .sectButton img {
-    height: 4vh;
+    /* Responsive icon height */
+    height: clamp(20px, 3vh, 26px);
+    width: auto;
 }
 
 /*Pop-Up Add Task*/
-.popUp{
+.popUp {
     z-index: 10;
-    position: absolute;
+    /* Fixed positioning ensures modal is always centered in the viewport, regardless of scroll position */
+    position: fixed;
     top: -150%;
     left: 50%;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transform:translate(-50%, -50%) scale(1.25);
+    transform: translate(-50%, -50%) scale(1.25);
     box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
     background-color: #e6e6e6;
-    width: 30vw;
-    padding: 5vh;
+    /* Responsive width and max-height with scroll prevents cutoff on small laptop screens */
+    width: clamp(340px, 32vw, 500px);
+    max-width: 92vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: clamp(20px, 3.5vh, 36px);
     border-style: solid;
     border-color: black;
-    border-width: .35vh;
+    border-width: 3px;
     border-radius: 15px;
-    margin-bottom: 10vh;
     transition: opacity 200ms 200ms ease,
-                transform 1ms 1ms ease,
-                box-shadow .1ms .1ms ease;
+        transform 1ms 1ms ease,
+        box-shadow .1ms .1ms ease;
 }
 
 .popUp.active {
@@ -252,75 +345,90 @@ th {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
-    transform:translate(-50%, -50%) scale(1);
+    transform: translate(-50%, -50%) scale(1);
     transition: opacity 200ms 200ms ease,
-                transform 1ms 1ms ease,
-                box-shadow .1ms .1ms ease;
+        transform 1ms 1ms ease,
+        box-shadow .1ms .1ms ease;
 }
 
-.popUp .close-btn{
+/* Standardized responsive close button across all modals */
+.popUp .close-btn,
+.popUp2 .close-btn,
+.popUpDesc .close-btn {
     position: absolute;
-    top: 1vh;
-    right: 1vh;
-    font-size: 4vh;
-    width: 4vh;
-    height: 4vh;
+    top: 12px;
+    right: 12px;
+    font-size: 24px;
+    width: 32px;
+    height: 32px;
     background-color: #cacaca;
     border-style: solid;
     border-color: black;
-    border-width: .2vh;
+    border-width: 2px;
     border-radius: 50%;
     text-align: center;
-    line-height: 4.25vh;
+    line-height: 28px;
     cursor: pointer;
 }
 
-form h2{
+form h2 {
     text-align: center;
-    font-size: 3vh;
+    font-size: clamp(20px, 2.8vh, 26px);
+    margin-top: 0;
 }
 
-form label, p{
-    font-size: 2vh;
+form label,
+p {
+    font-size: clamp(14px, 1.9vh, 18px);
 }
 
-form input[type="text"]{
-    font-size: 2vh;
+form input[type="text"] {
+    font-size: clamp(14px, 1.8vh, 18px);
     border-radius: 9px;
     display: block;
-    width: 95%;
-    height: 3vh;
-    padding: 1vh;
-    border-color: #aaa;
-}
-
-form input[type="checkbox"]{
-    width: 2vh;
-    height: 2vh;
-    padding: 1vh;
-}
-
-.popUp .btn[type="submit"]{
+    /* 100% width fills the form neatly without overflowing the popup container */
     width: 100%;
-    height: 5vh;
+    height: clamp(34px, 4vh, 42px);
+    padding: 8px 12px;
+    border: 1px solid #aaa;
+    margin-bottom: 10px;
+}
+
+form input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.popUp .btn[type="submit"] {
+    width: 100%;
+    height: clamp(38px, 4.8vh, 46px);
     background-color: black;
     color: #f5f5f5;
     border-radius: 15px;
-    font-size: 2vh;
+    font-size: clamp(14px, 1.9vh, 18px);
+    cursor: pointer;
+    border: none;
+    margin-top: 12px;
 }
 
-form input[type = "date"]{
-    font-size: 1.75vh;
-    width: 13vh;
+form input[type="date"] {
+    font-size: clamp(13px, 1.6vh, 16px);
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #aaa;
 }
 
-#editForm .btn{
-    width: 49%;
-    height: 5vh;
+#editForm .btn {
+    width: 48%;
+    height: clamp(38px, 4.8vh, 46px);
     background-color: black;
     color: #f5f5f5;
     border-radius: 15px;
-    font-size: 2vh;
+    font-size: clamp(14px, 1.9vh, 18px);
+    cursor: pointer;
+    border: none;
 }
 
 #editForm textarea {
@@ -330,29 +438,33 @@ form input[type = "date"]{
     border-radius: 8px;
     outline: none;
     font-family: inherit;
-    font-size: 2vh;
-    box-sizing: border-box;
+    font-size: clamp(14px, 1.8vh, 17px);
     background-color: #ffffff;
-    min-height: 80px;
-    margin-bottom: 10px;
-    resize: none;
+    min-height: 70px;
+    margin-bottom: 12px;
+    resize: vertical;
 }
 
 /*Tasks*/
-.taskCont{
-    margin-left: 5%;       
+.taskCont {
+    /* Matches container margin for visual consistency */
+    margin-left: 1%;
+    margin-right: 1%;
 }
 
 #tasks {
     display: flex;
     flex-wrap: wrap;
-    column-gap: 9vh;
-    row-gap: 4vh;
+    /* Responsive gaps: scales with viewport width/height rather than rigid vh values */
+    column-gap: clamp(24px, 3.5vw, 55px);
+    row-gap: clamp(16px, 2.5vh, 30px);
     list-style: none;
     justify-content: flex-start;
+    padding: 0;
+    margin: 0;
 }
 
-.taskList{
+.taskList {
     cursor: pointer;
     list-style: none;
     background-color: #e9e7e7;
@@ -360,9 +472,11 @@ form input[type = "date"]{
     border-style: solid;
     border-color: black;
     border-width: 3px;
-    height: 15vh;
-    padding: 2vh;
-    width: 14.5vw;
+    /* Responsive card dimensions: maintain original card shape on 1080p, 1440p, laptops, and ultra-wide */
+    width: clamp(230px, 18vw, 290px);
+    /* Adjusted minimum height to comfortably fit 3 categories while remaining compact */
+    min-height: clamp(165px, 19vh, 185px);
+    padding: clamp(12px, 1.6vh, 16px);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -371,21 +485,33 @@ form input[type = "date"]{
 
 .taskList h2,
 .taskList h4,
-.taskList p{
+.taskList p {
     margin: 0vh;
 }
 
-.Personal{color: #3C42BC}
+.Personal {
+    color: #3C42BC
+}
 
-.Urgent{color: #B40E0E}
+.Urgent {
+    color: #B40E0E
+}
 
-.Growth{color: #BC773C}
+.Growth {
+    color: #BC773C
+}
 
-.Academics{color: #507939}
+.Academics {
+    color: #507939
+}
 
-.Interactive{color: #8F3070}
+.Interactive {
+    color: #8F3070
+}
 
-.Social{color: #4AA0BF}
+.Social {
+    color: #4AA0BF
+}
 
 /* Button Effect - Updated */
 #calendarSection {
@@ -393,8 +519,8 @@ form input[type = "date"]{
     visibility: visible;
     transition: visibility .5s, opacity .5s, max-height 0.5s ease-in-out, transform 0.5s ease-in-out;
     transform: translateY(0);
-    max-height: 500px;
-    
+    /* Increased max-height to ensure smooth transition with bigger calendar cards */
+    max-height: 600px;
     overflow: visible;
 }
 
@@ -407,39 +533,40 @@ form input[type = "date"]{
 }
 
 /*Calendar na malaki*/
-.calendarBig{
+.calendarBig {
     opacity: 1;
     visibility: visible;
     transition: visibility .5s, opacity .5s, max-height 0.5s ease-in-out, transform 0.5s ease-in-out;
     transform: translateY(0);
-    max-height: 70vh; 
+    max-height: 85vh;
     overflow: visible;
-    width: 94vw;
+    /* 100% width prevents horizontal overflow while filling available area cleanly */
+    width: 100%;
 }
 
-.weekdays{
-    margin-left: 2.5vh;
-    width: 95vw;
+.weekdays {
+    width: 100%;
+    margin: 0;
 }
 
-#weekdayList{
-    display: flex;
-    flex-wrap: wrap;
-    list-style: none;   
+#weekdayList {
+    /* CSS Grid with 7 equal columns aligns weekday titles directly above calendar day cells */
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    list-style: none;
+    padding: 0;
+    margin: 0 0 4px 0;
 }
 
-#weekdayList li{
-    font-size: 2vh;
-    font-weight: 1000;
+#weekdayList li {
+    font-size: clamp(14px, 1.8vh, 18px);
+    font-weight: 700;
     text-align: center;
-    width: 11.4vw;
-    padding: 1vh;
-    padding: .5vw;
+    padding: 6px 0;
 }
 
-.days{
-    margin-top: -2vh;
-    margin-left: 4vh;
+.days {
+    margin: 0;
     cursor: pointer;
     list-style: none;
     background-color: #e9e7e7;
@@ -447,230 +574,207 @@ form input[type = "date"]{
     border-style: solid;
     border-color: black;
     border-width: 3px;
-    padding: 2vh;
-    width: 88vw;
-    min-height: 54vh;
+    padding: 10px;
+    width: 100%;
+    min-height: clamp(280px, 48vh, 440px);
     box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
-
     overflow: hidden;
+    /* CSS Grid 7 columns guarantees every day cell lines up under the right day of the week */
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
 }
 
-.header{
-    margin-left: 6.5vh;
+.header {
     display: flex;
-    justify-content:center;
+    justify-content: center;
     align-items: center;
-    gap: 10vh;
-    padding: 0vh;
-    margin-bottom: 0;
-    margin-top: -7vh;
-    margin-bottom: -3vh;
+    gap: clamp(24px, 6vw, 60px);
+    padding: 0;
+    margin: 1vh 0;
 }
 
-.btn{
+.btn {
     cursor: pointer;
 }
 
-.days{
+.days div {
     display: flex;
-    flex-wrap: wrap;
-    height: 20vh;
-
-}
-
-.days div{
-    width: 11.6vw;
-    height: 8vh;
+    align-items: center;
+    justify-content: center;
+    height: clamp(38px, 6.5vh, 58px);
     text-align: center;
-    padding: 1vh;
+    padding: 4px;
     border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.3s;
-
+    font-size: clamp(14px, 1.8vh, 18px);
 }
 
-.days div:hover{
+.days div:hover {
     background-color: white;
     color: black;
 }
 
-.days .today{
+.days .today {
     background-color: rgb(49, 98, 204);
     color: white;
 }
 
-.fade{
+.fade {
     color: gray;
 }
 
 /*Pop-Up Edit Task*/
-.popUp2{
+.popUp2 {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
     z-index: 10;
-    position: absolute;
+    /* Fixed positioning keeps modal centered on any screen resolution */
+    position: fixed;
     top: -150%;
     left: 50%;
     transform: translate(-50%, -50%) scale(1.25);
     box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
     background-color: #e6e6e6;
-    width: 30vw;
-    height: 70vh;
-    padding: 5vh;
-    padding-top: 2vh;
+    /* Responsive width and auto-height with scrolling so form elements never get cut off */
+    width: clamp(360px, 34vw, 520px);
+    max-width: 92vw;
+    height: auto;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: clamp(20px, 3.5vh, 36px);
+    padding-top: clamp(16px, 2vh, 24px);
     border-style: solid;
     border-color: black;
-    border-width: .35vh;
+    border-width: 3px;
     border-radius: 15px;
-    margin-bottom: 10vh;
     transition: opacity 200ms 200ms ease,
-                transform 1ms 1ms ease,
-                box-shadow .1ms .1ms ease;
+        transform 1ms 1ms ease,
+        box-shadow .1ms .1ms ease;
 }
+
 .popUp2.active2 {
     top: 50%;
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
-    transform:translate(-50%, -50%) scale(1);
+    transform: translate(-50%, -50%) scale(1);
     transition: opacity 200ms 200ms ease,
-                transform 1ms 1ms ease,
-                box-shadow .1ms .1ms ease;
-}
-
-.popUp2 .close-btn{
-    position: absolute;
-    top: 1vh;
-    right: 1vh;
-    font-size: 4vh;
-    width: 4vh;
-    height: 4vh;
-    background-color: #cacaca;
-    border-style: solid;
-    border-color: black;
-    border-width: .2vh;
-    border-radius: 50%;
-    text-align: center;
-    line-height: 4.25vh;
-    cursor: pointer;
+        transform 1ms 1ms ease,
+        box-shadow .1ms .1ms ease;
 }
 
 /*PopUp Description*/
-
-.popUpDesc{
+.popUpDesc {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
     z-index: 10;
-    position: absolute;
+    /* Fixed positioning keeps modal centered on any screen resolution */
+    position: fixed;
     top: -150%;
     left: 50%;
     transform: translate(-50%, -50%) scale(1.25);
     box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
     background-color: #e6e6e6;
-    width: 30vw;
-    height: 43vh;
-    padding: 5vh;
-    padding-top: 2vh;
+    /* Responsive modal size: fits content comfortably with bottom padding for action buttons */
+    width: clamp(340px, 32vw, 480px);
+    max-width: 92vw;
+    height: auto;
+    min-height: clamp(260px, 38vh, 360px);
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: clamp(20px, 3vh, 32px);
+    padding-top: clamp(16px, 2vh, 24px);
+    padding-bottom: 70px;
     border-style: solid;
     border-color: black;
-    border-width: .35vh;
+    border-width: 3px;
     border-radius: 15px;
-    margin-bottom: 10vh;
     transition: opacity 200ms 200ms ease,
-                transform 1ms 1ms ease,
-                box-shadow .1ms .1ms ease;
+        transform 1ms 1ms ease,
+        box-shadow .1ms .1ms ease;
 }
+
 .popUpDesc.activeDesc {
     top: 50%;
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
-    transform:translate(-50%, -50%) scale(1);
+    transform: translate(-50%, -50%) scale(1);
     transition: opacity 200ms 200ms ease,
-                transform 1ms 1ms ease,
-                box-shadow .1ms .1ms ease;
+        transform 1ms 1ms ease,
+        box-shadow .1ms .1ms ease;
 }
 
-.popUpDesc b, p{
-    font-size: 3vh;
+.popUpDesc b,
+p {
+    font-size: clamp(16px, 2.2vh, 22px);
     margin-bottom: .5vh;
     margin-top: .5vh;
 }
 
-.popUpDesc ul{
+.popUpDesc ul {
     display: flex;
-    flex-direction: row; 
-    gap: 10px; 
-    padding: 0; 
-    margin: 0;
+    flex-direction: row;
+    /* Allows tags to wrap onto another line if multiple tags exist */
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0;
+    margin: 8px 0;
 }
 
 .popUpDesc li {
     list-style: none;
     border: solid 2px black;
     border-radius: 15px;
-    padding: 2px;
-    padding-left: 1vw;
-    padding-right: 1vw;
+    padding: 3px 12px;
+    font-size: clamp(13px, 1.8vh, 16px);
 }
 
-.popUpDesc .Personal{
+.popUpDesc .Personal {
     background-color: #969ae9;
     color: black;
 }
 
-.popUpDesc .Urgent{
+.popUpDesc .Urgent {
     background-color: #ff7171;
     color: black;
 }
 
-.popUpDesc .Growth{
+.popUpDesc .Growth {
     background-color: #f8af6e;
     color: black;
 }
 
-.popUpDesc .Academics{
+.popUpDesc .Academics {
     background-color: #a4f079;
     color: black;
 }
 
-.popUpDesc .Interactive{
+.popUpDesc .Interactive {
     background-color: #fd7ed3;
     color: black;
 }
 
-.popUpDesc .Social{
+.popUpDesc .Social {
     background-color: #83deff;
     color: black;
 }
 
-.popUpDesc .close-btn{
-    position: absolute;
-    top: 1vh;
-    right: 1vh;
-    font-size: 4vh;
-    width: 4vh;
-    height: 4vh;
-    background-color: #cacaca;
-    border-style: solid;
-    border-color: black;
-    border-width: .2vh;
-    border-radius: 50%;
-    text-align: center;
-    line-height: 4.25vh;
-    cursor: pointer;
-}
-
-.eButton{
-    width: 20%;
-    height: 5vh;
+.eButton {
+    /* Proportional width and height that looks crisp on any screen */
+    width: clamp(80px, 22%, 105px);
+    height: clamp(34px, 4.5vh, 42px);
     background-color: rgb(8, 8, 8);
     color: #f5f5f5;
     border-radius: 15px;
-    font-size: 2vh;
+    font-size: clamp(14px, 1.8vh, 17px);
     position: absolute;
-    bottom: 4vh;
-    left: 5vh;
+    bottom: 20px;
+    left: clamp(20px, 3.5vh, 32px);
+    cursor: pointer;
+    border: none;
 }

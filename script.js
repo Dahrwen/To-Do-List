@@ -19,15 +19,19 @@ for(let x = 0; x < 14 ; x++){
 
 const carousel = document.querySelector(".carousel");
 const arrowBtns = document.querySelectorAll(".wrapper b");
-const extraVH = window.innerHeight * 0.0452;
-const firstCardWidth = (carousel.querySelector(".card").offsetWidth) + extraVH;
-
 
 let isDragging = false, startX, startScrollLeft;
 
+// Calculate scroll distance dynamically on click instead of a fixed initial calculation
+// This ensures scrolling always moves by exactly one card width on any monitor resolution
 arrowBtns.forEach(btn => {
     btn.addEventListener ("click", () =>{
-        carousel.scrollLeft += btn.id === "left" ? -firstCardWidth : firstCardWidth;
+        const firstCard = carousel.querySelector(".card");
+        if (!firstCard) return;
+        const carouselStyle = window.getComputedStyle(carousel);
+        const gap = parseFloat(carouselStyle.columnGap || carouselStyle.gap) || 14;
+        const scrollDistance = firstCard.offsetWidth + gap;
+        carousel.scrollLeft += btn.id === "left" ? -scrollDistance : scrollDistance;
     })
 });
 
@@ -148,7 +152,8 @@ async function taskDesc(taskId){
             <b>Task Description:</b>
             <p style="font-size:2vh">${Description}<p>
             <button class="eButton" id="editButton">Edit</button>
-            <img style="height: 5vh; position: absolute; bottom: 4vh; right: 2vh;" src="Pictures/TrashCan.png">
+            <!-- Sized and positioned with clamp/pixels to stay aligned with the Edit button on different monitor sizes -->
+            <img style="height: clamp(26px, 4vh, 34px); position: absolute; bottom: 20px; right: 24px; cursor: pointer;" src="Pictures/TrashCan.png">
             `
 
             document.getElementById("taskDesc").addEventListener("click", function(e){

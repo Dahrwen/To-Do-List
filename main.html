@@ -17,15 +17,16 @@
 
         <!--Search Bar Design only not working yet-->
         <header class="topbar">
-            <table style="width: 96vw;">
+            <!-- Table uses 100% width; classes searchCol and profileCol remove unwanted empty space between search bar and email -->
+            <table style="width: 100%;">
                 <tr>
-                    <th style="width:75%;">
+                    <th class="searchCol">
                         <div class="searchbar">
                             <button id="searchId" class="searchButton" ><img class="logo" src = "Pictures/Find.png"></button>
                             <input id="searchTextId" class = "searchBox" type="search" placeholder="Search">
                         </div>
                     </th>
-                    <th>
+                    <th class="profileCol">
                         <div class="gmailp">
                             <img class="logo" src="Pictures/Gmail.png">
                             <p>Random Email</p>

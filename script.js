@@ -449,3 +449,52 @@ registerBtn.addEventListener('click', () => {
 loginBtn.addEventListener('click', () => {
     container.classList.remove('active');
 })
+
+//Registration Function
+document.getElementById("regisForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    //Check for duplicate email
+    const emailInput = document.getElementById("regisEmail").value;
+    document.getElementById("message").classList.remove('error', 'success');
+
+    const { data: existingUser, error: checkError } = await supabaseClient
+        .from('Accounts')
+        .select('eMail')
+        .eq('eMail', emailInput)
+        .maybeSingle();
+
+    if (existingUser) {
+        document.getElementById("message").innerHTML = `Your email is already registered.`
+        document.getElementById("message").classList.add('error');
+        document.getElementById("regisForm").reset();
+    } else {
+        // Add Account
+        const { data, error } = await supabaseClient
+            .from('Accounts')
+            .insert([
+                {
+                    userName: document.getElementById("regisName").value,
+                    eMail: emailInput,
+                    password: document.getElementById("regisPassword").value
+                }
+            ]);
+
+        if (error) {
+            document.getElementById("message").innerHTML = `There was a problem crating your account.`
+            document.getElementById("message").classList.add('error');
+            document.getElementById("regisForm").reset();
+            return;
+        } else {
+            document.getElementById("message").innerHTML = `Account created successfully.`
+            document.getElementById("message").classList.add('success');
+            document.getElementById("regisForm").reset();
+        }
+    }
+});
+
+//LogIn Function
+document.getElementById("loginForm").addEventListener("submit", async function (e) {
+    e.preventDefault;
+
+});

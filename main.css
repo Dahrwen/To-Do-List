@@ -383,15 +383,13 @@ p {
 }
 
 form input[type="text"] {
-    font-size: clamp(14px, 1.8vh, 18px);
-    border-radius: 9px;
-    display: block;
-    /* 100% width fills the form neatly without overflowing the popup container */
+    background-color: #dbdbdb;
+    border: none;
+    padding: 10px 15px;
+    font-size: 13px;
+    border-radius: 8px;
     width: 100%;
-    height: clamp(34px, 4vh, 42px);
-    padding: 8px 12px;
-    border: 1px solid #aaa;
-    margin-bottom: 10px;
+    outline: none;
 }
 
 form input[type="checkbox"] {
@@ -779,37 +777,13 @@ p {
     border: none;
 }
 
-.logIn {
-    z-index: 10;
-    /* Fixed positioning ensures modal is always centered in the viewport, regardless of scroll position */
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    opacity: 1;
-    /*visibility: hidden;*/
-    pointer-events: none;
-    transform: translate(-50%, -50%) scale(1.25);
-    box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
-    background-color: #e6e6e6;
-    /* Responsive width and max-height with scroll prevents cutoff on small laptop screens */
-    width: clamp(340px, 32vw, 500px);
-    width: 45vw;
-    height: 60vh;
-    overflow-y: auto;
-    padding: clamp(20px, 3.5vh, 36px);
+/*LogIn CSS*/
+.logcontainer {
+    background-color: #f1f1f1;
     border-style: solid;
     border-color: black;
     border-width: 3px;
     border-radius: 15px;
-    transition: opacity 200ms 200ms ease,
-        transform 1ms 1ms ease,
-        box-shadow .1ms .1ms ease;
-}
-
-/*LogIn CSS*/
-.logcontainer {
-    background-color: #fff;
-    border-radius: 30px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.35);
     position: fixed;
     top: 50%;
@@ -836,7 +810,7 @@ p {
 }
 
 .logcontainer button {
-    background-color: #512da8;
+    background-color: black;
     color: #fff;
     font-size: 12px;
     padding: 10px 45px;
@@ -846,6 +820,7 @@ p {
     text-transform: uppercase;
     margin-top: 10px;
     cursor: pointer;
+    width: 100%;
 }
 
 .logcontainer button.hidden {
@@ -854,9 +829,8 @@ p {
 }
 
 .logcontainer form {
-    background-color: #fff;
+    background-color: #f1f1f1;
     display: flex;
-    align-items: center;
     justify-content: center;
     flex-direction: column;
     padding: 0 40px;
@@ -864,9 +838,8 @@ p {
 }
 
 .logcontainer input {
-    background-color: #eee;
+    background-color: #dbdbdb;
     border: none;
-    margin: 8px 0;
     padding: 10px 15px;
     font-size: 13px;
     border-radius: 8px;
@@ -928,17 +901,15 @@ p {
     height: 100%;
     overflow: hidden;
     transition: all 0.6s ease-in-out;
-    border-radius: 150px 0 0 100px;
     z-index: 1000;
 }
 
 .logcontainer.active .toggle-container {
     transform: translateX(-100%);
-    border-radius: 0 150px 100px 0;
 }
 
 .toggle {
-    background: linear-gradient(to right, #5c6bc0, #512da8);
+    background: rgb(37, 37, 37);
     color: #fff;
     height: 100%;
     position: relative;
@@ -981,4 +952,38 @@ p {
 
 .logcontainer.active .toggle-right {
     transform: translateX(200%);
+}
+
+.logcontainer h1 {
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+
+.logcontainer label {
+    margin-top: 8px;
+    margin-bottom: 4px;
+    font-size: 13px;
+}
+
+/*Error and Success messsage*/
+.success {
+    background-color: #30df2a;
+    margin: 8px 0;
+    padding: 10px 15px;
+    font-size: 12px;
+    border-radius: 8px;
+    width: 100%;
+    outline: none;
+    text-align: center;
+}
+
+.error {
+    background-color: #db1616;
+    margin: 8px 0;
+    padding: 10px 15px;
+    font-size: 13px;
+    border-radius: 8px;
+    width: 100%;
+    outline: none;
+    text-align: center;
 }

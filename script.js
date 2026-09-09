@@ -149,7 +149,7 @@ async function taskDesc(taskId) {
             <ul>${categoryHTML}</ul>
             <p><b>Deadline: </b>${Deadline}</p>
             <b>Task Description:</b>
-            <p style="font-size:2vh">${Description}<p>
+            <p style="font-size:2vh">${Description}</p>
             <button class="eButton" id="editButton">Edit</button>
             <!-- Sized and positioned with clamp/pixels to stay aligned with the Edit button on different monitor sizes -->
             <img style="height: clamp(26px, 4vh, 34px); position: absolute; bottom: 20px; right: 24px; cursor: pointer;" src="Pictures/TrashCan.png">
@@ -436,3 +436,16 @@ document.querySelectorAll("#todo").forEach(button => {
         document.querySelector(".popUp").classList.remove("active");
     };
 });
+
+//logIn
+const container = document.getElementById('logcontainer');
+const registerBtn = document.getElementById('register');
+const loginBtn = document.getElementById('login');
+
+registerBtn.addEventListener('click', () => {
+    container.classList.add('active');
+})
+
+loginBtn.addEventListener('click', () => {
+    container.classList.remove('active');
+})

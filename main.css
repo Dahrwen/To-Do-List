@@ -383,13 +383,13 @@ p {
 }
 
 form input[type="text"] {
-    background-color: #dbdbdb;
-    border: none;
-    padding: 10px 15px;
     font-size: 13px;
-    border-radius: 8px;
+    border-radius: 9px;
+    display: block;
     width: 100%;
-    outline: none;
+    padding: 1vh;
+    border-style: solid;
+    border-color: #aaa;
 }
 
 form input[type="checkbox"] {
@@ -793,6 +793,17 @@ p {
     width: 768px;
     max-width: 100%;
     min-height: 480px;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 300ms ease, transform 300ms ease, visibility 300ms ease;
+}
+
+.hide {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(1);
+    transition: opacity 300ms ease, transform 300ms ease, visibility 300ms ease;
 }
 
 .logcontainer p {
@@ -845,6 +856,8 @@ p {
     border-radius: 8px;
     width: 100%;
     outline: none;
+    border-style: solid;
+    border-color: #aaa;
 }
 
 .form-container {

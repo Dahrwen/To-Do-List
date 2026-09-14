@@ -1,5 +1,7 @@
 // Global Variable
 let accountID;
+let searchTask = document.getElementById("searchTextId");
+let currentViewMode = "todo";
 
 // Registration Function
 document.getElementById("regisForm").addEventListener("submit", async function (e) {
@@ -110,7 +112,8 @@ async function minicalendar() {
         const { data, error } = await supabaseClient
             .from('Tasks')
             .select('*')
-            .eq('userID', accountID);
+            .eq('userID', accountID)
+            .eq('finished', false);
 
         if (error) {
             console.error("Error fetching tasks:", error);
@@ -219,6 +222,19 @@ document.querySelector(".popUpDesc .close-btn").addEventListener("click", functi
     document.querySelector(".popUpDesc").classList.remove("activeDesc");
 });
 
+document.querySelector("#archived").addEventListener("click", function () {
+    const calendar = document.getElementById("calendarSection");
+    if (calendar) calendar.classList.remove("hidden-section");
+    document.querySelector(".calendarBig").classList.add("hidden-section");
+    document.querySelector("#tasks").classList.remove("hidden-section");
+
+    loadTasks("", "archive");
+
+    document.querySelector(".popUp").classList.remove("active");
+    document.querySelector(".popUpDesc").classList.remove("activeDesc");
+    document.querySelector(".popUp2").classList.remove("active2");
+});
+
 const minDate = currentDate.toISOString().split('T')[0];
 document.getElementById("deadLine").setAttribute("min", minDate);
 
@@ -240,6 +256,12 @@ tasksContainer.addEventListener("click", function (event) {
 // Function to render tasks array into HTML
 function renderTasksUI() {
     tasksContainer.innerHTML = "";
+
+    if (taskArr.length === 0) {
+        const emptyMsg = currentViewMode === "archive" ? "No archived tasks found." : "No tasks found.";
+        tasksContainer.innerHTML = `<p style="width: 100%; text-align: center; color: #666; font-size: 18px; margin-top: 20px;">${emptyMsg}</p>`;
+        return;
+    }
 
     taskArr.forEach(task => {
         let categoriesToDisplay = [...task.categories];
@@ -286,6 +308,8 @@ async function taskDesc(taskId) {
     let Description = !task.Description ? "Edit to add description" : task.Description;
     let Deadline = !task.Deadline ? "No Due Date" : task.Deadline;
 
+    let finishBtnLabel = task.finished ? "Restore" : "Finish";
+
     document.getElementById("taskDesc").innerHTML = `
             <h1 style = "text-align: center">Task Details</h1>
             <p><b>Task Name: </b>${task.TaskName}</p>
@@ -293,12 +317,18 @@ async function taskDesc(taskId) {
             <p><b>Deadline: </b>${Deadline}</p>
             <b>Task Description:</b>
             <p style="font-size:2vh">${Description}</p>
+            <button class="fButton" id="finishButton">${finishBtnLabel}</button>
             <button class="eButton" id="editButton">Edit</button>
             <img id="delete" style="height: clamp(26px, 4vh, 34px); position: absolute; bottom: 20px; right: 24px; cursor: pointer;" src="Pictures/TrashCan.png">
             `;
     document.getElementById("delete").addEventListener("click", function (e) {
         e.preventDefault();
         deleteTask(taskId)
+    });
+
+    document.getElementById("finishButton").addEventListener("click", function (e) {
+        e.preventDefault();
+        finishTask(taskId)
     });
 
     document.getElementById("editButton").addEventListener("click", function (e) {
@@ -355,17 +385,28 @@ async function editTask(taskId) {
 }
 
 // Loads Task
-async function loadTasks(searchTask) {
+async function loadTasks(searchTerm = "", mode = currentViewMode) {
     // Prevent fetching if accountID is not populated
     if (!accountID) return;
+
+    currentViewMode = mode;
+    const isArchive = (mode === "archive");
 
     let query = supabaseClient
         .from('Tasks')
         .select('*')
-        .eq('userID', accountID);
+        .eq('userID', accountID)
+        .eq('finished', isArchive);
 
-    if (searchTask && searchTask.trim() != "") {
-        query = query.ilike('TaskName', `%${searchTask.trim()}%`);
+    let searchString = "";
+    if (typeof searchTerm === "string") {
+        searchString = searchTerm;
+    } else if (searchTerm && typeof searchTerm.value === "string") {
+        searchString = searchTerm.value;
+    }
+
+    if (searchString.trim() !== "") {
+        query = query.ilike('TaskName', `%${searchString.trim()}%`);
     }
 
     const { data: tasks, error } = await query;
@@ -394,7 +435,8 @@ async function loadTasks(searchTask) {
             id: task.id,
             name: task.TaskName,
             categories: selectedTypes,
-            deadLine: dateString
+            deadLine: dateString,
+            finished: task.finished
         };
     });
 
@@ -478,11 +520,10 @@ document.getElementById("editForm").addEventListener("submit", async function (e
 });
 
 // Searching for Task
-const searchTask = document.getElementById("searchTextId");
 if (searchTask) {
     searchTask.addEventListener("keydown", function (e) {
         if (e.key === "Enter") {
-            loadTasks(searchTask.value);
+            loadTasks(searchTask.value, currentViewMode);
             searchTask.value = "";
         }
     });
@@ -495,12 +536,33 @@ async function deleteTask(taskId) {
         .eq('id', taskId)
         .eq('userID', accountID);
 
-    loadTasks();
+    loadTasks("", currentViewMode);
     minicalendar();
     window.renderCalendar(currentDate);
     document.querySelector(".popUpDesc").classList.remove("activeDesc");
 }
 
+async function finishTask(taskId) {
+    const { data: currentTask } = await supabaseClient
+        .from('Tasks')
+        .select('finished')
+        .eq('id', taskId)
+        .eq('userID', accountID)
+        .maybeSingle();
+
+    const newStatus = !(currentTask?.finished);
+
+    const { error } = await supabaseClient
+        .from('Tasks')
+        .update({ finished: newStatus })
+        .eq('id', taskId)
+        .eq('userID', accountID);
+
+    loadTasks("", currentViewMode);
+    minicalendar();
+    window.renderCalendar(currentDate);
+    document.querySelector(".popUpDesc").classList.remove("activeDesc");
+}
 
 //Big Calendar
 document.addEventListener('DOMContentLoaded', function () {
@@ -518,7 +580,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const { data, error } = await supabaseClient
                 .from('Tasks')
                 .select('*')
-                .eq('userID', accountID);
+                .eq('userID', accountID)
+                .eq('finished', false);
 
             if (!error && data) {
                 tasks = data;
@@ -554,9 +617,9 @@ document.addEventListener('DOMContentLoaded', function () {
             if (taskList.length === 0) return '';
 
             // Cap at 2 tasks + append '...' if there are more
-            if (taskList.length > 2) {
-                const topTwo = taskList.slice(0, 2);
-                topTwo[1] += '...';
+            if (taskList.length > 3) {
+                const topTwo = taskList.slice(0, 3);
+                topTwo[2] += '...';
                 return topTwo.join('<br>');
             }
 
@@ -652,18 +715,12 @@ document.querySelectorAll("#Calendar").forEach(button => {
 document.querySelectorAll("#todo").forEach(button => {
     button.onclick = function (e) {
         const calendar = document.getElementById("calendarSection");
+        if (calendar) calendar.classList.remove("hidden-section");
+        document.querySelector(".calendarBig").classList.add("hidden-section");
+        document.querySelector("#tasks").classList.remove("hidden-section");
 
-        if (repeat == false) {
-            calendar.classList.add("hidden-section");
-            document.querySelector(".calendarBig").classList.add("hidden-section");
-            document.querySelector("#tasks").classList.remove("hidden-section");
-            repeat = true;
-        } else {
-            calendar.classList.remove("hidden-section");
-            document.querySelector(".calendarBig").classList.add("hidden-section");
-            document.querySelector("#tasks").classList.remove("hidden-section");
-            repeat = false;
-        }
+        loadTasks("", "todo");
+
         document.querySelector(".popUp").classList.remove("active");
         document.querySelector(".popUpDesc").classList.remove("activeDesc");
         document.querySelector(".popUp2").classList.remove("active2");
@@ -688,4 +745,3 @@ if (loginBtn && container) {
 }
 
 minicalendar();
-window.renderCalendar(currentDate);

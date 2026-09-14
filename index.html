@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="main.css">
     <!--FONTS-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Jeju+Gothic&display=swap" rel="stylesheet">
     <!--Supabase-->
@@ -20,8 +21,8 @@
     <div class="logcontainer" id="logcontainer">
         <div class="form-container sign-up">
             <form id="regisForm">
-                <h1>Create Account</h1>
                 <div id="regmessage"></div>
+                <h1>Create Account</h1>
                 <label for="regisName">Name</label>
                 <input type="text" id="regisName" placeholder="Name" required>
                 <label for="regisEmail">Email</label>
@@ -96,9 +97,11 @@
 
         <!--Buttons Section-->
         <section class="sectButton">
-            <button id="todo" class="mybutton"><img src="Pictures/TO-DO.png"><b> To-Do List</b></button>
-            <button id="Calendar" class="mybutton"><img src="Pictures/Calendar.png"><b>Calendar</b></button>
-            <button id="addTask" class="mybutton addbutton"><img src="Pictures/Add.png"><b>Add task</b></button>
+            <button id="todo" class="mybutton"><i class="fa-regular fa-clipboard"></i><b> To-Do List</b></button>
+            <button id="Calendar" class="mybutton"><i class="fa-regular fa-calendar-days"></i><b>Calendar</b></button>
+            <button id="archived" class="mybutton"><i class="fa-solid fa-archive"></i><b>Archive</b></button>
+            <button id="addTask" class="mybutton addbutton"><i class="fa-solid fa-plus"></i><b>Add
+                    task</b></button>
         </section>
 
         <section class="popUp">

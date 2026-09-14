@@ -17,6 +17,13 @@ body {
     overflow-x: hidden;
 }
 
+.locked-content {
+    filter: blur(8px);
+    pointer-events: none;
+    user-select: none;
+    transition: filter 0.3s ease;
+}
+
 /*TOP searchbar etc*/
 .topbar {
     /* Use 100% of container width so it aligns naturally with the rest of the page */
@@ -382,14 +389,14 @@ p {
     font-size: clamp(14px, 1.9vh, 18px);
 }
 
-form input[type="text"] {
-    font-size: 13px;
-    border-radius: 9px;
-    display: block;
+.popUp input[type="text"],
+.popUp2 input[type="text"] {
+    font-size: clamp(13px, 2vh, 16px);
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #aaa;
     width: 100%;
-    padding: 1vh;
-    border-style: solid;
-    border-color: #aaa;
+    height: 40px;
 }
 
 form input[type="checkbox"] {
@@ -574,7 +581,7 @@ form input[type="date"] {
     border-width: 3px;
     padding: 10px;
     width: 100%;
-    min-height: clamp(280px, 48vh, 440px);
+    min-height: clamp(350px, 50vh, 500px);
     box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
     overflow: hidden;
     /* CSS Grid 7 columns guarantees every day cell lines up under the right day of the week */
@@ -590,6 +597,7 @@ form input[type="date"] {
     gap: clamp(24px, 6vw, 60px);
     padding: 0;
     margin: 1vh 0;
+    margin-top: -3%;
 }
 
 .btn {
@@ -600,7 +608,7 @@ form input[type="date"] {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: clamp(38px, 6.5vh, 58px);
+    height: clamp(50px, 7.5vh, 70px);
     text-align: center;
     padding: 4px;
     border-radius: 5px;
@@ -796,6 +804,7 @@ p {
     opacity: 1;
     visibility: visible;
     transition: opacity 300ms ease, transform 300ms ease, visibility 300ms ease;
+    z-index: 100;
 }
 
 .hide {
@@ -856,8 +865,6 @@ p {
     border-radius: 8px;
     width: 100%;
     outline: none;
-    border-style: solid;
-    border-color: #aaa;
 }
 
 .form-container {

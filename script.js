@@ -1,58 +1,3 @@
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
-const monthsFull = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-let currentDate = new Date();
-
-for (let x = 0; x < 14; x++) {
-    let d = new Date();
-    d.setDate(currentDate.getDate() + x);
-
-    document.getElementById("dates").innerHTML += `
-        <li class="card">
-                <h2>${dayNames[d.getDay()]}</h2>
-                <h4>${months[d.getMonth()]} ${d.getDate()}</h4>
-        </li>
-    `;
-}
-
-const carousel = document.querySelector(".carousel");
-const arrowBtns = document.querySelectorAll(".wrapper b");
-
-let isDragging = false, startX, startScrollLeft;
-
-arrowBtns.forEach(btn => {
-    btn.addEventListener("click", () => {
-        const firstCard = carousel.querySelector(".card");
-        if (!firstCard) return;
-        const carouselStyle = window.getComputedStyle(carousel);
-        const gap = parseFloat(carouselStyle.columnGap || carouselStyle.gap) || 14;
-        const scrollDistance = firstCard.offsetWidth + gap;
-        carousel.scrollLeft += btn.id === "left" ? -scrollDistance : scrollDistance;
-    })
-});
-
-const dragStart = (e) => {
-    isDragging = true;
-    carousel.classList.add("dragging");
-    startX = e.pageX;
-    startScrollLeft = carousel.scrollLeft;
-}
-
-const dragging = (e) => {
-    if (!isDragging) return;
-    carousel.scrollLeft = startScrollLeft - (e.pageX - startX);
-}
-
-const dragStop = () => {
-    isDragging = false;
-    carousel.classList.remove("dragging");
-}
-carousel.addEventListener("mousedown", dragStart);
-carousel.addEventListener("mousemove", dragging);
-document.addEventListener("mouseup", dragStop);
-
 // Global Variable
 let accountID;
 
@@ -143,15 +88,123 @@ document.getElementById("loginForm").addEventListener("submit", async function (
     accountID = user.userID;
 
     loadTasks();
+    minicalendar();
 
     document.getElementById("logcontainer").classList.add('hide');
+    document.getElementById("websiteCont").classList.remove("locked-content");
     document.getElementById("accountName").innerHTML = `${user.userName}`;
     document.getElementById("loginForm").reset();
 });
 
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
+const monthsFull = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+let currentDate = new Date();
+
+async function minicalendar() {
+    let tasks = [];
+    if (accountID) {
+        const { data, error } = await supabaseClient
+            .from('Tasks')
+            .select('*')
+            .eq('userID', accountID);
+
+        if (error) {
+            console.error("Error fetching tasks:", error);
+            return;
+        }
+        tasks = data || [];
+    }
+
+    const daytask = Array.from({ length: 14 }, () => []);
+
+    for (let x = 0; x < 14; x++) {
+        let d = new Date();
+        d.setDate(currentDate.getDate() + x);
+
+        const formattedDate = d.toISOString().split('T')[0];
+
+        tasks.forEach(t => {
+            const taskDeadline = new Date(t.Deadline).toISOString().split('T')[0];
+
+            if (formattedDate === taskDeadline) {
+                daytask[x].push(t.TaskName);
+            }
+        });
+    }
+
+    const formattedDayTasks = daytask.map(taskList => {
+        if (taskList.length === 0) return '';
+
+        if (taskList.length > 3) {
+            const topThree = taskList.slice(0, 3);
+            topThree[2] += '...';
+            return topThree.join('<br>');
+        }
+
+        return taskList.join('<br>');
+    });
+
+    const datesContainer = document.getElementById("dates");
+    datesContainer.innerHTML = "";
+
+    for (let x = 0; x < 14; x++) {
+        let d = new Date();
+        d.setDate(currentDate.getDate() + x);
+
+        datesContainer.innerHTML += `
+            <li class="card">
+                <h2>${dayNames[d.getDay()]}</h2>
+                <h4>${months[d.getMonth()]} ${d.getDate()}</h4>
+                <p style="font-size: 15px; margin-top 5px;">${formattedDayTasks[x]}</p>
+            </li>
+        `;
+    }
+}
+
+const carousel = document.querySelector(".carousel");
+const arrowBtns = document.querySelectorAll(".wrapper b");
+
+let isDragging = false, startX, startScrollLeft;
+
+arrowBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+        const firstCard = carousel.querySelector(".card");
+        if (!firstCard) return;
+        const carouselStyle = window.getComputedStyle(carousel);
+        const gap = parseFloat(carouselStyle.columnGap || carouselStyle.gap) || 14;
+        const scrollDistance = firstCard.offsetWidth + gap;
+        carousel.scrollLeft += btn.id === "left" ? -scrollDistance : scrollDistance;
+    })
+});
+
+const dragStart = (e) => {
+    isDragging = true;
+    carousel.classList.add("dragging");
+    startX = e.pageX;
+    startScrollLeft = carousel.scrollLeft;
+}
+
+const dragging = (e) => {
+    if (!isDragging) return;
+    carousel.scrollLeft = startScrollLeft - (e.pageX - startX);
+}
+
+const dragStop = () => {
+    isDragging = false;
+    carousel.classList.remove("dragging");
+}
+carousel.addEventListener("mousedown", dragStart);
+carousel.addEventListener("mousemove", dragging);
+document.addEventListener("mouseup", dragStop);
+
 // popUp buttons
 document.querySelector("#addTask").addEventListener("click", function () {
     document.querySelector(".popUp").classList.add("active");
+    document.querySelector(".popUp2").classList.remove("active2");
+    document.querySelector(".popUpDesc").classList.remove("activeDesc");
 });
 document.querySelector(".popUp .close-btn").addEventListener("click", function () {
     document.querySelector(".popUp").classList.remove("active");
@@ -178,6 +231,7 @@ tasksContainer.addEventListener("click", function (event) {
     if (taskItem) {
         document.querySelector(".popUpDesc").classList.add("activeDesc");
         let taskId = taskItem.dataset.id;
+        document.querySelector(".popUp").classList.remove("active");
         taskDesc(taskId);
     }
 });
@@ -187,7 +241,14 @@ function renderTasksUI() {
     tasksContainer.innerHTML = "";
 
     taskArr.forEach(task => {
-        const categoryHTML = task.categories
+        let categoriesToDisplay = [...task.categories];
+
+        if (categoriesToDisplay.length > 2) {
+            categoriesToDisplay = categoriesToDisplay.slice(0, 2);
+            categoriesToDisplay[3] = '...';
+        }
+
+        const categoryHTML = categoriesToDisplay
             .map(cat => `<div style="font-size: 2vh" class="${cat}">${cat}</div>`)
             .join('');
 
@@ -374,6 +435,7 @@ document.getElementById("taskForm").addEventListener("submit", async function (e
     document.querySelector(".popUp").classList.remove("active");
     document.getElementById("taskForm").reset();
     loadTasks();
+    minicalendar();
 });
 
 // Edit Handler
@@ -409,6 +471,7 @@ document.getElementById("editForm").addEventListener("submit", async function (e
     document.querySelector(".popUp2").classList.remove("active2");
     document.getElementById("editForm").reset();
     loadTasks();
+    minicalendar();
 });
 
 // Searching for Task
@@ -430,6 +493,7 @@ async function deleteTask(taskId) {
         .eq('userID', accountID);
 
     loadTasks();
+    minicalendar();
     document.querySelector(".popUpDesc").classList.remove("activeDesc");
 }
 
@@ -517,6 +581,8 @@ document.querySelectorAll("#Calendar").forEach(button => {
             repeat = false;
         }
         document.querySelector(".popUp").classList.remove("active");
+        document.querySelector(".popUpDesc").classList.remove("activeDesc");
+        document.querySelector(".popUp2").classList.remove("active2");
     };
 });
 
@@ -536,6 +602,8 @@ document.querySelectorAll("#todo").forEach(button => {
             repeat = false;
         }
         document.querySelector(".popUp").classList.remove("active");
+        document.querySelector(".popUpDesc").classList.remove("activeDesc");
+        document.querySelector(".popUp2").classList.remove("active2");
     };
 });
 
@@ -555,3 +623,5 @@ if (loginBtn && container) {
         container.classList.remove('active');
     });
 }
+
+minicalendar();

@@ -89,6 +89,7 @@ document.getElementById("loginForm").addEventListener("submit", async function (
 
     loadTasks();
     minicalendar();
+    window.renderCalendar(currentDate);
 
     document.getElementById("logcontainer").classList.add('hide');
     document.getElementById("websiteCont").classList.remove("locked-content");
@@ -436,6 +437,7 @@ document.getElementById("taskForm").addEventListener("submit", async function (e
     document.getElementById("taskForm").reset();
     loadTasks();
     minicalendar();
+    window.renderCalendar(currentDate);
 });
 
 // Edit Handler
@@ -472,6 +474,7 @@ document.getElementById("editForm").addEventListener("submit", async function (e
     document.getElementById("editForm").reset();
     loadTasks();
     minicalendar();
+    window.renderCalendar(currentDate);
 });
 
 // Searching for Task
@@ -494,10 +497,12 @@ async function deleteTask(taskId) {
 
     loadTasks();
     minicalendar();
+    window.renderCalendar(currentDate);
     document.querySelector(".popUpDesc").classList.remove("activeDesc");
 }
 
-// Big Calendar
+
+//Big Calendar
 document.addEventListener('DOMContentLoaded', function () {
     const monthYear = document.getElementById('month-year');
     const daysCont = document.getElementById('days');
@@ -505,7 +510,21 @@ document.addEventListener('DOMContentLoaded', function () {
     const nextButton = document.getElementById('next');
 
     let today = new Date();
-    function renderCalendar(date) {
+
+    // Make window-accessible so login handlers can re-trigger it
+    window.renderCalendar = async function (date) {
+        let tasks = [];
+        if (typeof accountID !== 'undefined' && accountID) {
+            const { data, error } = await supabaseClient
+                .from('Tasks')
+                .select('*')
+                .eq('userID', accountID);
+
+            if (!error && data) {
+                tasks = data;
+            }
+        }
+
         const year = date.getFullYear();
         const month = date.getMonth();
         const firstDay = new Date(year, month, 1).getDay();
@@ -516,52 +535,96 @@ document.addEventListener('DOMContentLoaded', function () {
 
         daysCont.innerHTML = '';
 
-        // Prev Month
+        const getTasksForDate = (checkDate) => {
+            // Local date formatting (YYYY-MM-DD) avoiding timezone shifts
+            const yyyy = checkDate.getFullYear();
+            const mm = String(checkDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(checkDate.getDate()).padStart(2, '0');
+            const formattedDate = `${yyyy}-${mm}-${dd}`;
+
+            const taskList = [];
+            tasks.forEach(t => {
+                if (!t.Deadline) return;
+                const taskDeadline = t.Deadline.split('T')[0];
+                if (formattedDate === taskDeadline) {
+                    taskList.push(t.TaskName);
+                }
+            });
+
+            if (taskList.length === 0) return '';
+
+            // Cap at 2 tasks + append '...' if there are more
+            if (taskList.length > 2) {
+                const topTwo = taskList.slice(0, 2);
+                topTwo[1] += '...';
+                return topTwo.join('<br>');
+            }
+
+            return taskList.join('<br>');
+        };
+
+        // Prev Month Days
         const prevMonthLastDay = new Date(year, month, 0).getDate();
         for (let i = firstDay; i > 0; i--) {
+            const dayNum = prevMonthLastDay - i + 1;
+            const checkDate = new Date(year, month - 1, dayNum);
+
             const dayDiv = document.createElement('div');
-            dayDiv.textContent = prevMonthLastDay - i + 1;
             dayDiv.classList.add('fade');
+            dayDiv.innerHTML = `
+                <span>${dayNum}</span>
+                <p style="font-size: 12px; margin-top: 5px;">${getTasksForDate(checkDate)}</p>
+            `;
             daysCont.appendChild(dayDiv);
         }
 
-        // Current Month
+        // Current Month Days
         for (let i = 1; i <= lastDay; i++) {
+            const checkDate = new Date(year, month, i);
+
             const dayDiv = document.createElement('div');
-            dayDiv.textContent = i;
             if (i == today.getDate() && month == today.getMonth() && year == today.getFullYear()) {
                 dayDiv.classList.add('today');
             }
+
+            dayDiv.innerHTML = `
+                <span>${i}</span>
+                <p style="font-size: 12px; margin-top: 5px;">${getTasksForDate(checkDate)}</p>
+            `;
             daysCont.appendChild(dayDiv);
         }
 
-        // Next Month
+        // Next Month Days
         const nextMonthStartDay = 7 - new Date(year, month + 1, 0).getDay() - 1;
         for (let i = 1; i <= nextMonthStartDay; i++) {
+            const checkDate = new Date(year, month + 1, i);
+
             const dayDiv = document.createElement('div');
-            dayDiv.textContent = i;
             dayDiv.classList.add('fade');
+            dayDiv.innerHTML = `
+                <span>${i}</span>
+                <p style="font-size: 12px; margin-top: 5px;">${getTasksForDate(checkDate)}</p>
+            `;
             daysCont.appendChild(dayDiv);
         }
-    }
+    };
 
     if (prevButton) {
         prevButton.addEventListener('click', function () {
             currentDate.setMonth(currentDate.getMonth() - 1);
-            renderCalendar(currentDate);
+            window.renderCalendar(currentDate);
         });
     }
 
     if (nextButton) {
         nextButton.addEventListener('click', function () {
             currentDate.setMonth(currentDate.getMonth() + 1);
-            renderCalendar(currentDate);
+            window.renderCalendar(currentDate);
         });
     }
 
-    renderCalendar(currentDate);
+    window.renderCalendar(currentDate);
 });
-
 // Section Toggles
 let repeat = false;
 
@@ -625,3 +688,4 @@ if (loginBtn && container) {
 }
 
 minicalendar();
+window.renderCalendar(currentDate);

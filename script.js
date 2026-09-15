@@ -716,9 +716,19 @@ document.querySelectorAll("#Calendar").forEach(button => {
 document.querySelectorAll("#todo").forEach(button => {
     button.onclick = function (e) {
         const calendar = document.getElementById("calendarSection");
-        if (calendar) calendar.classList.remove("hidden-section");
-        document.querySelector(".calendarBig").classList.add("hidden-section");
-        document.querySelector("#tasks").classList.remove("hidden-section");
+        const buttonClicked = e.target.id;
+
+        if (repeat == false) {
+            calendar.classList.add("hidden-section");
+            document.querySelector(".calendarBig").classList.add("hidden-section");
+            document.querySelector("#tasks").classList.remove("hidden-section");
+            repeat = true;
+        } else {
+            calendar.classList.remove("hidden-section");
+            document.querySelector(".calendarBig").classList.add("hidden-section");
+            document.querySelector("#tasks").classList.remove("hidden-section");
+            repeat = false;
+        }
 
         loadTasks("", "todo");
 

@@ -94,15 +94,82 @@ img.logo {
     object-fit: contain;
 }
 
+.user-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
 .gmailp {
     display: flex;
     align-items: center;
-    gap: clamp(8px, 1vh, 16px);
-    /* Keeps user email and icon on a single line on narrower monitor widths */
+    gap: clamp(8px, 1vh, 14px);
     white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    padding: 6px 12px;
+    border-radius: 12px;
+    transition: background-color 0.2s ease;
 }
 
-.gmailp p {
+.gmailp:hover {
+    background-color: rgba(0, 0, 0, 0.07);
+}
+
+.dropdown-arrow {
+    font-size: clamp(14px, 2vh, 20px);
+    color: #111111;
+    transition: transform 0.25s ease;
+    margin-left: 2px;
+}
+
+.user-dropdown.active .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    background-color: #ffffff;
+    border: 2.5px solid #000000;
+    border-radius: 12px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    min-width: 140px;
+    z-index: 1000;
+    overflow: hidden;
+    padding: 6px;
+}
+
+.user-dropdown.active .dropdown-menu {
+    display: block;
+}
+
+.dropdown-item {
+    width: 100%;
+    padding: 10px 14px;
+    background: transparent;
+    border: none;
+    outline: none;
+    text-align: left;
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #db1616;
+    cursor: pointer;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #ffebeb;
+    color: #b80000;
+}
+
+.gmailp b {
     font-family: 'Jeju Gothic', sans-serif;
     color: rgb(0, 0, 0);
     font-weight: 300;
@@ -619,6 +686,10 @@ form input[type="date"] {
     color: black
 }
 
+.days p {
+    color: rgb(196, 0, 0);
+}
+
 .days div:hover {
     background-color: white;
     color: black;
@@ -810,13 +881,14 @@ p {
 }
 
 /*LogIn CSS*/
+/*LogIn CSS*/
 .logcontainer {
-    background-color: #f1f1f1;
+    background-color: #f4f4f6;
     border-style: solid;
-    border-color: black;
+    border-color: #000000;
     border-width: 3px;
-    border-radius: 15px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.35);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
     position: fixed;
     top: 50%;
     left: 50%;
@@ -829,6 +901,7 @@ p {
     visibility: visible;
     transition: opacity 300ms ease, transform 300ms ease, visibility 300ms ease;
     z-index: 100;
+    font-family: 'Poppins', sans-serif;
 }
 
 .hide {
@@ -839,56 +912,125 @@ p {
     transition: opacity 300ms ease, transform 300ms ease, visibility 300ms ease;
 }
 
+.logcontainer form {
+    background-color: #f4f4f6;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0 45px;
+    height: 100%;
+    text-align: left;
+}
+
+.sign-in form h1::before {
+    content: "WELCOME BACK";
+    display: block;
+    font-size: 11px;
+    font-weight: 800;
+    color: #6BA1F0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.sign-up form h1::before {
+    content: "START FOR FREE";
+    display: block;
+    font-size: 11px;
+    font-weight: 800;
+    color: #6BA1F0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.logcontainer h1 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 2.1rem;
+    font-weight: 800;
+    color: #111111;
+    margin-top: 0;
+    margin-bottom: 16px;
+    text-align: left !important;
+}
+
+.logcontainer label {
+    font-family: 'Poppins', sans-serif;
+    margin-top: 12px;
+    margin-bottom: 6px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #111111;
+    text-align: left;
+    display: block;
+}
+
+.logcontainer input {
+    font-family: 'Poppins', sans-serif;
+    background-color: #ffffff;
+    border: 2px solid #000000;
+    padding: 11px 14px;
+    font-size: 13.5px;
+    border-radius: 10px;
+    width: 100%;
+    outline: none;
+    color: #111111;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.logcontainer input::placeholder {
+    color: #999999;
+    opacity: 1;
+}
+
+.logcontainer a {
+    font-family: 'Poppins', sans-serif;
+    color: #6BA1F0;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    margin: 12px 0 18px;
+    display: inline-block;
+}
+
+.logcontainer a:hover {
+    text-decoration: underline;
+}
+
 .logcontainer p {
+    font-family: 'Poppins', sans-serif;
     font-size: 14px;
     line-height: 20px;
     letter-spacing: 0.3px;
     margin: 20px 0;
 }
 
-.logcontainer a {
-    color: #333;
-    font-size: 13px;
-    text-decoration: none;
-    margin: 15px 0 10px;
-}
-
-.logcontainer button {
-    background-color: black;
-    color: #fff;
-    font-size: 12px;
-    padding: 10px 45px;
-    border: 1px solid transparent;
-    border-radius: 8px;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    margin-top: 10px;
+.logcontainer form button[type="submit"] {
+    font-family: 'Poppins', sans-serif;
+    background-color: #6BA1F0;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 12px 0;
+    border: 2.5px solid #000000;
+    border-radius: 10px;
+    letter-spacing: normal;
+    text-transform: none;
+    margin-top: 8px;
     cursor: pointer;
     width: 100%;
+    box-shadow: 1px 3px 6px rgba(0, 0, 0, 0.15);
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.logcontainer form button[type="submit"]:hover {
+    background-color: #5591e6;
 }
 
 .logcontainer button.hidden {
     background-color: transparent;
     border-color: #fff;
-}
-
-.logcontainer form {
-    background-color: #f1f1f1;
-    display: flex;
-    justify-content: center;
-    flex-direction: column;
-    padding: 0 40px;
-    height: 100%;
-}
-
-.logcontainer input {
-    background-color: #dbdbdb;
-    border: none;
-    padding: 10px 15px;
-    font-size: 13px;
-    border-radius: 8px;
-    width: 100%;
-    outline: none;
 }
 
 .form-container {
@@ -953,7 +1095,7 @@ p {
 }
 
 .toggle {
-    background: rgb(37, 37, 37);
+    background: #141414;
     color: #fff;
     height: 100%;
     position: relative;
@@ -972,13 +1114,56 @@ p {
     width: 50%;
     height: 100%;
     display: flex;
-    align-items: center;
     justify-content: center;
     flex-direction: column;
-    padding: 0 30px;
-    text-align: center;
+    align-items: flex-start;
+    padding: 0 45px;
+    text-align: left;
     top: 0;
     transition: all 0.6s ease-in-out;
+}
+
+.toggle-panel h1 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin-top: 0;
+    margin-bottom: 16px;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+}
+
+.toggle-panel p {
+    font-family: 'Poppins', sans-serif;
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: #b3b3b3;
+    margin: 0 0 36px 0;
+    max-width: 290px;
+}
+
+.toggle-panel button {
+    font-family: 'Poppins', sans-serif !important;
+    background-color: transparent !important;
+    color: #ffffff !important;
+    border: 2.5px solid #ffffff !important;
+    border-radius: 10px !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    padding: 11px 0 !important;
+    width: 170px !important;
+    text-align: center !important;
+    text-transform: none !important;
+    cursor: pointer;
+    letter-spacing: normal !important;
+    margin-top: 0 !important;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.toggle-panel button:hover {
+    background-color: #ffffff !important;
+    color: #141414 !important;
 }
 
 .toggle-left {

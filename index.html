@@ -56,8 +56,8 @@
                 </div>
                 <div class="toggle-panel toggle-right">
                     <h1>Hello, Friend!</h1>
-                    <p>Register with your personal details to use all of the site features</p>
-                    <button class="hidden" id="register">Sign Up</button>
+                    <p>Create an account to start tracking your tasks, deadlines , and classes in one place.</p>
+                    <button style="width: 50%;" class="hidden" id="register">Sign Up</button>
                 </div>
             </div>
         </div>
@@ -77,9 +77,15 @@
                         </div>
                     </th>
                     <th class="profileCol">
-                        <div class="gmailp">
-                            <img class="logo" src="Pictures/Gmail.png">
-                            <p id="accountName">Guest</p>
+                        <div class="user-dropdown">
+                            <div class="gmailp" id="accountDropdownBtn">
+                                <img class="logo" src="Pictures/Gmail.png">
+                                <b id="accountName">Guest</b>
+                                <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+                            </div>
+                            <div class="dropdown-menu" id="accountDropdownMenu">
+                                <button id="logoutBtn" class="dropdown-item"><i class="fa-solid fa-right-from-bracket"></i> Log out</button>
+                            </div>
                         </div>
                     </th>
                 </tr>

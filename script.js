@@ -88,6 +88,7 @@ document.getElementById("loginForm").addEventListener("submit", async function (
 
     logMessageEl.innerHTML = ``;
     accountID = user.userID;
+    let userName = user.userName.toUpperCase();
 
     loadTasks();
     minicalendar();
@@ -95,7 +96,7 @@ document.getElementById("loginForm").addEventListener("submit", async function (
 
     document.getElementById("logcontainer").classList.add('hide');
     document.getElementById("websiteCont").classList.remove("locked-content");
-    document.getElementById("accountName").innerHTML = `${user.userName}`;
+    document.getElementById("accountName").innerHTML = `${userName}`;
     document.getElementById("loginForm").reset();
 });
 
@@ -741,6 +742,37 @@ if (registerBtn && container) {
 if (loginBtn && container) {
     loginBtn.addEventListener('click', () => {
         container.classList.remove('active');
+    });
+}
+
+// Account Dropdown & Logout
+const accountDropdownBtn = document.getElementById("accountDropdownBtn");
+const userDropdown = document.querySelector(".user-dropdown");
+const logoutBtn = document.getElementById("logoutBtn");
+
+if (accountDropdownBtn && userDropdown) {
+    accountDropdownBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        userDropdown.classList.toggle("active");
+    });
+
+    document.addEventListener("click", (e) => {
+        if (!userDropdown.contains(e.target)) {
+            userDropdown.classList.remove("active");
+        }
+    });
+}
+
+if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+        accountID = null;
+        document.getElementById("accountName").innerText = "Guest";
+        document.getElementById("websiteCont").classList.add("locked-content");
+        document.getElementById("logcontainer").classList.remove("hide");
+        if (userDropdown) userDropdown.classList.remove("active");
+
+        const tasksUl = document.getElementById("tasks");
+        if (tasksUl) tasksUl.innerHTML = "";
     });
 }
 

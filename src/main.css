@@ -1,0 +1,1218 @@
+/* Global Box-Sizing: ensures padding and borders are included in element dimensions, preventing layout overflow across different screen sizes */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', 'sans serif';
+    margin-top: 1vh;
+    background-color: #f1f1f1;
+    /* Responsive side margins: 3% on both sides centers the content cleanly without horizontal overflow */
+    margin-left: 3%;
+    margin-right: 3%;
+    user-select: none;
+    /* Prevent accidental horizontal scrollbars when resizing or on different aspect-ratio monitors */
+    overflow-x: hidden;
+}
+
+.locked-content {
+    filter: blur(8px);
+    pointer-events: none;
+    user-select: none;
+    transition: filter 0.3s ease;
+}
+
+/*TOP searchbar etc*/
+.topbar {
+    /* Use 100% of container width so it aligns naturally with the rest of the page */
+    width: 100%;
+}
+
+.topbar table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* Auto-width allows the search column to expand across available space */
+.searchCol {
+    width: auto;
+    /* Clean spacing between the search bar and the profile email, removing unnecessary white space on the left of email */
+    padding-right: clamp(12px, 2vw, 28px);
+}
+
+/* 1% width tightly shrink-wraps the email profile column, eliminating empty white space on its left */
+.profileCol {
+    width: 1%;
+    white-space: nowrap;
+    padding-left: 0;
+}
+
+.searchbar {
+    background-color: #e6e6e6;
+    /* 100% width fills the header column; clamp maintains the original chunky 8vh height across all screen resolutions */
+    width: 100%;
+    height: clamp(64px, 8vh, 85px);
+    border-radius: 20px;
+    border-style: solid;
+    border-color: black;
+    border-width: 3px;
+    padding-left: clamp(10px, 1vh, 16px);
+    padding-right: clamp(12px, 1.2vh, 18px);
+    display: flex;
+    align-items: center;
+}
+
+.searchBox {
+    background-color: #e6e6e6;
+    border: none;
+    outline: none;
+    font-family: 'Jeju Gothic', sans-serif;
+    font-weight: 300;
+    /* Restored original bold 4vh font size with clamp so it scales appropriately across monitor sizes */
+    font-size: clamp(24px, 4vh, 38px);
+    display: inline;
+    width: 100%;
+    padding-left: 6px;
+}
+
+.searchButton {
+    outline: none;
+    background-color: #e6e6e6;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 0;
+}
+
+img.logo {
+    /* Restored original prominent 7vh icon sizing with clamp */
+    width: clamp(46px, 7vh, 65px);
+    height: clamp(46px, 7vh, 65px);
+    object-fit: contain;
+}
+
+.user-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.gmailp {
+    display: flex;
+    align-items: center;
+    gap: clamp(8px, 1vh, 14px);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    padding: 6px 12px;
+    border-radius: 12px;
+    transition: background-color 0.2s ease;
+}
+
+.gmailp:hover {
+    background-color: rgba(0, 0, 0, 0.07);
+}
+
+.dropdown-arrow {
+    font-size: clamp(14px, 2vh, 20px);
+    color: #111111;
+    transition: transform 0.25s ease;
+    margin-left: 2px;
+}
+
+.user-dropdown.active .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    background-color: #ffffff;
+    border: 2.5px solid #000000;
+    border-radius: 12px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    min-width: 140px;
+    z-index: 1000;
+    overflow: hidden;
+    padding: 6px;
+}
+
+.user-dropdown.active .dropdown-menu {
+    display: block;
+}
+
+.dropdown-item {
+    width: 100%;
+    padding: 10px 14px;
+    background: transparent;
+    border: none;
+    outline: none;
+    text-align: left;
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #db1616;
+    cursor: pointer;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #ffebeb;
+    color: #b80000;
+}
+
+.gmailp b {
+    font-family: 'Jeju Gothic', sans-serif;
+    color: rgb(0, 0, 0);
+    font-weight: 300;
+    /* Restored original 3vh profile font size with clamp */
+    font-size: clamp(20px, 3vh, 30px);
+    display: inline;
+    margin: 0;
+}
+
+th {
+    /* Restored original 2vh padding with clamp */
+    padding: clamp(10px, 2vh, 20px);
+    text-align: left;
+    vertical-align: middle;
+}
+
+/*Days Cards*/
+.container {
+    display: flex;
+    justify-content: center;
+}
+
+.child {
+    background-color: inherit;
+    padding: 0;
+}
+
+.wrapper {
+    box-sizing: border-box;
+    /* Full width within container; padding-inline reserves space for the < and > navigation buttons */
+    width: 100%;
+    position: relative;
+    margin: 1.5vh 0 2vh 0;
+    padding: 0 45px;
+}
+
+.wrapper .carousel {
+    display: grid;
+    grid-auto-flow: column;
+    /* Calculates 6 equal columns accounting for the wider 22px gaps between cards */
+    grid-auto-columns: calc((100% - (5 * 22px)) / 6);
+    /* Widened gap between calendar cards as requested for a cleaner, more spacious look */
+    gap: 22px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    scroll-behavior: smooth;
+    height: auto;
+    /* Minimum height accommodates the 185px card height and card drop-shadow */
+    min-height: 215px;
+    /* Padding accommodates card box-shadow without clipping */
+    padding: 6px 4px 18px 4px;
+}
+
+.carousel::-webkit-scrollbar {
+    display: none;
+}
+
+.wrapper h2,
+.wrapper h4,
+.wrapper p,
+.wrapper b {
+    margin: 0;
+}
+
+.wrapper p {
+    color: rgb(201, 15, 15);
+}
+
+.wrapper b {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Responsive circle button size */
+    height: clamp(34px, 4.5vh, 42px);
+    width: clamp(34px, 4.5vh, 42px);
+    background-color: #e9e7e7;
+    border-radius: 50%;
+    text-align: center;
+    border-style: solid;
+    border-color: black;
+    border-width: 2px;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.356);
+    cursor: pointer;
+    user-select: none;
+    z-index: 2;
+}
+
+/* Positioned cleanly inside wrapper padding so arrows never clip or float off-screen */
+.wrapper b:first-child {
+    left: 2px;
+}
+
+.wrapper b:last-child {
+    right: 2px;
+}
+
+.carousel .card {
+    cursor: pointer;
+    list-style: none;
+    background-color: #e9e7e7;
+    border-radius: 10px;
+    border-style: solid;
+    border-color: black;
+    border-width: 3px;
+    /* Height matched to the reference screenshot: squarish proportions with room for future content */
+    height: 185px;
+    padding: clamp(10px, 1.5vh, 16px);
+    box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.carousel.dragging {
+    scroll-behavior: auto;
+}
+
+.carousel.dragging .card {
+    cursor: grab;
+    user-select: none;
+}
+
+/* Breakpoints based on screen width (px) instead of viewport height (vh) for correct responsive behavior */
+@media screen and (max-width: 1200px) {
+    .wrapper .carousel {
+        /* Shows 5 cards on smaller laptops or narrower windows with spacious gaps */
+        grid-auto-columns: calc((100% - (4 * 18px)) / 5);
+        gap: 18px;
+    }
+}
+
+@media screen and (max-width: 992px) {
+    .wrapper .carousel {
+        /* Shows 4 cards on tablets or medium screens */
+        grid-auto-columns: calc((100% - (3 * 16px)) / 4);
+        gap: 16px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .wrapper .carousel {
+        /* Shows 3 cards on compact screens */
+        grid-auto-columns: calc((100% - (2 * 14px)) / 3);
+        gap: 14px;
+    }
+}
+
+@media screen and (max-width: 520px) {
+    .wrapper .carousel {
+        /* Shows 2 cards on mobile */
+        grid-auto-columns: calc((100% - 12px) / 2);
+        gap: 12px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .wrapper .carousel {
+        /* Shows 3 cards on compact screens */
+        grid-auto-columns: calc((100% - (2 * 10px)) / 3);
+    }
+}
+
+@media screen and (max-width: 520px) {
+    .wrapper .carousel {
+        /* Shows 2 cards on mobile */
+        grid-auto-columns: calc((100% - 8px) / 2);
+    }
+}
+
+/*Buttons*/
+.sectButton {
+    /* Flexible spacing aligns buttons with the grid without fixed negative offsets */
+    margin-left: 1%;
+    margin-top: 1vh;
+    margin-bottom: 2.5vh;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.mybutton {
+    margin-left: 0;
+    /* Responsive height and min-width with clamp prevents cramped text on smaller monitors */
+    height: clamp(40px, 5.5vh, 48px);
+    min-width: clamp(130px, 11vw, 165px);
+    padding: 0 clamp(12px, 1.5vw, 18px);
+    background-color: #e9e7e7;
+    cursor: pointer;
+    border-radius: 10px;
+    border-width: 3px;
+    border-style: solid;
+    border-color: black;
+    font-size: clamp(14px, 1.8vh, 17px);
+    font-family: inherit;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 1px 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+.addbutton {
+    background-color: #6BA1F0;
+}
+
+.sectButton img {
+    /* Responsive icon height */
+    height: clamp(20px, 3vh, 26px);
+    width: auto;
+}
+
+/*Pop-Up Add Task*/
+.popUp {
+    z-index: 10;
+    /* Fixed positioning ensures modal is always centered in the viewport, regardless of scroll position */
+    position: fixed;
+    top: -150%;
+    left: 50%;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(1.25);
+    box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
+    background-color: #e6e6e6;
+    /* Responsive width and max-height with scroll prevents cutoff on small laptop screens */
+    width: clamp(340px, 32vw, 500px);
+    max-width: 92vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: clamp(20px, 3.5vh, 36px);
+    border-style: solid;
+    border-color: black;
+    border-width: 3px;
+    border-radius: 15px;
+    transition: opacity 200ms 200ms ease,
+        transform 1ms 1ms ease,
+        box-shadow .1ms .1ms ease;
+}
+
+.popUp.active {
+    top: 50%;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+    transition: opacity 200ms 200ms ease,
+        transform 1ms 1ms ease,
+        box-shadow .1ms .1ms ease;
+}
+
+/* Standardized responsive close button across all modals */
+.popUp .close-btn,
+.popUp2 .close-btn,
+.popUpDesc .close-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-size: 24px;
+    width: 32px;
+    height: 32px;
+    background-color: #cacaca;
+    border-style: solid;
+    border-color: black;
+    border-width: 2px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 28px;
+    cursor: pointer;
+}
+
+form h2 {
+    text-align: center;
+    font-size: clamp(20px, 2.8vh, 26px);
+    margin-top: 0;
+}
+
+form label,
+p {
+    font-size: clamp(14px, 1.9vh, 18px);
+}
+
+.popUp input[type="text"],
+.popUp2 input[type="text"] {
+    font-size: clamp(13px, 2vh, 16px);
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #aaa;
+    width: 100%;
+    height: 40px;
+}
+
+form input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.popUp .btn[type="submit"] {
+    width: 100%;
+    height: clamp(38px, 4.8vh, 46px);
+    background-color: black;
+    color: #f5f5f5;
+    border-radius: 15px;
+    font-size: clamp(14px, 1.9vh, 18px);
+    cursor: pointer;
+    border: none;
+    margin-top: 12px;
+}
+
+form input[type="date"] {
+    font-size: clamp(13px, 1.6vh, 16px);
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #aaa;
+}
+
+#editForm .btn {
+    width: 48%;
+    height: clamp(38px, 4.8vh, 46px);
+    background-color: black;
+    color: #f5f5f5;
+    border-radius: 15px;
+    font-size: clamp(14px, 1.9vh, 18px);
+    cursor: pointer;
+    border: none;
+}
+
+#editForm textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #767676;
+    border-radius: 8px;
+    outline: none;
+    font-family: inherit;
+    font-size: clamp(14px, 1.8vh, 17px);
+    background-color: #ffffff;
+    min-height: 70px;
+    margin-bottom: 12px;
+    resize: vertical;
+}
+
+/*Tasks*/
+.taskCont {
+    /* Matches container margin for visual consistency */
+    margin-left: 1%;
+    margin-right: 1%;
+}
+
+#tasks {
+    display: flex;
+    flex-wrap: wrap;
+    /* Responsive gaps: scales with viewport width/height rather than rigid vh values */
+    column-gap: clamp(24px, 3.5vw, 55px);
+    row-gap: clamp(16px, 2.5vh, 30px);
+    list-style: none;
+    justify-content: flex-start;
+    padding: 0;
+    margin: 0;
+}
+
+.taskList {
+    cursor: pointer;
+    list-style: none;
+    background-color: #e9e7e7;
+    border-radius: 10px;
+    border-style: solid;
+    border-color: black;
+    border-width: 3px;
+    /* Responsive card dimensions: maintain original card shape on 1080p, 1440p, laptops, and ultra-wide */
+    width: clamp(230px, 18vw, 290px);
+    /* Adjusted minimum height to comfortably fit 3 categories while remaining compact */
+    min-height: clamp(165px, 19vh, 185px);
+    padding: clamp(12px, 1.6vh, 16px);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
+}
+
+.taskList h2,
+.taskList h4,
+.taskList p {
+    margin: 0vh;
+}
+
+.Personal {
+    color: #3C42BC
+}
+
+.Urgent {
+    color: #B40E0E
+}
+
+.Growth {
+    color: #BC773C
+}
+
+.Academics {
+    color: #507939
+}
+
+.Interactive {
+    color: #8F3070
+}
+
+.Social {
+    color: #4AA0BF
+}
+
+/* Button Effect - Updated */
+#calendarSection {
+    opacity: 1;
+    visibility: visible;
+    transition: visibility .5s, opacity .5s, max-height 0.5s ease-in-out, transform 0.5s ease-in-out;
+    transform: translateY(0);
+    /* Increased max-height to ensure smooth transition with bigger calendar cards */
+    max-height: 600px;
+    overflow: visible;
+}
+
+.hidden-section {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transform: translateY(-50px);
+    max-height: 0 !important;
+    overflow: hidden !important;
+}
+
+/*Calendar na malaki*/
+.calendarBig {
+    opacity: 1;
+    visibility: visible;
+    transition: visibility .5s, opacity .5s, max-height 0.5s ease-in-out, transform 0.5s ease-in-out;
+    transform: translateY(0);
+    max-height: 85vh;
+    overflow: visible;
+    /* 100% width prevents horizontal overflow while filling available area cleanly */
+    width: 100%;
+}
+
+.weekdays {
+    width: 100%;
+    margin: 0;
+}
+
+#weekdayList {
+    /* CSS Grid with 7 equal columns aligns weekday titles directly above calendar day cells */
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    list-style: none;
+    padding: 0;
+    margin: 0 0 4px 0;
+}
+
+#weekdayList li {
+    font-size: clamp(14px, 1.8vh, 18px);
+    font-weight: 700;
+    text-align: center;
+    padding: 6px 0;
+}
+
+.days {
+    margin: 0;
+    cursor: pointer;
+    list-style: none;
+    background-color: #e9e7e7;
+    border-radius: 10px;
+    border-style: solid;
+    border-color: black;
+    border-width: 3px;
+    padding: 10px;
+    width: 100%;
+    min-height: clamp(350px, 50vh, 500px);
+    box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
+    overflow: hidden;
+    /* CSS Grid 7 columns guarantees every day cell lines up under the right day of the week */
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: clamp(24px, 6vw, 60px);
+    padding: 0;
+    margin: 1vh 0;
+    margin-top: -3%;
+}
+
+.btn {
+    cursor: pointer;
+}
+
+.days div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 95px;
+    text-align: center;
+    padding: 4px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    font-size: clamp(14px, 1.8vh, 18px);
+    color: black
+}
+
+.days p {
+    color: rgb(196, 0, 0);
+}
+
+.days div:hover {
+    background-color: white;
+    color: black;
+}
+
+.days .today {
+    background-color: rgb(49, 98, 204);
+    color: white;
+}
+
+.fade {
+    color: gray;
+}
+
+/*Pop-Up Edit Task*/
+.popUp2 {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    z-index: 10;
+    /* Fixed positioning keeps modal centered on any screen resolution */
+    position: fixed;
+    top: -150%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1.25);
+    box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
+    background-color: #e6e6e6;
+    /* Responsive width and auto-height with scrolling so form elements never get cut off */
+    width: clamp(360px, 34vw, 520px);
+    max-width: 92vw;
+    height: auto;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: clamp(20px, 3.5vh, 36px);
+    padding-top: clamp(16px, 2vh, 24px);
+    border-style: solid;
+    border-color: black;
+    border-width: 3px;
+    border-radius: 15px;
+    transition: opacity 200ms 200ms ease,
+        transform 1ms 1ms ease,
+        box-shadow .1ms .1ms ease;
+}
+
+.popUp2.active2 {
+    top: 50%;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+    transition: opacity 200ms 200ms ease,
+        transform 1ms 1ms ease,
+        box-shadow .1ms .1ms ease;
+}
+
+/*PopUp Description*/
+.popUpDesc {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    z-index: 10;
+    /* Fixed positioning keeps modal centered on any screen resolution */
+    position: fixed;
+    top: -150%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1.25);
+    box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
+    background-color: #e6e6e6;
+    /* Responsive modal size: fits content comfortably with bottom padding for action buttons */
+    width: clamp(340px, 32vw, 480px);
+    max-width: 92vw;
+    height: auto;
+    min-height: clamp(260px, 38vh, 360px);
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: clamp(20px, 3vh, 32px);
+    padding-top: clamp(16px, 2vh, 24px);
+    padding-bottom: 70px;
+    border-style: solid;
+    border-color: black;
+    border-width: 3px;
+    border-radius: 15px;
+    transition: opacity 200ms 200ms ease,
+        transform 1ms 1ms ease,
+        box-shadow .1ms .1ms ease;
+}
+
+.popUpDesc.activeDesc {
+    top: 50%;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+    transition: opacity 200ms 200ms ease,
+        transform 1ms 1ms ease,
+        box-shadow .1ms .1ms ease;
+}
+
+.popUpDesc b,
+p {
+    font-size: clamp(16px, 2.2vh, 22px);
+    margin-bottom: .5vh;
+    margin-top: .5vh;
+}
+
+.popUpDesc ul {
+    display: flex;
+    flex-direction: row;
+    /* Allows tags to wrap onto another line if multiple tags exist */
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0;
+    margin: 8px 0;
+}
+
+.popUpDesc li {
+    list-style: none;
+    border: solid 2px black;
+    border-radius: 15px;
+    padding: 3px 12px;
+    font-size: clamp(13px, 1.8vh, 16px);
+}
+
+.popUpDesc .Personal {
+    background-color: #969ae9;
+    color: black;
+}
+
+.popUpDesc .Urgent {
+    background-color: #ff7171;
+    color: black;
+}
+
+.popUpDesc .Growth {
+    background-color: #f8af6e;
+    color: black;
+}
+
+.popUpDesc .Academics {
+    background-color: #a4f079;
+    color: black;
+}
+
+.popUpDesc .Interactive {
+    background-color: #fd7ed3;
+    color: black;
+}
+
+.popUpDesc .Social {
+    background-color: #83deff;
+    color: black;
+}
+
+.eButton {
+    /* Proportional width and height that looks crisp on any screen */
+    width: clamp(80px, 22%, 105px);
+    height: clamp(34px, 4.5vh, 42px);
+    background-color: rgb(8, 8, 8);
+    color: #f5f5f5;
+    border-radius: 15px;
+    font-size: clamp(14px, 1.8vh, 17px);
+    position: absolute;
+    bottom: 20px;
+    left: clamp(20px, 3.5vh, 32px);
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+}
+
+.fButton {
+    /* Proportional width and height that looks crisp on any screen */
+    width: clamp(80px, 22%, 105px);
+    height: clamp(34px, 4.5vh, 42px);
+    background-color: #1a8842;
+    color: #ffffff;
+    border-radius: 15px;
+    font-size: clamp(14px, 1.8vh, 17px);
+    position: absolute;
+    bottom: 20px;
+    left: calc(clamp(20px, 3.5vh, 32px) + clamp(80px, 22%, 105px) + 12px);
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    font-family: inherit;
+}
+
+.fButton:hover {
+    background-color: #16a34a;
+}
+
+/*LogIn CSS*/
+/*LogIn CSS*/
+.logcontainer {
+    background-color: #f4f4f6;
+    border-style: solid;
+    border-color: #000000;
+    border-width: 3px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1.25);
+    overflow: hidden;
+    width: 768px;
+    max-width: 100%;
+    min-height: 480px;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 300ms ease, transform 300ms ease, visibility 300ms ease;
+    z-index: 100;
+    font-family: 'Poppins', sans-serif;
+}
+
+.hide {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(1);
+    transition: opacity 300ms ease, transform 300ms ease, visibility 300ms ease;
+}
+
+.logcontainer form {
+    background-color: #f4f4f6;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0 45px;
+    height: 100%;
+    text-align: left;
+}
+
+.sign-in form h1::before {
+    content: "WELCOME BACK";
+    display: block;
+    font-size: 11px;
+    font-weight: 800;
+    color: #6BA1F0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.sign-up form h1::before {
+    content: "START FOR FREE";
+    display: block;
+    font-size: 11px;
+    font-weight: 800;
+    color: #6BA1F0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.logcontainer h1 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 2.1rem;
+    font-weight: 800;
+    color: #111111;
+    margin-top: 0;
+    margin-bottom: 16px;
+    text-align: left !important;
+}
+
+.logcontainer label {
+    font-family: 'Poppins', sans-serif;
+    margin-top: 12px;
+    margin-bottom: 6px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #111111;
+    text-align: left;
+    display: block;
+}
+
+.logcontainer input {
+    font-family: 'Poppins', sans-serif;
+    background-color: #ffffff;
+    border: 2px solid #000000;
+    padding: 11px 14px;
+    font-size: 13.5px;
+    border-radius: 10px;
+    width: 100%;
+    outline: none;
+    color: #111111;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.logcontainer input::placeholder {
+    color: #999999;
+    opacity: 1;
+}
+
+.logcontainer a {
+    font-family: 'Poppins', sans-serif;
+    color: #6BA1F0;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    margin: 12px 0 18px;
+    display: inline-block;
+}
+
+.logcontainer a:hover {
+    text-decoration: underline;
+}
+
+.logcontainer p {
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.3px;
+    margin: 20px 0;
+}
+
+.logcontainer form button[type="submit"] {
+    font-family: 'Poppins', sans-serif;
+    background-color: #6BA1F0;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 12px 0;
+    border: 2.5px solid #000000;
+    border-radius: 10px;
+    letter-spacing: normal;
+    text-transform: none;
+    margin-top: 8px;
+    cursor: pointer;
+    width: 100%;
+    box-shadow: 1px 3px 6px rgba(0, 0, 0, 0.15);
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.logcontainer form button[type="submit"]:hover {
+    background-color: #5591e6;
+}
+
+.logcontainer button.hidden {
+    background-color: transparent;
+    border-color: #fff;
+}
+
+.form-container {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    transition: all 0.6s ease-in-out;
+}
+
+.sign-in {
+    left: 0;
+    width: 50%;
+    z-index: 2;
+}
+
+.logcontainer.active .sign-in {
+    transform: translateX(100%);
+}
+
+.sign-up {
+    left: 0;
+    width: 50%;
+    opacity: 0;
+    z-index: 1;
+}
+
+.logcontainer.active .sign-up {
+    transform: translateX(100%);
+    opacity: 1;
+    z-index: 5;
+    animation: move 0.6s;
+}
+
+@keyframes move {
+
+    0%,
+    49.99% {
+        opacity: 0;
+        z-index: 1;
+    }
+
+    50%,
+    100% {
+        opacity: 1;
+        z-index: 5;
+    }
+}
+
+.toggle-container {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 50%;
+    height: 100%;
+    overflow: hidden;
+    transition: all 0.6s ease-in-out;
+    z-index: 1000;
+}
+
+.logcontainer.active .toggle-container {
+    transform: translateX(-100%);
+}
+
+.toggle {
+    background: #141414;
+    color: #fff;
+    height: 100%;
+    position: relative;
+    left: -100%;
+    width: 200%;
+    transform: translateX(0);
+    transition: all 0.6s ease-in-out;
+}
+
+.logcontainer.active .toggle {
+    transform: translateX(50%);
+}
+
+.toggle-panel {
+    position: absolute;
+    width: 50%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0 45px;
+    text-align: left;
+    top: 0;
+    transition: all 0.6s ease-in-out;
+}
+
+.toggle-panel h1 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin-top: 0;
+    margin-bottom: 16px;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+}
+
+.toggle-panel p {
+    font-family: 'Poppins', sans-serif;
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: #b3b3b3;
+    margin: 0 0 36px 0;
+    max-width: 290px;
+}
+
+.toggle-panel button {
+    font-family: 'Poppins', sans-serif !important;
+    background-color: transparent !important;
+    color: #ffffff !important;
+    border: 2.5px solid #ffffff !important;
+    border-radius: 10px !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    padding: 11px 0 !important;
+    width: 170px !important;
+    text-align: center !important;
+    text-transform: none !important;
+    cursor: pointer;
+    letter-spacing: normal !important;
+    margin-top: 0 !important;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.toggle-panel button:hover {
+    background-color: #ffffff !important;
+    color: #141414 !important;
+}
+
+.toggle-left {
+    transform: translateX(-200%);
+}
+
+.logcontainer.active .toggle-left {
+    transform: translateX(0);
+}
+
+.toggle-right {
+    right: 0;
+    transform: translateX(0);
+}
+
+.logcontainer.active .toggle-right {
+    transform: translateX(200%);
+}
+
+.logcontainer h1 {
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+
+.logcontainer label {
+    margin-top: 8px;
+    margin-bottom: 4px;
+    font-size: 13px;
+}
+
+/*Error and Success messsage*/
+.success {
+    background-color: #30df2a;
+    margin: 8px 0;
+    padding: 10px 15px;
+    font-size: 12px;
+    border-radius: 8px;
+    width: 100%;
+    outline: none;
+    text-align: center;
+}
+
+.error {
+    background-color: #db1616;
+    margin: 8px 0;
+    padding: 10px 15px;
+    font-size: 13px;
+    border-radius: 8px;
+    width: 100%;
+    outline: none;
+    text-align: center;
+}

@@ -1,0 +1,241 @@
+================================================================================
+          PROJECT PORTING SUMMARY: VANILLA HTML/JS/CSS TO REACT.JS + VITE
+================================================================================
+
+1. OVERVIEW & OBJECTIVE
+--------------------------------------------------------------------------------
+This project was originally built with vanilla JavaScript (script.js), plain HTML 
+(index.html), and CSS (main.css). 
+
+The goal was to port the entire application into a modern React.js + Vite codebase 
+without altering:
+- The visual design or CSS styling (colors, fonts, sizes, responsiveness, animations).
+- The functionalities (account authentication, Supabase database queries, 
+  mini-calendar carousel, big calendar month view, task creation/editing/archiving, 
+  search filtering, and account dropdown).
+- The user experience (including background blurs when logged out).
+
+
+2. NPM TOOLS & PACKAGES INSTALLED
+--------------------------------------------------------------------------------
+The following packages were configured in package.json:
+
+Production Dependencies:
+  1. react (^18.3.1)
+     - Purpose: Core React library used to build declarative, state-driven UI 
+       components (replacing procedural document.getElementById and innerHTML logic).
+  2. react-dom (^18.3.1)
+     - Purpose: The entry point to the DOM, mounting the React application tree 
+       to <div id="root"> using ReactDOM.createRoot().
+  3. @supabase/supabase-js (^2.49.1)
+     - Purpose: The official Supabase JavaScript client, replacing the old 
+       CDN <script> tag. Manages communication with your Supabase database 
+       (Accounts and Tasks tables) with typed query builder methods (.select(), 
+       .insert(), .update(), .delete(), .eq(), .ilike()).
+
+Developer Tooling (devDependencies):
+  4. vite (^6.2.0)
+     - Purpose: Modern frontend dev server and bundler. Provides near-instant 
+       Hot Module Replacement (HMR) during development and optimized, minified 
+       production bundles using Rollup on `npm run build`.
+  5. @vitejs/plugin-react (^4.3.4)
+     - Purpose: Vite plugin enabling JSX compilation and Fast Refresh (reloads 
+       components in browser instantly while preserving component state).
+
+
+3. WHAT CHANGED IN THE PROJECT STRUCTURE?
+--------------------------------------------------------------------------------
+
+BEFORE (Vanilla HTML/JS):
+  To-Do-List/
+  ├── index.html        (Contained ALL markup for the page, forms, and modals)
+  ├── script.js         (Contained ALL 789 lines of procedural JavaScript code)
+  ├── main.css          (All styling)
+  ├── config.js         (Hardcoded Supabase URL & Key, git-ignored)
+  ├── build.js          (Script that generated config.js)
+  └── Pictures/         (Static images referenced directly in HTML)
+
+AFTER (React.js + Vite):
+  To-Do-List/
+  ├── package.json               (Defines scripts and npm dependencies)
+  ├── vite.config.js             (Vite build tool configuration with React plugin)
+  ├── index.html                 (Clean single-page-app entry point that loads /src/main.jsx)
+  ├── .env.local                 (Stores VITE_SUPABASE_URL and VITE_SUPABASE_KEY; git-ignored)
+  ├── public/
+  │   └── Pictures/              (Static images: Find.png, Gmail.png, TrashCan.png)
+  ├── src/
+  │   ├── main.jsx               (React application entrypoint)
+  │   ├── main.css               (Exact original styles, imported directly into React)
+  │   ├── App.jsx                (Central state, authentication check, data fetching)
+  │   ├── config/
+  │   │   └── supabase.js        (Supabase client initialized via import.meta.env)
+  │   └── components/
+  │       ├── AuthModal.jsx      (Login & Registration form with sliding panel)
+  │       ├── Header.jsx         (Top bar with search input and user profile dropdown)
+  │       ├── MiniCalendar.jsx   (14-day horizontal carousel with drag and click scroll)
+  │       ├── ActionButtons.jsx  (To-Do List, Calendar, Archive, and Add Task buttons)
+  │       ├── TaskList.jsx       (Task cards list, categories, deadlines, empty states)
+  │       ├── BigCalendar.jsx    (Full month calendar view with day grid and navigation)
+  │       ├── AddTaskModal.jsx   (Popup form to create tasks with categories & date)
+  │       ├── TaskDetailsModal.jsx (Popup to view task, finish/restore, edit, delete)
+  │       └── EditTaskModal.jsx  (Popup to edit task details and update Supabase)
+
+
+4. STATIC ASSETS & THE "PICTURES" FOLDERS EXPLAINED
+--------------------------------------------------------------------------------
+- In Vanilla HTML:
+  Images were kept in a root folder named "Pictures/". The HTML directly referenced 
+  `<img src="Pictures/Find.png">`.
+  
+- In Vite + React:
+  Vite has a dedicated folder named "public/". Anything placed inside "public/" is 
+  automatically served at the root URL (e.g. "/Pictures/Find.png") during both 
+  local development (`npm run dev`) and production builds (`npm run build`).
+
+- In the "dist/" folder:
+  When you run `npm run build`, Vite packages everything into the "dist/" folder. 
+  It copies "public/Pictures/" into "dist/Pictures/". The "dist/" folder is the 
+  final distribution build ready to be hosted on the web.
+
+- Cleanup Done:
+  The duplicate root "Pictures/" folder was removed so that only the Vite-standard 
+  "public/Pictures/" remains as your single source for static images.
+
+
+5. API KEYS & ENVIRONMENT SECURITY
+--------------------------------------------------------------------------------
+- Credentials Architecture:
+  Your Supabase credentials are now loaded securely using Vite environment variables:
+  * Local file: `.env.local`
+      VITE_SUPABASE_URL=https://...
+      VITE_SUPABASE_KEY=sb_publishable_...
+  * Protected by `.gitignore`:
+      Both `config.js` and `.env.local` are in `.gitignore`. They are NEVER tracked 
+      or committed to GitHub.
+  * Application code: `src/config/supabase.js`
+      Does NOT contain any hardcoded fallback keys or secrets. It reads cleanly:
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+      const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
+
+
+6. COMPONENT BREAKDOWN (HOW VANILLA JS WAS REPLACED BY REACT)
+--------------------------------------------------------------------------------
+
+1. Supabase Client (src/config/supabase.js)
+   - Uses the official `@supabase/supabase-js` package.
+   - Reads environment variables dynamically via `import.meta.env`.
+
+2. Authentication Component (src/components/AuthModal.jsx)
+   - Replaces the raw `#logcontainer` DOM manipulation.
+   - Preserves the sliding toggle animation (`active` class toggle between Sign In 
+     and Sign Up).
+   - Handles account registration check against Supabase `Accounts` table, 
+     error/success banners, and login verification.
+
+3. Top Header & User Profile (src/components/Header.jsx)
+   - Controlled search input with Enter keydown support and search button click.
+   - Profile dropdown showing active username in uppercase (or "Guest" when logged out).
+   - Automatically closes when clicking outside via a document event listener.
+   - Logout button that resets session state and blurs the main UI.
+
+4. Mini Calendar (src/components/MiniCalendar.jsx)
+   - 14-day horizontal carousel starting from the current date.
+   - Full drag-to-scroll mouse gesture support as well as `<` and `>` arrow button 
+     scrolling based on card width and gap.
+   - Displays up to 3 task names per day matching task deadlines, with "..." overflow.
+
+5. Action Buttons (src/components/ActionButtons.jsx)
+   - Navigation bar triggering clear view-switch callbacks:
+     `onTodoClick`, `onCalendarClick`, `onArchiveClick`, and `onAddTaskClick`.
+
+6. Task List (src/components/TaskList.jsx)
+   - Declarative rendering of task cards.
+   - Displays task name, up to 2 category badges (with "..." if more than 2 categories), 
+     formatted deadline dates, and "No tasks found" / "No archived tasks found" states.
+   - Clicking a card opens that task's details modal.
+
+7. Task Modals (AddTaskModal, TaskDetailsModal, EditTaskModal)
+   - AddTaskModal: 6 category checkboxes, date picker with minDate set to today, 
+     validates required name and inserts into Supabase `Tasks` table.
+   - TaskDetailsModal: Shows all assigned categories, deadline, description, 
+     with action buttons for "Finish/Restore", "Edit", and "Delete".
+   - EditTaskModal: Prefilled with existing task values, supports a "Reset" 
+     button to restore original values, and updates Supabase on submit.
+
+8. Big Calendar (src/components/BigCalendar.jsx)
+   - Month navigation (`<` and `>`), rendering:
+     * Leading days from previous month with `.fade` styling.
+     * All days of the current month (with `.today` highlighting today's date).
+     * Trailing days of next month with `.fade` styling.
+     * Task badges matching each day's deadline date.
+
+9. Main Application Controller (src/App.jsx)
+   - Central state manager holding currentUser, view modes, task lists, search 
+     queries, and open modals.
+   - Applies `.locked-content` (blur) to the app when unauthenticated.
+
+
+7. DATABASE COMPATIBILITY (100% PRESERVED)
+--------------------------------------------------------------------------------
+- Accounts table:
+  * Select query on login: `eq('eMail', logEmail).eq('password', logPass)`
+  * Registration check: `select('eMail').eq('eMail', emailInput)`
+  * Registration insert: `{ userName, eMail, password }`
+- Tasks table:
+  * Fetching tasks: `eq('userID', accountID).eq('finished', isArchive)`
+  * Searching tasks: `ilike('TaskName', '%search%')`
+  * Inserting tasks: `{ userID, TaskName, Type1..Type6, Deadline }`
+  * Updating tasks: `{ TaskName, Type1..Type6, Deadline, Description }`
+  * Deleting tasks: `delete().eq('id', taskId).eq('userID', accountID)`
+  * Toggle finish/restore: `update({ finished: !finished })`
+
+
+8. GIT COMMIT HISTORY ON ReactBranch
+--------------------------------------------------------------------------------
+All commits on `ReactBranch` have been scrubbed of all hardcoded credentials. 
+The chronological history is as follows:
+
+  1. Initialize Vite and React setup with dependencies and configuration
+     - Added package.json, package-lock.json, vite.config.js, .gitignore, 
+       public/Pictures, clean src/config/supabase.js
+  2. Setup root index.html, main styling, and React entrypoint
+     - Added index.html, src/main.jsx, src/main.css
+  3. Create AuthModal component for Login and Registration
+     - Added src/components/AuthModal.jsx
+  4. Create Header component with search and account dropdown
+     - Added src/components/Header.jsx
+  5. Create MiniCalendar component with draggable carousel
+     - Added src/components/MiniCalendar.jsx
+  6. Create ActionButtons component for view navigation
+     - Added src/components/ActionButtons.jsx
+  7. Create TaskList and task management modal components
+     - Added TaskList.jsx, AddTaskModal.jsx, TaskDetailsModal.jsx, EditTaskModal.jsx
+  8. Create BigCalendar component with month view and task deadlines
+     - Added src/components/BigCalendar.jsx
+  9. Assemble App component with integrated state management and data flows
+     - Added src/App.jsx
+ 10. Remove legacy vanilla script.js and root main.css
+     - Cleaned up obsolete script.js and root main.css
+ 11. Remove legacy root Pictures folder in favor of public/Pictures
+     - Removed redundant root Pictures directory
+ 12. Add .vite cache directory to .gitignore
+     - Kept working tree clean of dev cache files
+
+TO UPDATE GITHUB:
+To overwrite the remote GitHub branch with this cleaned history:
+    git push --force origin ReactBranch
+
+
+9. HOW TO RUN THE PROJECT
+--------------------------------------------------------------------------------
+- To run development server:
+    npm run dev
+  (Access the app in your browser at: http://localhost:5173/)
+
+- To create a production build:
+    npm run build
+  (The compiled static website will be created in the `dist/` directory)
+
+- To preview the production build locally:
+    npm run preview
+================================================================================

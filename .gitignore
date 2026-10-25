@@ -3,6 +3,3 @@ dist
 .vite
 .env
 .env.local
-config.js
-try.txt
-try2.txt

@@ -1,3 +1,7 @@
+node_modules
+dist
+.env
+.env.local
 config.js
 try.txt
 try2.txt

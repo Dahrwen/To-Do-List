@@ -352,6 +352,12 @@ th {
     display: flex;
     flex-wrap: wrap;
     gap: 14px;
+    position: relative;
+    z-index: 5;
+}
+
+.mybutton * {
+    pointer-events: none;
 }
 
 .mybutton {
@@ -602,6 +608,7 @@ form input[type="date"] {
     transform: translateY(-50px);
     max-height: 0 !important;
     overflow: hidden !important;
+    pointer-events: none !important;
 }
 
 /*Calendar na malaki*/

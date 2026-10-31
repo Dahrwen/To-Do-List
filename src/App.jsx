@@ -28,8 +28,7 @@ export default function App() {
   const [showBigCalendar, setShowBigCalendar] = useState(false);
   const [showMiniCalendar, setShowMiniCalendar] = useState(true);
   const [showTasks, setShowTasks] = useState(true);
-  const [repeatToggle, setRepeatToggle] = useState(false);
-
+  
   // Tasks state
   const [displayedTasks, setDisplayedTasks] = useState([]);
   const [allUnfinishedTasks, setAllUnfinishedTasks] = useState([]);
@@ -77,7 +76,7 @@ export default function App() {
   }, []);
 
   const loadTasks = useCallback(
-    async (searchTerm = '', mode = currentViewMode, userId = currentUser?.userID) => {
+    async (searchTerm = '', mode = 'todo', userId = currentUser?.userID) => {
       if (!userId) return;
 
       setCurrentViewMode(mode);
@@ -104,7 +103,7 @@ export default function App() {
       const formatted = (data || []).map(formatTask);
       setDisplayedTasks(formatted);
     },
-    [currentUser?.userID, currentViewMode]
+    [currentUser?.userID]
   );
 
   const refreshAllData = useCallback(
@@ -139,43 +138,47 @@ export default function App() {
     setIsEditOpen(false);
   };
 
-  // Action buttons handlers replicating original behavior
+  // Action buttons handlers: robust, independent view routing
   const handleTodoClick = () => {
     closeAllPopups();
-    if (!repeatToggle) {
-      setShowMiniCalendar(false);
+    if (showBigCalendar || currentViewMode === 'archive') {
+      // Return to To-Do List view
       setShowBigCalendar(false);
-      setShowTasks(true);
-      setRepeatToggle(true);
-    } else {
       setShowMiniCalendar(true);
+      setShowTasks(true);
+      setCurrentViewMode('todo');
+      loadTasks('', 'todo');
+    } else {
+      // Toggle mini-calendar while staying on To-Do List
       setShowBigCalendar(false);
       setShowTasks(true);
-      setRepeatToggle(false);
+      setShowMiniCalendar((prev) => !prev);
+      loadTasks('', 'todo');
     }
-    loadTasks('', 'todo');
   };
 
   const handleCalendarClick = () => {
     closeAllPopups();
-    if (!repeatToggle) {
+    if (!showBigCalendar) {
+      // Open Big Calendar view
+      setShowBigCalendar(true);
       setShowMiniCalendar(false);
       setShowTasks(false);
-      setShowBigCalendar(true);
-      setRepeatToggle(true);
     } else {
-      setShowMiniCalendar(true);
+      // Toggle Big Calendar off -> return to active task view
       setShowBigCalendar(false);
+      setShowMiniCalendar(true);
       setShowTasks(true);
-      setRepeatToggle(false);
+      loadTasks('', currentViewMode);
     }
   };
 
   const handleArchiveClick = () => {
     closeAllPopups();
-    setShowMiniCalendar(true);
     setShowBigCalendar(false);
+    setShowMiniCalendar(true);
     setShowTasks(true);
+    setCurrentViewMode('archive');
     loadTasks('', 'archive');
   };
 

@@ -220,6 +220,13 @@ The chronological history is as follows:
      - Removed redundant root Pictures directory
  12. Add .vite cache directory to .gitignore
      - Kept working tree clean of dev cache files
+ 13. Fix action buttons toggle state and view routing
+     - Replaced fragile shared boolean toggle state with deterministic view routing
+     - Prevented buttons from becoming unresponsive or toggling opposite states
+ 14. Migrate authentication to Supabase Auth and add Google OAuth support
+     - Upgraded AuthModal to use official supabase.auth (email/password & Google OAuth)
+     - Added auth state listener and session restoration in App.jsx
+     - Added Google auth buttons and styling in main.css
 
 TO UPDATE GITHUB:
 To overwrite the remote GitHub branch with this cleaned history:

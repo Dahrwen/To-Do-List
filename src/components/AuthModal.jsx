@@ -10,90 +10,116 @@ export default function AuthModal({ isOpen, onLoginSuccess }) {
   const [regPassword, setRegPassword] = useState('');
   const [regMessage, setRegMessage] = useState('');
   const [regMessageType, setRegMessageType] = useState('');
+  const [isRegLoading, setIsRegLoading] = useState(false);
 
   // Login state
   const [logEmail, setLogEmail] = useState('');
   const [logPass, setLogPass] = useState('');
   const [logMessage, setLogMessage] = useState('');
   const [logMessageType, setLogMessageType] = useState('');
+  const [isLogLoading, setIsLogLoading] = useState(false);
 
   const handleRegister = async (e) => {
     e.preventDefault();
     setRegMessage('');
     setRegMessageType('');
+    setIsRegLoading(true);
 
-    const { data: existingUser } = await supabase
-      .from('Accounts')
-      .select('eMail')
-      .eq('eMail', regEmail)
-      .maybeSingle();
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: regEmail,
+        password: regPassword,
+        options: {
+          data: {
+            userName: regName,
+            full_name: regName,
+          },
+        },
+      });
 
-    if (existingUser) {
-      setRegMessage('Your email is already registered.');
-      setRegMessageType('error');
+      if (error) {
+        setRegMessage(error.message);
+        setRegMessageType('error');
+        setIsRegLoading(false);
+        return;
+      }
+
+      if (data?.user && !data?.session) {
+        setRegMessage('Account created! Please check your email to confirm.');
+        setRegMessageType('success');
+      } else if (data?.session && data?.user) {
+        setRegMessage('Account created successfully!');
+        setRegMessageType('success');
+        onLoginSuccess(data.user);
+      }
+
       setRegName('');
       setRegEmail('');
       setRegPassword('');
-      return;
-    }
-
-    const { error } = await supabase
-      .from('Accounts')
-      .insert([
-        {
-          userName: regName,
-          eMail: regEmail,
-          password: regPassword,
-        },
-      ]);
-
-    if (error) {
-      setRegMessage('There was a problem creating your account.');
+    } catch (err) {
+      setRegMessage(err.message || 'There was a problem creating your account.');
       setRegMessageType('error');
-    } else {
-      setRegMessage('Account created successfully.');
-      setRegMessageType('success');
+    } finally {
+      setIsRegLoading(false);
     }
-
-    setRegName('');
-    setRegEmail('');
-    setRegPassword('');
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLogMessage('');
     setLogMessageType('');
+    setIsLogLoading(true);
 
-    const { data: user, error } = await supabase
-      .from('Accounts')
-      .select('*')
-      .eq('eMail', logEmail)
-      .eq('password', logPass)
-      .maybeSingle();
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: logEmail,
+        password: logPass,
+      });
 
-    if (error) {
-      setLogMessage('There was an error checking your account.');
+      if (error) {
+        setLogMessage(error.message);
+        setLogMessageType('error');
+        setIsLogLoading(false);
+        return;
+      }
+
+      if (data?.user) {
+        setLogMessage('');
+        setLogMessageType('');
+        setLogEmail('');
+        setLogPass('');
+        onLoginSuccess(data.user);
+      }
+    } catch (err) {
+      setLogMessage(err.message || 'There was an error checking your account.');
       setLogMessageType('error');
-      setLogEmail('');
-      setLogPass('');
-      return;
+    } finally {
+      setIsLogLoading(false);
     }
+  };
 
-    if (!user) {
-      setLogMessage('Invalid Email or Password.');
+  const handleGoogleAuth = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+
+      if (error) {
+        setLogMessage(error.message);
+        setLogMessageType('error');
+        setRegMessage(error.message);
+        setRegMessageType('error');
+      }
+    } catch (err) {
+      const msg = err.message || 'An error occurred connecting to Google.';
+      setLogMessage(msg);
       setLogMessageType('error');
-      setLogEmail('');
-      setLogPass('');
-      return;
+      setRegMessage(msg);
+      setRegMessageType('error');
     }
-
-    setLogMessage('');
-    setLogMessageType('');
-    setLogEmail('');
-    setLogPass('');
-
-    onLoginSuccess(user);
   };
 
   return (
@@ -136,9 +162,19 @@ export default function AuthModal({ isOpen, onLoginSuccess }) {
             value={regPassword}
             onChange={(e) => setRegPassword(e.target.value)}
           />
-          <br />
-          <button type="submit">Sign Up</button>
-          <br />
+          <button type="submit" disabled={isRegLoading}>
+            {isRegLoading ? 'Signing Up...' : 'Sign Up'}
+          </button>
+          <div className="auth-divider">
+            <span>OR</span>
+          </div>
+          <button
+            type="button"
+            className="google-btn"
+            onClick={handleGoogleAuth}
+          >
+            <i className="fa-brands fa-google"></i> Sign Up with Google
+          </button>
         </form>
       </div>
 
@@ -169,8 +205,19 @@ export default function AuthModal({ isOpen, onLoginSuccess }) {
             onChange={(e) => setLogPass(e.target.value)}
           />
           <a href="#">Forgot Your Password?</a>
-          <button type="submit">Sign In</button>
-          <br />
+          <button type="submit" disabled={isLogLoading}>
+            {isLogLoading ? 'Signing In...' : 'Sign In'}
+          </button>
+          <div className="auth-divider">
+            <span>OR</span>
+          </div>
+          <button
+            type="button"
+            className="google-btn"
+            onClick={handleGoogleAuth}
+          >
+            <i className="fa-brands fa-google"></i> Continue with Google
+          </button>
         </form>
       </div>
 

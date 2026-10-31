@@ -115,13 +115,40 @@ export default function App() {
     [currentUser?.userID, currentViewMode, loadTasks, loadAllUnfinishedTasks]
   );
 
-  const handleLoginSuccess = (user) => {
-    setCurrentUser(user);
-    setIsAuthOpen(false);
-    refreshAllData(user.userID, 'todo');
+  const normalizeUser = (user) => {
+    if (!user) return null;
+    const id = user.id || user.userID;
+    const name =
+      user.user_metadata?.userName ||
+      user.user_metadata?.full_name ||
+      user.user_metadata?.name ||
+      user.userName ||
+      user.email?.split('@')[0] ||
+      'User';
+
+    return {
+      ...user,
+      userID: id,
+      userName: name,
+    };
   };
 
-  const handleLogout = () => {
+  const handleLoginSuccess = useCallback(
+    (rawUser) => {
+      const user = normalizeUser(rawUser);
+      setCurrentUser(user);
+      setIsAuthOpen(false);
+      refreshAllData(user.userID, 'todo');
+    },
+    [refreshAllData]
+  );
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error('Error signing out:', e);
+    }
     setCurrentUser(null);
     setIsAuthOpen(true);
     setDisplayedTasks([]);
@@ -131,6 +158,33 @@ export default function App() {
     setIsEditOpen(false);
     setSelectedTask(null);
   };
+
+  useEffect(() => {
+    // Check initial active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        handleLoginSuccess(session.user);
+      }
+    });
+
+    // Listen for auth state changes (e.g. Google OAuth redirect)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+        handleLoginSuccess(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+        setIsAuthOpen(true);
+        setDisplayedTasks([]);
+        setAllUnfinishedTasks([]);
+      }
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, [handleLoginSuccess]);
 
   const closeAllPopups = () => {
     setIsAddTaskOpen(false);

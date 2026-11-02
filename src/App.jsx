@@ -1,5 +1,14 @@
+// Import React hooks:
+// - useState: stores dynamic data that causes component re-renders when updated
+// - useEffect: runs side effects (like data fetching and auth listeners)
+// - useCallback: memoizes functions so they aren't unnecessarily recreated on each render
+// - useRef: stores mutable values across renders without triggering a re-render
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+
+// Import the configured Supabase client instance
 import { supabase } from './config/supabase';
+
+// Import application UI components
 import AuthModal from './components/AuthModal';
 import Header from './components/Header';
 import MiniCalendar from './components/MiniCalendar';
@@ -10,6 +19,7 @@ import AddTaskModal from './components/AddTaskModal';
 import TaskDetailsModal from './components/TaskDetailsModal';
 import EditTaskModal from './components/EditTaskModal';
 
+// Array mapping task category indices (Type1 to Type6) to their readable names
 const taskTypes = [
   'Personal',
   'Urgent',
@@ -20,26 +30,34 @@ const taskTypes = [
 ];
 
 export default function App() {
+  // Concurrency lock: prevents multiple account-sync requests from running at the same time
   const isSyncingRef = useRef(false);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [isAuthOpen, setIsAuthOpen] = useState(true);
 
-  // View state
-  const [currentViewMode, setCurrentViewMode] = useState('todo'); // 'todo' | 'archive'
-  const [showBigCalendar, setShowBigCalendar] = useState(false);
-  const [showMiniCalendar, setShowMiniCalendar] = useState(true);
-  const [showTasks, setShowTasks] = useState(true);
+  // Authentication & active session state
+  const [currentUser, setCurrentUser] = useState(null); // Holds the currently logged-in user object
+  const [isAuthOpen, setIsAuthOpen] = useState(true);     // Whether the login/register modal is open
+
+  // View state: controls which main views are active or visible
+  const [currentViewMode, setCurrentViewMode] = useState('todo'); // 'todo' for active tasks, 'archive' for completed tasks
+  const [showBigCalendar, setShowBigCalendar] = useState(false);  // True when the full month BigCalendar is displayed
+  const [showMiniCalendar, setShowMiniCalendar] = useState(true); // Toggles the 14-day horizontal mini calendar
+  const [showTasks, setShowTasks] = useState(true);               // Toggles visibility of the task card list
   
-  // Tasks state
-  const [displayedTasks, setDisplayedTasks] = useState([]);
-  const [allUnfinishedTasks, setAllUnfinishedTasks] = useState([]);
+  // Tasks state: data stored from Supabase
+  const [displayedTasks, setDisplayedTasks] = useState([]);       // Tasks currently visible in the list (filtered by mode & search)
+  const [allUnfinishedTasks, setAllUnfinishedTasks] = useState([]); // All pending tasks for the user (used to show dots/deadlines on calendars)
 
-  // Modals state
-  const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState(null);
+  // Modals state: controls popup visibility and task selection
+  const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);      // Popup for adding a new task
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);      // Popup for viewing task details
+  const [isEditOpen, setIsEditOpen] = useState(false);            // Popup for editing an existing task
+  const [selectedTask, setSelectedTask] = useState(null);         // The specific task currently opened in details or edit popup
 
+  /**
+   * Transforms raw Supabase Task database rows into convenient frontend objects.
+   * - Maps boolean flags (Type1..Type6) to an array of category name strings
+   * - Formats the deadline date string for display (e.g. "Nov 02 2026")
+   */
   const formatTask = (task) => {
     const selectedTypes = [];
     if (task.Type1) selectedTypes.push(taskTypes[0]);
@@ -52,6 +70,7 @@ export default function App() {
     let dateString = 'No due date';
     if (task.Deadline) {
       const dateObj = new Date(task.Deadline);
+      // Converts Date to "Month Day Year" format
       dateString = dateObj.toDateString().split(' ').slice(1).join(' ');
     }
 
@@ -63,6 +82,10 @@ export default function App() {
     };
   };
 
+  /**
+   * Fetches all unfinished tasks for the current user from Supabase.
+   * This is used by MiniCalendar and BigCalendar to display task deadlines.
+   */
   const loadAllUnfinishedTasks = useCallback(async (userId) => {
     if (!userId) return;
     const { data, error } = await supabase
@@ -76,6 +99,12 @@ export default function App() {
     }
   }, []);
 
+  /**
+   * Fetches tasks for the main list, applying filters:
+   * - mode: 'todo' fetches unfinished tasks (finished = false)
+   * - mode: 'archive' fetches completed tasks (finished = true)
+   * - searchTerm: filters TaskName using case-insensitive ILIKE match
+   */
   const loadTasks = useCallback(
     async (searchTerm = '', mode = 'todo', userId = currentUser?.userID) => {
       if (!userId) return;
@@ -107,6 +136,10 @@ export default function App() {
     [currentUser?.userID]
   );
 
+  /**
+   * Refreshes both the task list and calendar data for the active user.
+   * Called whenever a task is added, edited, finished, or deleted.
+   */
   const refreshAllData = useCallback(
     (userId = currentUser?.userID, mode = currentViewMode) => {
       if (!userId) return;
@@ -116,6 +149,13 @@ export default function App() {
     [currentUser?.userID, currentViewMode, loadTasks, loadAllUnfinishedTasks]
   );
 
+  /**
+   * Synchronizes authenticated users (including Google OAuth users) with the public `Accounts` table:
+   * - If user already has an integer userID, returns immediately
+   * - Looks up the public Accounts table by email
+   * - If found, links the integer userID
+   * - If new user, creates a record in Accounts table to obtain a database integer userID
+   */
   const syncAccountRecord = useCallback(async (rawUser) => {
     if (!rawUser) return null;
 
@@ -148,6 +188,7 @@ export default function App() {
         console.error('Error fetching account from Accounts table:', fetchErr.message);
       }
 
+      // If existing account found in Accounts table, reuse its integer userID
       if (existingAccounts && existingAccounts.length > 0) {
         const existingAccount = existingAccounts[0];
         return {
@@ -158,14 +199,14 @@ export default function App() {
         };
       }
 
-      // 2. If it truly does not exist yet, insert a single record
+      // 2. If it does not exist yet (e.g. brand new Google OAuth user), insert a single record
       const { data: newAccounts, error: insertErr } = await supabase
         .from('Accounts')
         .insert([
           {
             userName: displayName,
             eMail: email.trim(),
-            password: '', // OAuth accounts authenticate via Supabase Auth
+            password: '', // OAuth accounts authenticate securely via Supabase Auth
           },
         ])
         .select();
@@ -188,8 +229,15 @@ export default function App() {
     }
   }, []);
 
+  /**
+   * Invoked after successful login or OAuth authentication:
+   * - Uses synchronization lock to avoid duplicate runs
+   * - Syncs user with the Accounts table to obtain their integer userID
+   * - Updates state, unlocks UI, and loads tasks
+   */
   const handleLoginSuccess = useCallback(
     async (rawUser) => {
+      // Prevent concurrent duplicate executions
       if (isSyncingRef.current) return;
       isSyncingRef.current = true;
       try {
@@ -199,8 +247,8 @@ export default function App() {
           return;
         }
         setCurrentUser(user);
-        setIsAuthOpen(false);
-        refreshAllData(user.userID, 'todo');
+        setIsAuthOpen(false); // Close auth modal and unblur main UI
+        refreshAllData(user.userID, 'todo'); // Load user's active tasks
       } finally {
         isSyncingRef.current = false;
       }
@@ -208,6 +256,9 @@ export default function App() {
     [syncAccountRecord, refreshAllData]
   );
 
+  /**
+   * Signs the user out of Supabase Auth and resets all UI & data states
+   */
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -224,6 +275,11 @@ export default function App() {
     setSelectedTask(null);
   };
 
+  /**
+   * Runs once when the component mounts (empty dependency array []):
+   * 1. Checks if a valid Supabase session already exists in local storage
+   * 2. Registers a listener for auth events (e.g., Google OAuth redirects, sign out)
+   */
   useEffect(() => {
     // Check initial active session ONCE on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -232,7 +288,7 @@ export default function App() {
       }
     });
 
-    // Listen for auth state changes (e.g. Google OAuth redirect)
+    // Listen for auth state changes (e.g. Google OAuth redirect callback)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
@@ -246,18 +302,24 @@ export default function App() {
       }
     });
 
+    // Unsubscribe from listener when component unmounts
     return () => {
       subscription?.unsubscribe();
     };
   }, []);
 
+  // Helper to dismiss all active popup modals
   const closeAllPopups = () => {
     setIsAddTaskOpen(false);
     setIsDetailsOpen(false);
     setIsEditOpen(false);
   };
 
-  // Action buttons handlers: robust, independent view routing
+  // ============================================================================
+  // NAVIGATION & VIEW SWITCHING HANDLERS
+  // ============================================================================
+
+  // Switches back to To-Do List view, or toggles the mini calendar
   const handleTodoClick = () => {
     closeAllPopups();
     if (showBigCalendar || currentViewMode === 'archive') {
@@ -268,7 +330,7 @@ export default function App() {
       setCurrentViewMode('todo');
       loadTasks('', 'todo');
     } else {
-      // Toggle mini-calendar while staying on To-Do List
+      // Toggle mini-calendar visibility while staying on To-Do List
       setShowBigCalendar(false);
       setShowTasks(true);
       setShowMiniCalendar((prev) => !prev);
@@ -276,10 +338,11 @@ export default function App() {
     }
   };
 
+  // Opens or closes the full Big Calendar view
   const handleCalendarClick = () => {
     closeAllPopups();
     if (!showBigCalendar) {
-      // Open Big Calendar view
+      // Open Big Calendar view and hide regular task list
       setShowBigCalendar(true);
       setShowMiniCalendar(false);
       setShowTasks(false);
@@ -292,6 +355,7 @@ export default function App() {
     }
   };
 
+  // Switches to the Archive view showing finished tasks
   const handleArchiveClick = () => {
     closeAllPopups();
     setShowBigCalendar(false);
@@ -301,17 +365,23 @@ export default function App() {
     loadTasks('', 'archive');
   };
 
+  // Opens the Add Task modal
   const handleAddTaskClick = () => {
     setIsAddTaskOpen(true);
     setIsDetailsOpen(false);
     setIsEditOpen(false);
   };
 
-  // Task click -> details modal
+  // ============================================================================
+  // TASK CRUD (CREATE, READ, UPDATE, DELETE) HANDLERS
+  // ============================================================================
+
+  // Opens the Task Details modal when a task card is clicked
   const handleTaskClick = async (task) => {
     if (!currentUser?.userID) return;
     closeAllPopups();
 
+    // Fetch fresh task data from Supabase
     const { data: tasks, error } = await supabase
       .from('Tasks')
       .select('*')
@@ -325,7 +395,7 @@ export default function App() {
     setIsDetailsOpen(true);
   };
 
-  // Task actions
+  // Adds a new task row to Supabase
   const handleAddTask = async (taskData) => {
     if (!currentUser?.userID) {
       alert('Please log in first before creating tasks!');
@@ -344,12 +414,15 @@ export default function App() {
       return;
     }
 
+    // Refresh UI with the updated task list
     refreshAllData();
   };
 
+  // Toggles a task between finished (completed) and active (unfinished)
   const handleFinishTask = async (taskId) => {
     if (!currentUser?.userID) return;
 
+    // Check current finished state
     const { data: currentTask } = await supabase
       .from('Tasks')
       .select('finished')
@@ -359,6 +432,7 @@ export default function App() {
 
     const newStatus = !(currentTask?.finished);
 
+    // Update finished boolean in Supabase
     await supabase
       .from('Tasks')
       .update({ finished: newStatus })
@@ -369,6 +443,7 @@ export default function App() {
     refreshAllData();
   };
 
+  // Deletes a task from Supabase
   const handleDeleteTask = async (taskId) => {
     if (!currentUser?.userID) return;
 
@@ -382,12 +457,14 @@ export default function App() {
     refreshAllData();
   };
 
+  // Switches from Details modal to Edit modal
   const handleEditClick = (task) => {
     setIsDetailsOpen(false);
     setSelectedTask(task);
     setIsEditOpen(true);
   };
 
+  // Updates an existing task's fields in Supabase
   const handleUpdateTask = async (taskId, updatedData) => {
     if (!currentUser?.userID) return;
 
@@ -406,32 +483,38 @@ export default function App() {
     refreshAllData();
   };
 
+  // Handles search filtering from the Header search bar
   const handleSearch = (query) => {
     loadTasks(query, currentViewMode);
   };
 
   return (
     <>
+      {/* Authentication Modal (Sign In / Sign Up / Google OAuth) */}
       <AuthModal
         isOpen={isAuthOpen}
         onLoginSuccess={handleLoginSuccess}
       />
 
+      {/* Main website container (blurred / locked behind AuthModal when logged out) */}
       <div
         id="websiteCont"
         className={isAuthOpen ? 'locked-content' : ''}
       >
+        {/* Top navigation header: search bar & user profile dropdown */}
         <Header
           userName={currentUser ? currentUser.userName.toUpperCase() : 'Guest'}
           onSearch={handleSearch}
           onLogout={handleLogout}
         />
 
+        {/* 14-day horizontal mini calendar carousel */}
         <MiniCalendar
           tasks={allUnfinishedTasks}
           isHidden={!showMiniCalendar}
         />
 
+        {/* View switching action buttons (To-Do, Calendar, Archive, Add Task) */}
         <ActionButtons
           onTodoClick={handleTodoClick}
           onCalendarClick={handleCalendarClick}
@@ -439,12 +522,14 @@ export default function App() {
           onAddTaskClick={handleAddTaskClick}
         />
 
+        {/* Modal popup to create a new task */}
         <AddTaskModal
           isOpen={isAddTaskOpen}
           onClose={() => setIsAddTaskOpen(false)}
           onAddTask={handleAddTask}
         />
 
+        {/* Main task cards list (shows To-Do tasks or Archived tasks) */}
         <TaskList
           tasks={displayedTasks}
           currentViewMode={currentViewMode}
@@ -452,11 +537,13 @@ export default function App() {
           onTaskClick={handleTaskClick}
         />
 
+        {/* Full month grid Big Calendar view */}
         <BigCalendar
           tasks={allUnfinishedTasks}
           isHidden={!showBigCalendar}
         />
 
+        {/* Modal popup to inspect full task details */}
         <TaskDetailsModal
           isOpen={isDetailsOpen}
           task={selectedTask}
@@ -466,6 +553,7 @@ export default function App() {
           onDelete={handleDeleteTask}
         />
 
+        {/* Modal popup to edit an existing task */}
         <EditTaskModal
           isOpen={isEditOpen}
           task={selectedTask}

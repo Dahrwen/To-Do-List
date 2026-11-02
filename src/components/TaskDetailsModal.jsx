@@ -1,5 +1,21 @@
 import React from 'react';
 
+/**
+ * TaskDetailsModal Component
+ * Modal dialog that displays full details of a selected task:
+ * - Task name, categories, formatted deadline, and description
+ * - "Finish" / "Restore" button to toggle completion status
+ * - "Edit" button to open the edit modal
+ * - Trash can icon to delete the task
+ * 
+ * Props:
+ * - isOpen: boolean, whether the modal is open
+ * - task: object, the selected task data
+ * - onClose: callback to close the modal
+ * - onFinish: callback to toggle task completion (finished / unfinished)
+ * - onEdit: callback to switch to EditTaskModal
+ * - onDelete: callback to delete the task from Supabase
+ */
 export default function TaskDetailsModal({
   isOpen,
   task,
@@ -8,6 +24,7 @@ export default function TaskDetailsModal({
   onEdit,
   onDelete,
 }) {
+  // If no task is selected, don't render anything
   if (!task) return null;
 
   const categories = task.categories || [];
@@ -15,19 +32,27 @@ export default function TaskDetailsModal({
     ? 'Edit to add description'
     : task.Description;
   const deadline = !task.Deadline ? 'No Due Date' : task.Deadline;
+
+  // If task is completed (finished: true), button says "Restore", otherwise "Finish"
   const finishBtnLabel = task.finished ? 'Restore' : 'Finish';
 
   return (
     <section className={`popUpDesc ${isOpen ? 'activeDesc' : ''}`}>
+      {/* Close button (X) */}
       <div className="close-btn" onClick={onClose}>
         &times;
       </div>
+
       <div id="taskDesc">
         <h1 style={{ textAlign: 'center' }}>Task Details</h1>
+
+        {/* Task Name */}
         <p>
           <b>Task Name: </b>
           {task.TaskName}
         </p>
+
+        {/* Categories list */}
         <ul>
           {categories.map((cat, idx) => (
             <li
@@ -39,12 +64,18 @@ export default function TaskDetailsModal({
             </li>
           ))}
         </ul>
+
+        {/* Deadline */}
         <p>
           <b>Deadline: </b>
           {deadline}
         </p>
+
+        {/* Description text */}
         <b>Task Description:</b>
         <p style={{ fontSize: '2vh' }}>{description}</p>
+
+        {/* Finish / Restore button */}
         <button
           className="fButton"
           id="finishButton"
@@ -53,6 +84,8 @@ export default function TaskDetailsModal({
         >
           {finishBtnLabel}
         </button>
+
+        {/* Edit button */}
         <button
           className="eButton"
           id="editButton"
@@ -61,6 +94,8 @@ export default function TaskDetailsModal({
         >
           Edit
         </button>
+
+        {/* Delete trash can icon */}
         <img
           id="delete"
           style={{

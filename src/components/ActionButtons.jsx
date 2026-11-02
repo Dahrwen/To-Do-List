@@ -1,5 +1,15 @@
 import React from 'react';
 
+/**
+ * ActionButtons Component
+ * The main toolbar providing navigation between views and triggering task creation.
+ * 
+ * Props:
+ * - onTodoClick: callback to switch to the To-Do List view (or toggle mini-calendar)
+ * - onCalendarClick: callback to toggle the full month BigCalendar view
+ * - onArchiveClick: callback to switch to the completed tasks Archive view
+ * - onAddTaskClick: callback to open the Add Task modal
+ */
 export default function ActionButtons({
   onTodoClick,
   onCalendarClick,
@@ -8,6 +18,7 @@ export default function ActionButtons({
 }) {
   return (
     <section className="sectButton">
+      {/* To-Do List button */}
       <button
         id="todo"
         className="mybutton"
@@ -17,6 +28,8 @@ export default function ActionButtons({
         <i className="fa-regular fa-clipboard"></i>
         <b> To-Do List</b>
       </button>
+
+      {/* Calendar toggle button */}
       <button
         id="Calendar"
         className="mybutton"
@@ -26,6 +39,8 @@ export default function ActionButtons({
         <i className="fa-regular fa-calendar-days"></i>
         <b>Calendar</b>
       </button>
+
+      {/* Archive view button */}
       <button
         id="archived"
         className="mybutton"
@@ -35,6 +50,8 @@ export default function ActionButtons({
         <i className="fa-solid fa-archive"></i>
         <b>Archive</b>
       </button>
+
+      {/* Add Task modal trigger button */}
       <button
         id="addTask"
         className="mybutton addbutton"

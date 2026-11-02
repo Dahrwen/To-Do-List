@@ -1,24 +1,47 @@
+// Import React hooks for local component state
 import React, { useState } from 'react';
+// Import the shared Supabase client
 import { supabase } from '../config/supabase';
 
+/**
+ * AuthModal Component
+ * Handles user sign in, registration, and Google OAuth.
+ * 
+ * Props:
+ * - isOpen: boolean, whether the modal is visible on screen
+ * - onLoginSuccess: callback function called with the authenticated user object
+ */
 export default function AuthModal({ isOpen, onLoginSuccess }) {
+  // Controls the animated sliding panel:
+  // false = Sign In view, true = Sign Up view
   const [isActive, setIsActive] = useState(false);
 
-  // Registration state
-  const [regName, setRegName] = useState('');
-  const [regEmail, setRegEmail] = useState('');
-  const [regPassword, setRegPassword] = useState('');
-  const [regMessage, setRegMessage] = useState('');
-  const [regMessageType, setRegMessageType] = useState('');
-  const [isRegLoading, setIsRegLoading] = useState(false);
+  // ============================================================================
+  // REGISTRATION FORM STATE
+  // ============================================================================
+  const [regName, setRegName] = useState('');                 // User's display name
+  const [regEmail, setRegEmail] = useState('');               // Registration email
+  const [regPassword, setRegPassword] = useState('');         // Registration password
+  const [regMessage, setRegMessage] = useState('');           // Error or success banner text
+  const [regMessageType, setRegMessageType] = useState('');   // 'error' | 'success' (for styling banner)
+  const [isRegLoading, setIsRegLoading] = useState(false);     // Disables submit button while requesting
 
-  // Login state
-  const [logEmail, setLogEmail] = useState('');
-  const [logPass, setLogPass] = useState('');
-  const [logMessage, setLogMessage] = useState('');
-  const [logMessageType, setLogMessageType] = useState('');
-  const [isLogLoading, setIsLogLoading] = useState(false);
+  // ============================================================================
+  // LOGIN FORM STATE
+  // ============================================================================
+  const [logEmail, setLogEmail] = useState('');               // Login email
+  const [logPass, setLogPass] = useState('');                 // Login password
+  const [logMessage, setLogMessage] = useState('');           // Error or success banner text
+  const [logMessageType, setLogMessageType] = useState('');   // 'error' | 'success'
+  const [isLogLoading, setIsLogLoading] = useState(false);     // Disables submit button while requesting
 
+  /**
+   * Handles user registration:
+   * 1. Checks if the email is already registered in the public Accounts table
+   * 2. Registers the user with Supabase Auth (auth.signUp)
+   * 3. Inserts an account record into the public Accounts table
+   * 4. Automatically logs the user in if email confirmation is disabled
+   */
   const handleRegister = async (e) => {
     e.preventDefault();
     setRegMessage('');
@@ -68,15 +91,18 @@ export default function AuthModal({ isOpen, onLoginSuccess }) {
         },
       ]);
 
+      // If Supabase project requires email confirmation
       if (data?.user && !data?.session) {
         setRegMessage('Account created! Please check your email to confirm.');
         setRegMessageType('success');
       } else if (data?.session && data?.user) {
+        // If session is immediately active, notify parent App component
         setRegMessage('Account created successfully!');
         setRegMessageType('success');
         onLoginSuccess(data.user);
       }
 
+      // Reset form fields
       setRegName('');
       setRegEmail('');
       setRegPassword('');
@@ -88,6 +114,12 @@ export default function AuthModal({ isOpen, onLoginSuccess }) {
     }
   };
 
+  /**
+   * Handles user login:
+   * 1. Attempts Supabase Auth login with email and password
+   * 2. If user exists from legacy system (plain password in Accounts table), falls back to check it
+   * 3. Calls onLoginSuccess(user) to pass session to App.jsx
+   */
   const handleLogin = async (e) => {
     e.preventDefault();
     setLogMessage('');
@@ -95,7 +127,7 @@ export default function AuthModal({ isOpen, onLoginSuccess }) {
     setIsLogLoading(true);
 
     try {
-      // 1. Attempt Supabase Auth login
+      // 1. Attempt official Supabase Auth login
       const { data, error } = await supabase.auth.signInWithPassword({
         email: logEmail,
         password: logPass,
@@ -137,12 +169,16 @@ export default function AuthModal({ isOpen, onLoginSuccess }) {
     }
   };
 
+  /**
+   * Initiates Google OAuth login via Supabase.
+   * Redirects user to Google OAuth consent screen, then back to the application.
+   */
   const handleGoogleAuth = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: window.location.origin, // Return to this site after login
         },
       });
 
@@ -162,10 +198,12 @@ export default function AuthModal({ isOpen, onLoginSuccess }) {
   };
 
   return (
+    // Outer container: 'active' class triggers CSS sliding panel animation; 'hide' hides modal when logged in
     <div
       className={`logcontainer ${isActive ? 'active' : ''} ${!isOpen ? 'hide' : ''}`}
       id="logcontainer"
     >
+      {/* Sign Up Form Panel */}
       <div className="form-container sign-up">
         <form id="regisForm" onSubmit={handleRegister}>
           {regMessage && (
@@ -204,9 +242,12 @@ export default function AuthModal({ isOpen, onLoginSuccess }) {
           <button type="submit" disabled={isRegLoading}>
             {isRegLoading ? 'Signing Up...' : 'Sign Up'}
           </button>
+          
           <div className="auth-divider">
             <span>OR</span>
           </div>
+
+          {/* Google OAuth Sign Up Button */}
           <button
             type="button"
             className="google-btn"
@@ -217,6 +258,7 @@ export default function AuthModal({ isOpen, onLoginSuccess }) {
         </form>
       </div>
 
+      {/* Sign In Form Panel */}
       <div className="form-container sign-in">
         <form id="loginForm" onSubmit={handleLogin}>
           {logMessage && (
@@ -247,9 +289,12 @@ export default function AuthModal({ isOpen, onLoginSuccess }) {
           <button type="submit" disabled={isLogLoading}>
             {isLogLoading ? 'Signing In...' : 'Sign In'}
           </button>
+
           <div className="auth-divider">
             <span>OR</span>
           </div>
+
+          {/* Google OAuth Sign In Button */}
           <button
             type="button"
             className="google-btn"
@@ -260,8 +305,10 @@ export default function AuthModal({ isOpen, onLoginSuccess }) {
         </form>
       </div>
 
+      {/* Animated Sliding Overlay Panels (switches between Sign In and Sign Up) */}
       <div className="toggle-container">
         <div className="toggle">
+          {/* Left panel (shown when in Sign Up view, invites user to Sign In) */}
           <div className="toggle-panel toggle-left">
             <h1>Welcome Back!</h1>
             <p>Enter your personal details to use all of the site features</p>
@@ -274,6 +321,8 @@ export default function AuthModal({ isOpen, onLoginSuccess }) {
               Sign In
             </button>
           </div>
+
+          {/* Right panel (shown when in Sign In view, invites user to Sign Up) */}
           <div className="toggle-panel toggle-right">
             <h1>Hello, Friend!</h1>
             <p>

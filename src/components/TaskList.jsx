@@ -1,5 +1,15 @@
 import React from 'react';
 
+/**
+ * TaskList Component
+ * Displays a list of task cards (either active tasks or archived tasks).
+ * 
+ * Props:
+ * - tasks: array of formatted task objects to display
+ * - currentViewMode: 'todo' | 'archive' (controls empty state message)
+ * - isHidden: boolean, hides the task list when BigCalendar is open
+ * - onTaskClick: callback invoked when a user clicks on a task card (opens details modal)
+ */
 export default function TaskList({
   tasks = [],
   currentViewMode = 'todo',
@@ -9,6 +19,7 @@ export default function TaskList({
   return (
     <section className="taskCont">
       <ul id="tasks" className={isHidden ? 'hidden-section' : ''}>
+        {/* If no tasks are returned, display an appropriate empty state notice */}
         {tasks.length === 0 ? (
           <p
             style={{
@@ -24,7 +35,9 @@ export default function TaskList({
               : 'No tasks found.'}
           </p>
         ) : (
+          // Render each task card
           tasks.map((task) => {
+            // Display up to 2 category badges on the card; show "..." badge if more exist
             let categoriesToDisplay = [...(task.categories || [])];
             let hasMore = false;
             if (categoriesToDisplay.length > 2) {
@@ -39,7 +52,10 @@ export default function TaskList({
                 data-id={task.id || ''}
                 onClick={() => onTaskClick(task)}
               >
+                {/* Task title */}
                 <h2>{task.name || task.TaskName}</h2>
+
+                {/* Category tags */}
                 <div className="category-container">
                   {categoriesToDisplay.map((cat, idx) => (
                     <div
@@ -56,6 +72,8 @@ export default function TaskList({
                     </div>
                   )}
                 </div>
+
+                {/* Deadline formatted string */}
                 <h4>{task.deadLine}</h4>
               </li>
             );

@@ -29,6 +29,14 @@ const taskTypes = [
   'Social',
 ];
 
+// Helper to format a user's display name so only the first letter is capitalized (e.g. 'Dharwin')
+const formatCapitalizedFirstName = (name) => {
+  if (!name) return 'Guest';
+  const firstWord = name.trim().split(/\s+/)[0];
+  if (!firstWord) return 'Guest';
+  return firstWord.charAt(0).toUpperCase() + firstWord.slice(1).toLowerCase();
+};
+
 export default function App() {
   // Concurrency lock: prevents multiple account-sync requests from running at the same time
   const isSyncingRef = useRef(false);
@@ -174,7 +182,7 @@ export default function App() {
       email.split('@')[0] ||
       'User';
 
-    const firstName = rawFullName.trim().split(/\s+/)[0] || 'User';
+    const firstName = formatCapitalizedFirstName(rawFullName);
 
     // 2. Extract Google profile picture if present (from avatar_url or picture)
     const avatarUrl =
@@ -203,11 +211,11 @@ export default function App() {
       // If existing account found in Accounts table, reuse its integer userID
       if (existingAccounts && existingAccounts.length > 0) {
         const existingAccount = existingAccounts[0];
-        const resolvedFirstName =
+        const resolvedFirstName = formatCapitalizedFirstName(
           rawUser.user_metadata?.given_name ||
           firstName ||
-          (existingAccount.userName || '').trim().split(/\s+/)[0] ||
-          'User';
+          existingAccount.userName
+        );
 
         return {
           ...rawUser,
@@ -527,10 +535,7 @@ export default function App() {
         <Header
           userName={
             currentUser
-              ? (currentUser.firstName || currentUser.userName || 'User')
-                  .trim()
-                  .split(/\s+/)[0]
-                  .toUpperCase()
+              ? formatCapitalizedFirstName(currentUser.firstName || currentUser.userName)
               : 'Guest'
           }
           userAvatar={currentUser?.avatarUrl || null}

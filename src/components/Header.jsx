@@ -56,6 +56,12 @@ export default function Header({ userName, userAvatar, onSearch, onLogout }) {
 
   const isCustomAvatar = Boolean(userAvatar && avatarSrc !== '/Pictures/Gmail.png');
 
+  // Format user display name so only the first letter is capitalized (e.g. 'Dharwin')
+  const displayName = userName && userName !== 'Guest'
+    ? userName.trim().split(/\s+/)[0].charAt(0).toUpperCase() +
+      userName.trim().split(/\s+/)[0].slice(1).toLowerCase()
+    : 'Guest';
+
   return (
     <header className="topbar">
       <table style={{ width: '100%' }}>
@@ -109,7 +115,7 @@ export default function Header({ userName, userAvatar, onSearch, onLogout }) {
                     referrerPolicy="no-referrer"
                     onError={() => setAvatarSrc('/Pictures/Gmail.png')}
                   />
-                  <b id="accountName">{userName || 'Guest'}</b>
+                  <b id="accountName">{displayName}</b>
                   <i className="fa-solid fa-chevron-down dropdown-arrow"></i>
                 </div>
 

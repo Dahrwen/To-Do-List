@@ -8,15 +8,28 @@ import React, { useState, useEffect, useRef } from 'react';
  * Header Component
  * Displays the top navigation bar containing:
  * - Search bar with input and search button
- * - User profile info and logout dropdown
+ * - User profile info and dropdown with Google Classroom sync & logout options
  * 
  * Props:
  * - userName: string, the currently logged-in user's first name (or 'Guest')
  * - userAvatar: string | null, URL of the user's Google profile picture (if available)
- * - onSearch: function, callback invoked when user presses Enter or clicks the search icon
+ * - isClassroomConnected: boolean, whether Google Classroom coursework sync is connected
+ * - isSyncingClassroom: boolean, whether a sync is currently in progress
+ * - onConnectClassroom: function, callback to connect or sync Google Classroom
+ * - onDisconnectClassroom: function, callback to disconnect Google Classroom
+ * - onSearch: function, callback invoked when user presses Enter or clicks search icon
  * - onLogout: function, callback invoked when user clicks "Log out"
  */
-export default function Header({ userName, userAvatar, onSearch, onLogout }) {
+export default function Header({
+  userName,
+  userAvatar,
+  isClassroomConnected = false,
+  isSyncingClassroom = false,
+  onConnectClassroom,
+  onDisconnectClassroom,
+  onSearch,
+  onLogout,
+}) {
   const [dropdownOpen, setDropdownOpen] = useState(false); // Controls whether the profile dropdown menu is open
   const [searchValue, setSearchValue] = useState('');      // Controlled input state for the search query
   const [avatarSrc, setAvatarSrc] = useState(userAvatar || '/Pictures/Gmail.png'); // Active avatar image source
@@ -121,6 +134,47 @@ export default function Header({ userName, userAvatar, onSearch, onLogout }) {
 
                 {/* Dropdown menu */}
                 <div className="dropdown-menu" id="accountDropdownMenu">
+                  {/* Google Classroom Connect / Sync action */}
+                  <button
+                    id="classroomSyncBtn"
+                    className="dropdown-item classroom-item"
+                    type="button"
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      if (onConnectClassroom) onConnectClassroom();
+                    }}
+                    disabled={isSyncingClassroom}
+                  >
+                    <img
+                      src="/Pictures/GoogleClassroom.svg"
+                      alt=""
+                      className="classroom-dropdown-icon"
+                    />
+                    {isSyncingClassroom
+                      ? 'Syncing...'
+                      : isClassroomConnected
+                      ? 'Sync Classroom'
+                      : 'Connect to Google Classroom'}
+                  </button>
+
+                  {/* Option to disconnect Google Classroom */}
+                  {isClassroomConnected && (
+                    <button
+                      id="classroomDisconnectBtn"
+                      className="dropdown-item"
+                      style={{ color: '#666', fontSize: '13px' }}
+                      type="button"
+                      onClick={() => {
+                        setDropdownOpen(false);
+                        if (onDisconnectClassroom) onDisconnectClassroom();
+                      }}
+                    >
+                      <i className="fa-solid fa-link-slash"></i> Disconnect
+                    </button>
+                  )}
+
+                  <div className="dropdown-divider"></div>
+
                   <button
                     id="logoutBtn"
                     className="dropdown-item"

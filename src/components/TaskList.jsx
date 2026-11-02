@@ -73,8 +73,18 @@ export default function TaskList({
                   )}
                 </div>
 
-                {/* Deadline formatted string */}
-                <h4>{task.deadLine}</h4>
+                {/* Deadline formatted string with Google Classroom badge */}
+                <h4 className="task-deadline">
+                  <span>{task.deadLine}</span>
+                  {task.source === 'google_classroom' && (
+                    <img
+                      src="/Pictures/GoogleClassroom.svg"
+                      alt="Google Classroom"
+                      className="classroom-badge-icon"
+                      title="Imported from Google Classroom"
+                    />
+                  )}
+                </h4>
               </li>
             );
           })

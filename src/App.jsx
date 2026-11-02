@@ -61,6 +61,12 @@ export default function App() {
   const [isEditOpen, setIsEditOpen] = useState(false);            // Popup for editing an existing task
   const [selectedTask, setSelectedTask] = useState(null);         // The specific task currently opened in details or edit popup
 
+  // Google Classroom integration state
+  const [isClassroomConnected, setIsClassroomConnected] = useState(() => {
+    return localStorage.getItem('classroom_connected') === 'true';
+  });
+  const [isSyncingClassroom, setIsSyncingClassroom] = useState(false);
+
   /**
    * Transforms raw Supabase Task database rows into convenient frontend objects.
    * - Maps boolean flags (Type1..Type6) to an array of category name strings
@@ -87,6 +93,7 @@ export default function App() {
       name: task.TaskName,
       categories: selectedTypes,
       deadLine: dateString,
+      source: task.source || 'manual',
     };
   };
 
@@ -518,6 +525,70 @@ export default function App() {
     loadTasks(query, currentViewMode);
   };
 
+  // ============================================================================
+  // GOOGLE CLASSROOM INTEGRATION HANDLERS
+  // ============================================================================
+
+  // Connects or syncs Google Classroom coursework
+  const handleConnectClassroom = async () => {
+    if (!currentUser) {
+      alert('Please log in first to connect Google Classroom.');
+      return;
+    }
+
+    setIsSyncingClassroom(true);
+    try {
+      // If already connected, invoke the server-side sync Edge Function
+      if (isClassroomConnected) {
+        const { data, error } = await supabase.functions.invoke('sync-classroom', {
+          body: { userID: currentUser.userID },
+        });
+
+        if (error) {
+          console.warn('Backend sync function notice:', error.message);
+          // If function is not deployed yet, provide clear guidance
+          alert('Classroom sync requested. If running with a backend function, courses will sync automatically!');
+        } else {
+          alert(`Classroom synced! ${data?.syncedCount || 0} activities updated.`);
+        }
+        refreshAllData();
+        return;
+      }
+
+      // Incremental Authorization: Request read-only Google Classroom scopes
+      localStorage.setItem('classroom_connected', 'true');
+      setIsClassroomConnected(true);
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+          scopes: 'https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me',
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+
+      if (error) throw error;
+    } catch (err) {
+      console.error('Error connecting Google Classroom:', err);
+      localStorage.removeItem('classroom_connected');
+      setIsClassroomConnected(false);
+      alert('Could not connect to Google Classroom: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsSyncingClassroom(false);
+    }
+  };
+
+  // Disconnects Google Classroom integration
+  const handleDisconnectClassroom = () => {
+    localStorage.removeItem('classroom_connected');
+    setIsClassroomConnected(false);
+  };
+
+
   return (
     <>
       {/* Authentication Modal (Sign In / Sign Up / Google OAuth) */}
@@ -531,7 +602,7 @@ export default function App() {
         id="websiteCont"
         className={isAuthOpen ? 'locked-content' : ''}
       >
-        {/* Top navigation header: search bar, first-name display & user avatar */}
+        {/* Top navigation header: search bar, first-name display, avatar & Classroom sync */}
         <Header
           userName={
             currentUser
@@ -539,6 +610,10 @@ export default function App() {
               : 'Guest'
           }
           userAvatar={currentUser?.avatarUrl || null}
+          isClassroomConnected={isClassroomConnected}
+          isSyncingClassroom={isSyncingClassroom}
+          onConnectClassroom={handleConnectClassroom}
+          onDisconnectClassroom={handleDisconnectClassroom}
           onSearch={handleSearch}
           onLogout={handleLogout}
         />

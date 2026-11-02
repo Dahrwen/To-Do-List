@@ -184,6 +184,27 @@ img.logo {
     color: #b80000;
 }
 
+.dropdown-divider {
+    height: 1px;
+    background-color: #e5e5e5;
+    margin: 4px 0;
+}
+
+.dropdown-item.classroom-item {
+    color: #137333;
+}
+
+.dropdown-item.classroom-item:hover {
+    background-color: #e6f4ea;
+    color: #0d5223;
+}
+
+.classroom-dropdown-icon {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+}
+
 .gmailp b {
     font-family: 'Jeju Gothic', sans-serif;
     color: rgb(0, 0, 0);
@@ -580,6 +601,19 @@ form input[type="date"] {
 .taskList h4,
 .taskList p {
     margin: 0vh;
+}
+
+.task-deadline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.classroom-badge-icon {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    vertical-align: middle;
 }
 
 .Personal {

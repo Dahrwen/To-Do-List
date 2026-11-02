@@ -231,6 +231,13 @@ The chronological history is as follows:
      - Added syncAccountRecord in App.jsx to ensure Google users are stored in the Accounts table
      - Links integer userID required by Tasks table foreign key and type constraints
      - Automatically matches existing accounts by email to load existing tasks
+ 16. Fix infinite loop in account sync and restore clean Accounts table
+     - Broke cyclic useEffect re-renders by setting empty dependency array []
+     - Changed query from .maybeSingle() to .limit(1) to avoid multiple-row query errors
+     - Added isSyncingRef mutual exclusion lock during account synchronization
+     - Purged duplicate generated rows in Accounts table and restored original 5 user records
+ 17. Declare useRef for isSyncingRef in App.jsx
+     - Imported useRef from react and declared isSyncingRef state ref in App component
 
 TO UPDATE GITHUB:
 To overwrite the remote GitHub branch with this cleaned history:

@@ -697,6 +697,10 @@ form input[type="date"] {
     color: rgb(196, 0, 0);
 }
 
+.days .today p {
+    color: rgb(255, 255, 255);
+}
+
 .days div:hover {
     background-color: white;
     color: black;
@@ -705,6 +709,10 @@ form input[type="date"] {
 .days .today {
     background-color: rgb(49, 98, 204);
     color: white;
+}
+
+.days .today:hover p {
+    color: rgb(196, 0, 0);
 }
 
 .fade {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from './config/supabase';
 import AuthModal from './components/AuthModal';
 import Header from './components/Header';
@@ -20,6 +20,7 @@ const taskTypes = [
 ];
 
 export default function App() {
+  const isSyncingRef = useRef(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthOpen, setIsAuthOpen] = useState(true);
 

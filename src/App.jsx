@@ -151,7 +151,8 @@ export default function App() {
 
   /**
    * Synchronizes authenticated users (including Google OAuth users) with the public `Accounts` table:
-   * - If user already has an integer userID, returns immediately
+   * - Extracts the user's first name only (from Google given_name, or the first word of full_name)
+   * - Extracts the Google avatar URL safely without leaking any private Gmail data
    * - Looks up the public Accounts table by email
    * - If found, links the integer userID
    * - If new user, creates a record in Accounts table to obtain a database integer userID
@@ -159,21 +160,32 @@ export default function App() {
   const syncAccountRecord = useCallback(async (rawUser) => {
     if (!rawUser) return null;
 
-    // If it's already an Accounts table object with an integer userID
-    if (rawUser.userID && typeof rawUser.userID === 'number') {
-      return rawUser;
-    }
-
     const email = rawUser.email || rawUser.eMail;
     if (!email) return null;
 
-    const displayName =
-      rawUser.user_metadata?.userName ||
+    // 1. Extract first name only (prioritize Google's given_name, then first word of full_name / userName)
+    // This ensures no middle names, last names, or email addresses appear in the top-right greeting
+    const rawFullName =
+      rawUser.user_metadata?.given_name ||
       rawUser.user_metadata?.full_name ||
       rawUser.user_metadata?.name ||
+      rawUser.user_metadata?.userName ||
       rawUser.userName ||
       email.split('@')[0] ||
       'User';
+
+    const firstName = rawFullName.trim().split(/\s+/)[0] || 'User';
+
+    // 2. Extract Google profile picture if present (from avatar_url or picture)
+    const avatarUrl =
+      rawUser.user_metadata?.avatar_url ||
+      rawUser.user_metadata?.picture ||
+      null;
+
+    // If it's already an Accounts table object with an integer userID and firstName already set
+    if (rawUser.userID && typeof rawUser.userID === 'number' && rawUser.firstName) {
+      return rawUser;
+    }
 
     try {
       // 1. Check if an account already exists (using limit(1) to avoid multi-row errors)
@@ -191,10 +203,18 @@ export default function App() {
       // If existing account found in Accounts table, reuse its integer userID
       if (existingAccounts && existingAccounts.length > 0) {
         const existingAccount = existingAccounts[0];
+        const resolvedFirstName =
+          rawUser.user_metadata?.given_name ||
+          firstName ||
+          (existingAccount.userName || '').trim().split(/\s+/)[0] ||
+          'User';
+
         return {
           ...rawUser,
           userID: existingAccount.userID,
-          userName: existingAccount.userName || displayName,
+          userName: resolvedFirstName,
+          firstName: resolvedFirstName,
+          avatarUrl: avatarUrl,
           eMail: existingAccount.eMail,
         };
       }
@@ -204,7 +224,7 @@ export default function App() {
         .from('Accounts')
         .insert([
           {
-            userName: displayName,
+            userName: firstName,
             eMail: email.trim(),
             password: '', // OAuth accounts authenticate securely via Supabase Auth
           },
@@ -220,7 +240,9 @@ export default function App() {
       return {
         ...rawUser,
         userID: created?.userID,
-        userName: created?.userName || displayName,
+        userName: firstName,
+        firstName: firstName,
+        avatarUrl: avatarUrl,
         eMail: created?.eMail || email,
       };
     } catch (err) {
@@ -501,9 +523,17 @@ export default function App() {
         id="websiteCont"
         className={isAuthOpen ? 'locked-content' : ''}
       >
-        {/* Top navigation header: search bar & user profile dropdown */}
+        {/* Top navigation header: search bar, first-name display & user avatar */}
         <Header
-          userName={currentUser ? currentUser.userName.toUpperCase() : 'Guest'}
+          userName={
+            currentUser
+              ? (currentUser.firstName || currentUser.userName || 'User')
+                  .trim()
+                  .split(/\s+/)[0]
+                  .toUpperCase()
+              : 'Guest'
+          }
+          userAvatar={currentUser?.avatarUrl || null}
           onSearch={handleSearch}
           onLogout={handleLogout}
         />

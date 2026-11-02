@@ -115,32 +115,89 @@ export default function App() {
     [currentUser?.userID, currentViewMode, loadTasks, loadAllUnfinishedTasks]
   );
 
-  const normalizeUser = (user) => {
-    if (!user) return null;
-    const id = user.id || user.userID;
-    const name =
-      user.user_metadata?.userName ||
-      user.user_metadata?.full_name ||
-      user.user_metadata?.name ||
-      user.userName ||
-      user.email?.split('@')[0] ||
+  const syncAccountRecord = useCallback(async (rawUser) => {
+    if (!rawUser) return null;
+
+    // If it's already an Accounts table object with an integer userID
+    if (rawUser.userID && typeof rawUser.userID === 'number') {
+      return rawUser;
+    }
+
+    const email = rawUser.email || rawUser.eMail;
+    if (!email) return null;
+
+    const displayName =
+      rawUser.user_metadata?.userName ||
+      rawUser.user_metadata?.full_name ||
+      rawUser.user_metadata?.name ||
+      rawUser.userName ||
+      email.split('@')[0] ||
       'User';
 
-    return {
-      ...user,
-      userID: id,
-      userName: name,
-    };
-  };
+    try {
+      // 1. Check if an account already exists in the public Accounts table
+      const { data: existingAccount, error: fetchErr } = await supabase
+        .from('Accounts')
+        .select('*')
+        .eq('eMail', email)
+        .maybeSingle();
+
+      if (fetchErr) {
+        console.error('Error fetching account from Accounts table:', fetchErr.message);
+      }
+
+      if (existingAccount && existingAccount.userID) {
+        return {
+          ...rawUser,
+          userID: existingAccount.userID,
+          userName: existingAccount.userName || displayName,
+          eMail: existingAccount.eMail,
+        };
+      }
+
+      // 2. If it does not exist in Accounts table yet (e.g. new Google OAuth login),
+      // store the account in the database!
+      const { data: newAccount, error: insertErr } = await supabase
+        .from('Accounts')
+        .insert([
+          {
+            userName: displayName,
+            eMail: email,
+            password: '', // OAuth accounts authenticate via Supabase Auth
+          },
+        ])
+        .select()
+        .maybeSingle();
+
+      if (insertErr) {
+        console.error('Error storing account in Accounts table:', insertErr.message);
+        return null;
+      }
+
+      return {
+        ...rawUser,
+        userID: newAccount?.userID,
+        userName: newAccount?.userName || displayName,
+        eMail: newAccount?.eMail || email,
+      };
+    } catch (err) {
+      console.error('Error syncing account record:', err);
+      return null;
+    }
+  }, []);
 
   const handleLoginSuccess = useCallback(
-    (rawUser) => {
-      const user = normalizeUser(rawUser);
+    async (rawUser) => {
+      const user = await syncAccountRecord(rawUser);
+      if (!user || !user.userID) {
+        console.error('Could not sync user with Accounts table.');
+        return;
+      }
       setCurrentUser(user);
       setIsAuthOpen(false);
       refreshAllData(user.userID, 'todo');
     },
-    [refreshAllData]
+    [syncAccountRecord, refreshAllData]
   );
 
   const handleLogout = async () => {

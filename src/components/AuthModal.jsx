@@ -26,6 +26,21 @@ export default function AuthModal({ isOpen, onLoginSuccess }) {
     setIsRegLoading(true);
 
     try {
+      // 1. Check if email is already in the Accounts table
+      const { data: existingUser } = await supabase
+        .from('Accounts')
+        .select('eMail')
+        .eq('eMail', regEmail)
+        .maybeSingle();
+
+      if (existingUser) {
+        setRegMessage('Your email is already registered.');
+        setRegMessageType('error');
+        setIsRegLoading(false);
+        return;
+      }
+
+      // 2. Sign up with Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email: regEmail,
         password: regPassword,
@@ -43,6 +58,15 @@ export default function AuthModal({ isOpen, onLoginSuccess }) {
         setIsRegLoading(false);
         return;
       }
+
+      // 3. Store account record in the database Accounts table
+      await supabase.from('Accounts').insert([
+        {
+          userName: regName,
+          eMail: regEmail,
+          password: regPassword,
+        },
+      ]);
 
       if (data?.user && !data?.session) {
         setRegMessage('Account created! Please check your email to confirm.');
@@ -71,25 +95,40 @@ export default function AuthModal({ isOpen, onLoginSuccess }) {
     setIsLogLoading(true);
 
     try {
+      // 1. Attempt Supabase Auth login
       const { data, error } = await supabase.auth.signInWithPassword({
         email: logEmail,
         password: logPass,
       });
 
-      if (error) {
-        setLogMessage(error.message);
-        setLogMessageType('error');
-        setIsLogLoading(false);
-        return;
-      }
-
-      if (data?.user) {
+      if (!error && data?.user) {
         setLogMessage('');
         setLogMessageType('');
         setLogEmail('');
         setLogPass('');
         onLoginSuccess(data.user);
+        return;
       }
+
+      // 2. Fallback check for legacy accounts in Accounts table (created before Supabase Auth)
+      const { data: legacyUser, error: legErr } = await supabase
+        .from('Accounts')
+        .select('*')
+        .eq('eMail', logEmail)
+        .eq('password', logPass)
+        .maybeSingle();
+
+      if (legacyUser) {
+        setLogMessage('');
+        setLogMessageType('');
+        setLogEmail('');
+        setLogPass('');
+        onLoginSuccess(legacyUser);
+        return;
+      }
+
+      setLogMessage(error?.message || 'Invalid Email or Password.');
+      setLogMessageType('error');
     } catch (err) {
       setLogMessage(err.message || 'There was an error checking your account.');
       setLogMessageType('error');

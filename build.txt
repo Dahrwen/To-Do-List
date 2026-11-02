@@ -227,6 +227,10 @@ The chronological history is as follows:
      - Upgraded AuthModal to use official supabase.auth (email/password & Google OAuth)
      - Added auth state listener and session restoration in App.jsx
      - Added Google auth buttons and styling in main.css
+ 15. Sync Google OAuth and Supabase Auth with public Accounts table
+     - Added syncAccountRecord in App.jsx to ensure Google users are stored in the Accounts table
+     - Links integer userID required by Tasks table foreign key and type constraints
+     - Automatically matches existing accounts by email to load existing tasks
 
 TO UPDATE GITHUB:
 To overwrite the remote GitHub branch with this cleaned history:

@@ -135,18 +135,20 @@ export default function App() {
       'User';
 
     try {
-      // 1. Check if an account already exists in the public Accounts table
-      const { data: existingAccount, error: fetchErr } = await supabase
+      // 1. Check if an account already exists (using limit(1) to avoid multi-row errors)
+      const { data: existingAccounts, error: fetchErr } = await supabase
         .from('Accounts')
         .select('*')
-        .eq('eMail', email)
-        .maybeSingle();
+        .ilike('eMail', email.trim())
+        .order('userID', { ascending: true })
+        .limit(1);
 
       if (fetchErr) {
         console.error('Error fetching account from Accounts table:', fetchErr.message);
       }
 
-      if (existingAccount && existingAccount.userID) {
+      if (existingAccounts && existingAccounts.length > 0) {
+        const existingAccount = existingAccounts[0];
         return {
           ...rawUser,
           userID: existingAccount.userID,
@@ -155,30 +157,29 @@ export default function App() {
         };
       }
 
-      // 2. If it does not exist in Accounts table yet (e.g. new Google OAuth login),
-      // store the account in the database!
-      const { data: newAccount, error: insertErr } = await supabase
+      // 2. If it truly does not exist yet, insert a single record
+      const { data: newAccounts, error: insertErr } = await supabase
         .from('Accounts')
         .insert([
           {
             userName: displayName,
-            eMail: email,
+            eMail: email.trim(),
             password: '', // OAuth accounts authenticate via Supabase Auth
           },
         ])
-        .select()
-        .maybeSingle();
+        .select();
 
       if (insertErr) {
         console.error('Error storing account in Accounts table:', insertErr.message);
         return null;
       }
 
+      const created = newAccounts && newAccounts[0];
       return {
         ...rawUser,
-        userID: newAccount?.userID,
-        userName: newAccount?.userName || displayName,
-        eMail: newAccount?.eMail || email,
+        userID: created?.userID,
+        userName: created?.userName || displayName,
+        eMail: created?.eMail || email,
       };
     } catch (err) {
       console.error('Error syncing account record:', err);
@@ -188,14 +189,20 @@ export default function App() {
 
   const handleLoginSuccess = useCallback(
     async (rawUser) => {
-      const user = await syncAccountRecord(rawUser);
-      if (!user || !user.userID) {
-        console.error('Could not sync user with Accounts table.');
-        return;
+      if (isSyncingRef.current) return;
+      isSyncingRef.current = true;
+      try {
+        const user = await syncAccountRecord(rawUser);
+        if (!user || !user.userID) {
+          console.error('Could not sync user with Accounts table.');
+          return;
+        }
+        setCurrentUser(user);
+        setIsAuthOpen(false);
+        refreshAllData(user.userID, 'todo');
+      } finally {
+        isSyncingRef.current = false;
       }
-      setCurrentUser(user);
-      setIsAuthOpen(false);
-      refreshAllData(user.userID, 'todo');
     },
     [syncAccountRecord, refreshAllData]
   );
@@ -217,7 +224,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    // Check initial active session
+    // Check initial active session ONCE on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         handleLoginSuccess(session.user);
@@ -228,7 +235,7 @@ export default function App() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+      if (event === 'SIGNED_IN' && session?.user) {
         handleLoginSuccess(session.user);
       } else if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
@@ -241,7 +248,7 @@ export default function App() {
     return () => {
       subscription?.unsubscribe();
     };
-  }, [handleLoginSuccess]);
+  }, []);
 
   const closeAllPopups = () => {
     setIsAddTaskOpen(false);

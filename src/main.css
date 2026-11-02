@@ -94,9 +94,19 @@ img.logo {
     object-fit: contain;
 }
 
-img.logo.user-avatar {
+/* User profile avatar / Gmail image styling */
+.gmailp img.logo {
+    border: 2.5px solid #000000;
+    border-radius: 50%;
+    background-color: #ffffff;
+    padding: 4px;
+    object-fit: contain;
+}
+
+.gmailp img.logo.user-avatar {
     border-radius: 50%;
     object-fit: cover;
+    padding: 0;
 }
 
 .user-dropdown {

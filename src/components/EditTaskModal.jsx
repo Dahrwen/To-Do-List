@@ -1,3 +1,30 @@
+/**
+ * ============================================================================
+ * FILE: src/components/EditTaskModal.jsx
+ * ============================================================================
+ * PURPOSE:
+ *   Modal dialog for editing an existing task's name, category tags, deadline
+ *   date & time (`timestamptz`), and text description.
+ *
+ * CORE RESPONSIBILITIES:
+ *   1. Local Date & Time Pre-Population (`resetToTask`):
+ *      Parses the task's stored ISO `timestamptz` `Deadline` into local
+ *      `YYYY-MM-DD` (for `<input type="date">`) and local `HH:MM` (for
+ *      `<input type="time">`) so the user edits in their own local timezone.
+ *   2. ISO `timestamptz` Serialization (`handleSubmit`):
+ *      Re-combines the edited local date and time into an ISO-8601 `timestamptz`
+ *      string and invokes `onUpdateTask(task.id, updatedData)`.
+ *   3. Form Reset (`handleReset`):
+ *      Restores all form fields to the task's current saved values.
+ *
+ * IMPORTS FROM:
+ *   - 'react': `useState`, `useEffect`
+ *
+ * EXPORTS TO:
+ *   - `src/App.jsx`: Default export `EditTaskModal`
+ * ============================================================================
+ */
+
 // Import React hooks:
 // - useState: manages form input fields (name, category flags, deadline date & time, description)
 // - useEffect: initializes or resets the form inputs whenever the selected task prop changes

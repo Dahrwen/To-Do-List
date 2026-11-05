@@ -1,3 +1,34 @@
+/**
+ * ============================================================================
+ * FILE: src/components/Header.jsx
+ * ============================================================================
+ * PURPOSE:
+ *   Top navigation bar displaying the real-time task search box, the user's
+ *   sanitized first-name greeting, circular Google profile avatar, and the
+ *   profile dropdown menu (Google Classroom Connect/Resync, Filter Classes,
+ *   Disconnect, and Log out).
+ *
+ * CORE RESPONSIBILITIES:
+ *   1. Real-Time Task Search (`handleKeyDown`, `handleSearchClick`):
+ *      Captures search queries and passes them up to `App.jsx` (`onSearch`).
+ *   2. Privacy-Preserving Profile Display (`getCapitalizedFirstName`):
+ *      Displays only the user's capitalized first name (never their email or surname)
+ *      and renders their Google avatar with `referrerPolicy="no-referrer"`.
+ *   3. Google Classroom Controls:
+ *      Provides 1-click access to connect/resync Google Classroom coursework,
+ *      open the Filter Classes modal (`onManageCourses`), or disconnect.
+ *   4. Outside-Click Dismissal:
+ *      Uses `dropdownRef` and a document click listener to close the dropdown
+ *      automatically when the user clicks anywhere outside the menu.
+ *
+ * IMPORTS FROM:
+ *   - 'react': `useState`, `useEffect`, `useRef`
+ *
+ * EXPORTS TO:
+ *   - `src/App.jsx`: Default export `Header`
+ * ============================================================================
+ */
+
 // Import React hooks:
 // - useState: for local search input, avatar image source, and dropdown open/close state
 // - useEffect: to attach document click listener and keep user avatar synced

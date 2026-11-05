@@ -1,3 +1,41 @@
+/**
+ * ============================================================================
+ * FILE: src/App.jsx
+ * ============================================================================
+ * PURPOSE:
+ *   Central application controller, state manager, authentication bridge, and
+ *   view router for the Productivity Tracker SPA.
+ *
+ * CORE RESPONSIBILITIES:
+ *   1. Session & Account Synchronization Bridge (`syncAccountRecord`):
+ *      Links Supabase Auth / Google OAuth UUID sessions to integer `userID`
+ *      records in the public `Accounts` table, extracting only the user's
+ *      capitalized first name and Google avatar URL.
+ *   2. Google Classroom OAuth & Sync Orchestration (`handleConnectClassroom`):
+ *      Requests incremental Google Classroom read-only OAuth scopes
+ *      (`classroom.courses.readonly`, `classroom.coursework.me.readonly`),
+ *      invokes `syncGoogleClassroomTasks`, and manages course visibility filters.
+ *   3. Task Querying, Filtering & Nearest-Deadline Sorting (`loadTasks`):
+ *      Fetches tasks from Supabase `Tasks`, filters out hidden Classroom courses,
+ *      sorts tasks chronologically so the nearest deadline appears first (with
+ *      "No due date" items at the end), and formats `timestamptz` deadlines into
+ *      human-readable date + 12-hour time strings (`"Nov 06 2026 • 11:59 PM"`).
+ *   4. View & Modal State Management:
+ *      Coordinates switching between To-Do List, Archive, MiniCalendar, and
+ *      BigCalendar views, as well as Add, Details, Edit, and Filter Classes modals.
+ *
+ * IMPORTS FROM:
+ *   - 'react': `useState`, `useEffect`, `useCallback`, `useRef`
+ *   - './config/supabase': `supabase`, `getGoogleProviderToken`
+ *   - './services/classroomSync': `syncGoogleClassroomTasks`, `getHiddenClassroomCourses`
+ *   - './components/*': `AuthModal`, `Header`, `MiniCalendar`, `ActionButtons`,
+ *     `TaskList`, `BigCalendar`, `AddTaskModal`, `TaskDetailsModal`, `EditTaskModal`
+ *
+ * EXPORTS TO:
+ *   - `src/main.jsx`: Default export `App`, named export `formatCapitalizedFirstName`
+ * ============================================================================
+ */
+
 // Import React hooks:
 // - useState: stores dynamic data that causes component re-renders when updated
 // - useEffect: runs side effects (like data fetching and auth listeners)

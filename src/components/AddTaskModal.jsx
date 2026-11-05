@@ -1,3 +1,29 @@
+/**
+ * ============================================================================
+ * FILE: src/components/AddTaskModal.jsx
+ * ============================================================================
+ * PURPOSE:
+ *   Modal popup dialog allowing the user to create a new manual task with a
+ *   name, up to 6 category tags (`Type1`..`Type6`), and an optional deadline
+ *   date + time (`timestamptz`).
+ *
+ * CORE RESPONSIBILITIES:
+ *   1. Controlled Form State:
+ *      Tracks `taskName`, `types` (`Type1`..`Type6`), `deadline` (`YYYY-MM-DD`),
+ *      and `deadlineTime` (`HH:MM`, defaulting to `'23:59'`).
+ *   2. ISO `timestamptz` Construction (`handleSubmit`):
+ *      Combines the local date and time inputs (`new Date("${deadline}T${timePart}:00")`)
+ *      and converts them to an ISO-8601 UTC string (`.toISOString()`) for
+ *      storage in Supabase's `timestamptz` `Deadline` column.
+ *
+ * IMPORTS FROM:
+ *   - 'react': `useState` hook
+ *
+ * EXPORTS TO:
+ *   - `src/App.jsx`: Default export `AddTaskModal`
+ * ============================================================================
+ */
+
 // Import React hooks:
 // - useState: to manage task form inputs (task name, category checkboxes, deadline date & time)
 import React, { useState } from 'react';

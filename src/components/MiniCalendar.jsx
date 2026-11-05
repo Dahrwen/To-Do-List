@@ -1,3 +1,30 @@
+/**
+ * ============================================================================
+ * FILE: src/components/MiniCalendar.jsx
+ * ============================================================================
+ * PURPOSE:
+ *   Renders a 14-day horizontal draggable carousel starting from today's date,
+ *   previewing up to 3 upcoming task deadlines per day card.
+ *
+ * CORE RESPONSIBILITIES:
+ *   1. Local-Timezone Date Matching (`toLocalDateKey`):
+ *      Converts ISO `timestamptz` task deadlines into local `YYYY-MM-DD` keys
+ *      so tasks appear on the exact local calendar day regardless of UTC offset.
+ *   2. Chronological Intra-Day Sorting:
+ *      Sorts each day's tasks by `new Date(a.Deadline).getTime()` ascending so
+ *      earlier deadlines on the same day appear at the top of the card.
+ *   3. Interactive Carousel Navigation:
+ *      Supports both mouse click-and-drag scrolling (`handleMouseDown` + window
+ *      `mousemove`/`mouseup`) and `<` / `>` arrow button pagination.
+ *
+ * IMPORTS FROM:
+ *   - 'react': `useRef`, `useState`, `useEffect`
+ *
+ * EXPORTS TO:
+ *   - `src/App.jsx`: Default export `MiniCalendar`
+ * ============================================================================
+ */
+
 // Import React hooks:
 // - useRef: holds references to the carousel DOM element and drag coordinate tracking
 // - useState: manages whether the mouse is currently dragging the carousel

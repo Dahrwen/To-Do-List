@@ -1,3 +1,30 @@
+/**
+ * ============================================================================
+ * FILE: src/components/TaskList.jsx
+ * ============================================================================
+ * PURPOSE:
+ *   Renders the main grid/list of task cards for either the active "To-Do List"
+ *   view or the completed "Archive" view.
+ *
+ * CORE RESPONSIBILITIES:
+ *   1. Task Card Rendering:
+ *      Displays each task's title (`TaskName`), up to 2 color-coded category
+ *      pills (plus `"..."` overflow badge), and the formatted deadline date/time
+ *      string (`task.deadLine`, e.g. `"Nov 06 2026 • 11:59 PM"`).
+ *   2. Google Classroom Origin Badge:
+ *      Renders the official Google Classroom icon (`/Pictures/GoogleClassroom.svg`)
+ *      to the right of the deadline text for any task where `task.source === 'google_classroom'`.
+ *   3. Interactive Inspection:
+ *      Invokes `onTaskClick(task)` when a card is clicked to open `TaskDetailsModal`.
+ *
+ * IMPORTS FROM:
+ *   - 'react': Core React library
+ *
+ * EXPORTS TO:
+ *   - `src/App.jsx`: Default export `TaskList`
+ * ============================================================================
+ */
+
 import React from 'react';
 
 /**

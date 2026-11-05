@@ -1,3 +1,31 @@
+/**
+ * ============================================================================
+ * FILE: src/components/AuthModal.jsx
+ * ============================================================================
+ * PURPOSE:
+ *   Full-screen authentication modal providing Sign In, Sign Up (Registration),
+ *   and Google OAuth 2.0 authentication with an animated sliding overlay panel.
+ *
+ * CORE RESPONSIBILITIES:
+ *   1. User Registration (`handleRegister`):
+ *      Checks for duplicate emails in `Accounts`, registers credentials via
+ *      `supabase.auth.signUp`, and inserts a user row into the public `Accounts` table.
+ *   2. User Login (`handleLogin`):
+ *      Authenticates via `supabase.auth.signInWithPassword`, with a backward-compatible
+ *      fallback check against the `Accounts` table for legacy accounts.
+ *   3. Google OAuth 2.0 Initiation (`handleGoogleAuth`):
+ *      Calls `supabase.auth.signInWithOAuth({ provider: 'google' })` to redirect
+ *      the user to Google's OAuth consent screen and return to `window.location.origin`.
+ *
+ * IMPORTS FROM:
+ *   - 'react': `useState` hook for form inputs, loading flags, and sliding panel state
+ *   - '../config/supabase': Shared `supabase` client instance
+ *
+ * EXPORTS TO:
+ *   - `src/App.jsx`: Default export `AuthModal`
+ * ============================================================================
+ */
+
 // Import React hooks for local component state
 import React, { useState } from 'react';
 // Import the shared Supabase client

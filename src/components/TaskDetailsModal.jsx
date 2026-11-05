@@ -1,3 +1,30 @@
+/**
+ * ============================================================================
+ * FILE: src/components/TaskDetailsModal.jsx
+ * ============================================================================
+ * PURPOSE:
+ *   Modal dialog displaying the complete details of a selected task (title,
+ *   all category tags, formatted date & time deadline, and full description
+ *   including Google Classroom course name and link), along with actions to
+ *   Finish/Restore, Edit, or Delete the task.
+ *
+ * CORE RESPONSIBILITIES:
+ *   1. Full Task Inspection:
+ *      Shows all assigned categories (even when truncated to 2 on the card)
+ *      and formats `task.Deadline` into `"Mon DD YYYY • h:mm AM/PM"`.
+ *   2. Task Lifecycle Actions:
+ *      - `onFinish(task.id)`: Toggles `finished` between `false` (To-Do) and `true` (Archive).
+ *      - `onEdit(task)`: Transitions from `TaskDetailsModal` to `EditTaskModal`.
+ *      - `onDelete(task.id)`: Permanently deletes the task row from Supabase `Tasks`.
+ *
+ * IMPORTS FROM:
+ *   - 'react': Core React library
+ *
+ * EXPORTS TO:
+ *   - `src/App.jsx`: Default export `TaskDetailsModal`
+ * ============================================================================
+ */
+
 import React from 'react';
 
 /**

@@ -1,3 +1,24 @@
+/**
+ * ============================================================================
+ * FILE: src/components/ActionButtons.jsx
+ * ============================================================================
+ * PURPOSE:
+ *   Primary navigation toolbar rendering the four main action buttons:
+ *   "To-Do List", "Calendar", "Archive", and "+ Add task".
+ *
+ * CORE RESPONSIBILITIES:
+ *   1. Dispatches view-switching callbacks (`onTodoClick`, `onCalendarClick`,
+ *      `onArchiveClick`) to `App.jsx`.
+ *   2. Dispatches modal-opening callback (`onAddTaskClick`) to open `AddTaskModal`.
+ *
+ * IMPORTS FROM:
+ *   - 'react': Core React library
+ *
+ * EXPORTS TO:
+ *   - `src/App.jsx`: Default export `ActionButtons`
+ * ============================================================================
+ */
+
 import React from 'react';
 
 /**

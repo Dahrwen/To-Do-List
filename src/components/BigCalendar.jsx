@@ -1,3 +1,32 @@
+/**
+ * ============================================================================
+ * FILE: src/components/BigCalendar.jsx
+ * ============================================================================
+ * PURPOSE:
+ *   Renders a full-month 7-column calendar grid displaying previous-month
+ *   overflow days, current-month days (highlighting "today"), next-month
+ *   overflow days, and up to 3 scheduled task deadlines per day cell.
+ *
+ * CORE RESPONSIBILITIES:
+ *   1. Month Grid Calculation:
+ *      Computes leading days from the previous month, active days of the
+ *      selected month, and trailing days from the next month to form a complete
+ *      Sunday-to-Saturday grid.
+ *   2. Local-Timezone Deadline Matching & Sorting (`getTasksForDate`):
+ *      Matches each task's ISO `timestamptz` `Deadline` against the calendar
+ *      cell's local `YYYY-MM-DD` date and sorts matching tasks by earliest
+ *      deadline time first.
+ *   3. Month Pagination (`handlePrev`, `handleNext`):
+ *      Navigates backward and forward across months and years.
+ *
+ * IMPORTS FROM:
+ *   - 'react': `useState` hook for tracking the active month/year
+ *
+ * EXPORTS TO:
+ *   - `src/App.jsx`: Default export `BigCalendar`
+ * ============================================================================
+ */
+
 // Import React hooks:
 // - useState: to manage the active month/year being viewed on the calendar
 import React, { useState } from 'react';

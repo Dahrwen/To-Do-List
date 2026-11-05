@@ -20,6 +20,21 @@ import TaskDetailsModal from './components/TaskDetailsModal';
 import EditTaskModal from './components/EditTaskModal';
 import { syncGoogleClassroomTasks } from './services/classroomSync';
 
+// Immediately capture Google OAuth provider_token from URL hash on module load
+if (typeof window !== 'undefined' && window.location.hash) {
+  try {
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
+    const tokenFromHash = params.get('provider_token');
+    if (tokenFromHash) {
+      sessionStorage.setItem('google_provider_token', tokenFromHash);
+      localStorage.setItem('google_provider_token', tokenFromHash);
+    }
+  } catch (e) {
+    console.warn('Error extracting provider_token from hash:', e);
+  }
+}
+
 // Array mapping task category indices (Type1 to Type6) to their readable names
 const taskTypes = [
   'Personal',
@@ -31,11 +46,20 @@ const taskTypes = [
 ];
 
 // Helper to format a user's display name so only the first letter is capitalized (e.g. 'Dharwin')
-const formatCapitalizedFirstName = (name) => {
-  if (!name) return 'Guest';
-  const firstWord = name.trim().split(/\s+/)[0];
-  if (!firstWord) return 'Guest';
-  return firstWord.charAt(0).toUpperCase() + firstWord.slice(1).toLowerCase();
+export const formatCapitalizedFirstName = (name) => {
+  if (!name || name === 'Guest') return 'Guest';
+  let target = String(name).trim();
+
+  // If format is "LastName, FirstName" (contains comma), extract the FirstName
+  if (target.includes(',')) {
+    const parts = target.split(',');
+    target = parts[1] && parts[1].trim() ? parts[1].trim() : parts[0].trim();
+  }
+
+  // Get the first word and remove any trailing/leading punctuation
+  const cleanWord = target.split(/\s+/)[0].replace(/[^a-zA-Z]/g, '');
+  if (!cleanWord) return 'Guest';
+  return cleanWord.charAt(0).toUpperCase() + cleanWord.slice(1).toLowerCase();
 };
 
 export default function App() {
@@ -279,36 +303,51 @@ export default function App() {
    */
   const handleLoginSuccess = useCallback(
     async (rawUser, token = null) => {
-      // Prevent concurrent duplicate executions
-      if (isSyncingRef.current) return;
-      isSyncingRef.current = true;
-      try {
-        const user = await syncAccountRecord(rawUser);
-        if (!user || !user.userID) {
-          console.error('Could not sync user with Accounts table.');
-          return;
-        }
-        setCurrentUser(user);
-        setIsAuthOpen(false); // Close auth modal and unblur main UI
-        refreshAllData(user.userID, 'todo'); // Load user's active tasks
+      const activeToken =
+        token ||
+        sessionStorage.getItem('google_provider_token') ||
+        localStorage.getItem('google_provider_token');
 
-        // If Google Classroom is connected and a provider token is available, auto-sync tasks
-        const activeToken = token || sessionStorage.getItem('google_provider_token');
-        if (activeToken && localStorage.getItem('classroom_connected') === 'true') {
-          syncGoogleClassroomTasks(user.userID, activeToken)
-            .then(({ syncedCount }) => {
-              if (syncedCount > 0) {
-                console.log(`Auto-synced ${syncedCount} Google Classroom activities.`);
-                refreshAllData(user.userID, 'todo');
-              }
-            })
-            .catch((e) => console.warn('Classroom background sync notice:', e.message));
+      if (activeToken) {
+        sessionStorage.setItem('google_provider_token', activeToken);
+        localStorage.setItem('google_provider_token', activeToken);
+      }
+
+      let user = currentUser;
+
+      // Only run syncAccountRecord if not currently locked and user is not yet resolved
+      if (!isSyncingRef.current && (!user || !user.userID)) {
+        isSyncingRef.current = true;
+        try {
+          user = await syncAccountRecord(rawUser);
+          if (user && user.userID) {
+            setCurrentUser(user);
+            setIsAuthOpen(false); // Close auth modal and unblur main UI
+            refreshAllData(user.userID, 'todo'); // Load user's active tasks
+          }
+        } finally {
+          isSyncingRef.current = false;
         }
-      } finally {
-        isSyncingRef.current = false;
+      }
+
+      // If user is resolved and Classroom is connected, trigger background sync
+      const resolvedUserId = user?.userID || currentUser?.userID;
+      if (
+        resolvedUserId &&
+        activeToken &&
+        localStorage.getItem('classroom_connected') === 'true'
+      ) {
+        syncGoogleClassroomTasks(resolvedUserId, activeToken)
+          .then(({ syncedCount }) => {
+            if (syncedCount > 0) {
+              console.log(`Auto-synced ${syncedCount} Google Classroom activities.`);
+              refreshAllData(resolvedUserId, 'todo');
+            }
+          })
+          .catch((e) => console.warn('Classroom background sync notice:', e.message));
       }
     },
-    [syncAccountRecord, refreshAllData]
+    [syncAccountRecord, refreshAllData, currentUser]
   );
 
   /**
@@ -320,6 +359,8 @@ export default function App() {
     } catch (e) {
       console.error('Error signing out:', e);
     }
+    sessionStorage.removeItem('google_provider_token');
+    localStorage.removeItem('google_provider_token');
     setCurrentUser(null);
     setIsAuthOpen(true);
     setDisplayedTasks([]);
@@ -331,32 +372,56 @@ export default function App() {
   };
 
   /**
-   * Runs once when the component mounts (empty dependency array []):
-   * 1. Checks if a valid Supabase session already exists in local storage
-   * 2. Registers a listener for auth events (e.g., Google OAuth redirects, sign out)
+   * Runs once when the component mounts:
+   * 1. Checks URL hash immediately for provider_token
+   * 2. Checks if a valid Supabase session exists
+   * 3. Registers a listener for auth events (e.g., Google OAuth redirects, sign out)
    */
   useEffect(() => {
-    // Check initial active session ONCE on mount
+    // 1. Check URL hash immediately on mount
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const params = new URLSearchParams(window.location.hash.substring(1));
+      const hashToken = params.get('provider_token');
+      if (hashToken) {
+        sessionStorage.setItem('google_provider_token', hashToken);
+        localStorage.setItem('google_provider_token', hashToken);
+      }
+    }
+
+    // 2. Check initial active session ONCE on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
+      const activeToken =
+        session?.provider_token ||
+        sessionStorage.getItem('google_provider_token') ||
+        localStorage.getItem('google_provider_token');
+
       if (session?.provider_token) {
         sessionStorage.setItem('google_provider_token', session.provider_token);
+        localStorage.setItem('google_provider_token', session.provider_token);
       }
       if (session?.user) {
-        handleLoginSuccess(session.user, session?.provider_token);
+        handleLoginSuccess(session.user, activeToken);
       }
     });
 
-    // Listen for auth state changes (e.g. Google OAuth redirect callback)
+    // 3. Listen for auth state changes (e.g. Google OAuth redirect callback)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
+      const activeToken =
+        session?.provider_token ||
+        sessionStorage.getItem('google_provider_token') ||
+        localStorage.getItem('google_provider_token');
+
       if (session?.provider_token) {
         sessionStorage.setItem('google_provider_token', session.provider_token);
+        localStorage.setItem('google_provider_token', session.provider_token);
       }
-      if (event === 'SIGNED_IN' && session?.user) {
-        handleLoginSuccess(session.user, session?.provider_token);
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+        handleLoginSuccess(session.user, activeToken);
       } else if (event === 'SIGNED_OUT') {
         sessionStorage.removeItem('google_provider_token');
+        localStorage.removeItem('google_provider_token');
         setCurrentUser(null);
         setIsAuthOpen(true);
         setDisplayedTasks([]);
@@ -368,7 +433,7 @@ export default function App() {
     return () => {
       subscription?.unsubscribe();
     };
-  }, []);
+  }, [handleLoginSuccess]);
 
   // Helper to dismiss all active popup modals
   const closeAllPopups = () => {
@@ -556,19 +621,21 @@ export default function App() {
 
   // Connects or syncs Google Classroom coursework
   const handleConnectClassroom = async () => {
-    if (!currentUser) {
+    if (!currentUser?.userID) {
       alert('Please log in first to connect Google Classroom.');
       return;
     }
 
     setIsSyncingClassroom(true);
     try {
-      const storedToken = sessionStorage.getItem('google_provider_token');
+      const storedToken =
+        sessionStorage.getItem('google_provider_token') ||
+        localStorage.getItem('google_provider_token');
 
       // If we have an active Google OAuth provider token in session, sync immediately!
       if (storedToken) {
         try {
-          const { syncedCount, totalFound } = await syncGoogleClassroomTasks(
+          const { syncedCount, totalFound, message } = await syncGoogleClassroomTasks(
             currentUser.userID,
             storedToken
           );
@@ -578,15 +645,22 @@ export default function App() {
 
           if (syncedCount > 0) {
             alert(`Successfully imported ${syncedCount} new activities from Google Classroom!`);
+            return;
           } else if (totalFound > 0) {
             alert(`All ${totalFound} Google Classroom activities are already synced up to date!`);
+            return;
+          } else if (message) {
+            alert(message);
+            return;
           } else {
             alert('Connected to Google Classroom! No coursework was found in your active courses.');
+            return;
           }
-          return;
         } catch (syncErr) {
           console.warn('Token sync attempt failed, re-authenticating:', syncErr.message);
-          // Token expired or invalid -> fall through to prompt re-authorization
+          // Token expired or invalid -> clear tokens and re-authorize
+          sessionStorage.removeItem('google_provider_token');
+          localStorage.removeItem('google_provider_token');
         }
       }
 
@@ -599,7 +673,7 @@ export default function App() {
         options: {
           redirectTo: window.location.origin,
           scopes:
-            'https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me',
+            'https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me https://www.googleapis.com/auth/classroom.coursework.me.readonly https://www.googleapis.com/auth/classroom.coursework.students.readonly',
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -620,6 +694,7 @@ export default function App() {
   const handleDisconnectClassroom = () => {
     localStorage.removeItem('classroom_connected');
     sessionStorage.removeItem('google_provider_token');
+    localStorage.removeItem('google_provider_token');
     setIsClassroomConnected(false);
     alert('Google Classroom disconnected.');
   };

@@ -70,10 +70,20 @@ export default function Header({
   const isCustomAvatar = Boolean(userAvatar && avatarSrc !== '/Pictures/Gmail.png');
 
   // Format user display name so only the first letter is capitalized (e.g. 'Dharwin')
-  const displayName = userName && userName !== 'Guest'
-    ? userName.trim().split(/\s+/)[0].charAt(0).toUpperCase() +
-      userName.trim().split(/\s+/)[0].slice(1).toLowerCase()
-    : 'Guest';
+  const getCapitalizedFirstName = (name) => {
+    if (!name || name === 'Guest') return 'Guest';
+    let target = String(name).trim();
+    // Handle "LastName, FirstName" format
+    if (target.includes(',')) {
+      const parts = target.split(',');
+      target = (parts[1] && parts[1].trim()) ? parts[1].trim() : parts[0].trim();
+    }
+    const cleanWord = target.split(/\s+/)[0].replace(/[^a-zA-Z]/g, '');
+    if (!cleanWord) return 'Guest';
+    return cleanWord.charAt(0).toUpperCase() + cleanWord.slice(1).toLowerCase();
+  };
+
+  const displayName = getCapitalizedFirstName(userName);
 
   return (
     <header className="topbar">

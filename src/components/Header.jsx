@@ -163,7 +163,7 @@ export default function Header({
                     {isSyncingClassroom
                       ? 'Syncing...'
                       : isClassroomConnected
-                      ? 'Sync Classroom'
+                      ? 'Synced ✓ (Resync)'
                       : 'Connect to Google Classroom'}
                   </button>
 

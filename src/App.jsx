@@ -18,6 +18,7 @@ import BigCalendar from './components/BigCalendar';
 import AddTaskModal from './components/AddTaskModal';
 import TaskDetailsModal from './components/TaskDetailsModal';
 import EditTaskModal from './components/EditTaskModal';
+import { syncGoogleClassroomTasks } from './services/classroomSync';
 
 // Array mapping task category indices (Type1 to Type6) to their readable names
 const taskTypes = [
@@ -88,12 +89,16 @@ export default function App() {
       dateString = dateObj.toDateString().split(' ').slice(1).join(' ');
     }
 
+    const isGoogleClassroom =
+      task.source === 'google_classroom' ||
+      Boolean(task.Description && task.Description.includes('[Google Classroom]'));
+
     return {
       ...task,
       name: task.TaskName,
       categories: selectedTypes,
       deadLine: dateString,
-      source: task.source || 'manual',
+      source: isGoogleClassroom ? 'google_classroom' : 'manual',
     };
   };
 
@@ -273,7 +278,7 @@ export default function App() {
    * - Updates state, unlocks UI, and loads tasks
    */
   const handleLoginSuccess = useCallback(
-    async (rawUser) => {
+    async (rawUser, token = null) => {
       // Prevent concurrent duplicate executions
       if (isSyncingRef.current) return;
       isSyncingRef.current = true;
@@ -286,6 +291,19 @@ export default function App() {
         setCurrentUser(user);
         setIsAuthOpen(false); // Close auth modal and unblur main UI
         refreshAllData(user.userID, 'todo'); // Load user's active tasks
+
+        // If Google Classroom is connected and a provider token is available, auto-sync tasks
+        const activeToken = token || sessionStorage.getItem('google_provider_token');
+        if (activeToken && localStorage.getItem('classroom_connected') === 'true') {
+          syncGoogleClassroomTasks(user.userID, activeToken)
+            .then(({ syncedCount }) => {
+              if (syncedCount > 0) {
+                console.log(`Auto-synced ${syncedCount} Google Classroom activities.`);
+                refreshAllData(user.userID, 'todo');
+              }
+            })
+            .catch((e) => console.warn('Classroom background sync notice:', e.message));
+        }
       } finally {
         isSyncingRef.current = false;
       }
@@ -320,8 +338,11 @@ export default function App() {
   useEffect(() => {
     // Check initial active session ONCE on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.provider_token) {
+        sessionStorage.setItem('google_provider_token', session.provider_token);
+      }
       if (session?.user) {
-        handleLoginSuccess(session.user);
+        handleLoginSuccess(session.user, session?.provider_token);
       }
     });
 
@@ -329,9 +350,13 @@ export default function App() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.provider_token) {
+        sessionStorage.setItem('google_provider_token', session.provider_token);
+      }
       if (event === 'SIGNED_IN' && session?.user) {
-        handleLoginSuccess(session.user);
+        handleLoginSuccess(session.user, session?.provider_token);
       } else if (event === 'SIGNED_OUT') {
+        sessionStorage.removeItem('google_provider_token');
         setCurrentUser(null);
         setIsAuthOpen(true);
         setDisplayedTasks([]);
@@ -538,24 +563,34 @@ export default function App() {
 
     setIsSyncingClassroom(true);
     try {
-      // If already connected, invoke the server-side sync Edge Function
-      if (isClassroomConnected) {
-        const { data, error } = await supabase.functions.invoke('sync-classroom', {
-          body: { userID: currentUser.userID },
-        });
+      const storedToken = sessionStorage.getItem('google_provider_token');
 
-        if (error) {
-          console.warn('Backend sync function notice:', error.message);
-          // If function is not deployed yet, provide clear guidance
-          alert('Classroom sync requested. If running with a backend function, courses will sync automatically!');
-        } else {
-          alert(`Classroom synced! ${data?.syncedCount || 0} activities updated.`);
+      // If we have an active Google OAuth provider token in session, sync immediately!
+      if (storedToken) {
+        try {
+          const { syncedCount, totalFound } = await syncGoogleClassroomTasks(
+            currentUser.userID,
+            storedToken
+          );
+          localStorage.setItem('classroom_connected', 'true');
+          setIsClassroomConnected(true);
+          refreshAllData();
+
+          if (syncedCount > 0) {
+            alert(`Successfully imported ${syncedCount} new activities from Google Classroom!`);
+          } else if (totalFound > 0) {
+            alert(`All ${totalFound} Google Classroom activities are already synced up to date!`);
+          } else {
+            alert('Connected to Google Classroom! No coursework was found in your active courses.');
+          }
+          return;
+        } catch (syncErr) {
+          console.warn('Token sync attempt failed, re-authenticating:', syncErr.message);
+          // Token expired or invalid -> fall through to prompt re-authorization
         }
-        refreshAllData();
-        return;
       }
 
-      // Incremental Authorization: Request read-only Google Classroom scopes
+      // If no token in memory or token expired, request authorization to obtain fresh token
       localStorage.setItem('classroom_connected', 'true');
       setIsClassroomConnected(true);
 
@@ -563,7 +598,8 @@ export default function App() {
         provider: 'google',
         options: {
           redirectTo: window.location.origin,
-          scopes: 'https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me',
+          scopes:
+            'https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me',
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -573,10 +609,8 @@ export default function App() {
 
       if (error) throw error;
     } catch (err) {
-      console.error('Error connecting Google Classroom:', err);
-      localStorage.removeItem('classroom_connected');
-      setIsClassroomConnected(false);
-      alert('Could not connect to Google Classroom: ' + (err.message || 'Unknown error'));
+      console.error('Google Classroom sync error:', err);
+      alert('Could not sync with Google Classroom: ' + (err.message || 'Please grant permissions to sync tasks.'));
     } finally {
       setIsSyncingClassroom(false);
     }
@@ -585,7 +619,9 @@ export default function App() {
   // Disconnects Google Classroom integration
   const handleDisconnectClassroom = () => {
     localStorage.removeItem('classroom_connected');
+    sessionStorage.removeItem('google_provider_token');
     setIsClassroomConnected(false);
+    alert('Google Classroom disconnected.');
   };
 
 

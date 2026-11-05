@@ -1,5 +1,5 @@
 // Import React hooks:
-// - useState: manages form input fields (name, category flags, deadline, description)
+// - useState: manages form input fields (name, category flags, deadline date & time, description)
 // - useEffect: initializes or resets the form inputs whenever the selected task prop changes
 import React, { useState, useEffect } from 'react';
 
@@ -15,8 +15,8 @@ const taskTypes = [
 
 /**
  * EditTaskModal Component
- * Modal dialog that allows updating task name, categories, deadline, and description.
- * 
+ * Modal dialog that allows updating task name, categories, deadline (date + time), and description.
+ *
  * Props:
  * - isOpen: boolean, whether the modal is visible
  * - task: object, the active task to edit
@@ -35,6 +35,7 @@ export default function EditTaskModal({ isOpen, task, onClose, onUpdateTask }) {
     Type6: false,
   });
   const [deadline, setDeadline] = useState('');
+  const [deadlineTime, setDeadlineTime] = useState('23:59');
   const [description, setDescription] = useState('');
 
   // Helper function to populate form inputs from the selected task data
@@ -49,7 +50,26 @@ export default function EditTaskModal({ isOpen, task, onClose, onUpdateTask }) {
       Type5: !!t.Type5,
       Type6: !!t.Type6,
     });
-    setDeadline(t.Deadline ? t.Deadline.split('T')[0] : '');
+
+    if (t.Deadline) {
+      const d = new Date(t.Deadline);
+      if (!isNaN(d.getTime())) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const hh = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        setDeadline(`${yyyy}-${mm}-${dd}`);
+        setDeadlineTime(`${hh}:${min}`);
+      } else {
+        setDeadline('');
+        setDeadlineTime('23:59');
+      }
+    } else {
+      setDeadline('');
+      setDeadlineTime('23:59');
+    }
+
     setDescription(t.Description || '');
   };
 
@@ -70,10 +90,20 @@ export default function EditTaskModal({ isOpen, task, onClose, onUpdateTask }) {
   // Submit updated task data
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    let deadlineIso = null;
+    if (deadline) {
+      const timePart = deadlineTime || '23:59';
+      const combined = new Date(`${deadline}T${timePart}:00`);
+      if (!isNaN(combined.getTime())) {
+        deadlineIso = combined.toISOString();
+      }
+    }
+
     await onUpdateTask(task.id, {
       TaskName: taskName,
       ...types,
-      Deadline: deadline || null,
+      Deadline: deadlineIso,
       Description: description,
     });
     onClose();
@@ -128,14 +158,24 @@ export default function EditTaskModal({ isOpen, task, onClose, onUpdateTask }) {
             </React.Fragment>
           ))}
 
-          {/* Edit Deadline */}
+          {/* Edit Deadline Date & Time */}
           <label htmlFor="edeadLine">Deadline: </label>
-          <input
-            type="date"
-            id="edeadLine"
-            value={deadline}
-            onChange={(e) => setDeadline(e.target.value)}
-          />
+          <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <input
+              type="date"
+              id="edeadLine"
+              value={deadline}
+              onChange={(e) => setDeadline(e.target.value)}
+            />
+            <input
+              type="time"
+              id="edeadLineTime"
+              value={deadlineTime}
+              onChange={(e) => setDeadlineTime(e.target.value)}
+              disabled={!deadline}
+              title="Deadline Time"
+            />
+          </div>
           <br />
 
           {/* Edit Description */}

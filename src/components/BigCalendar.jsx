@@ -59,14 +59,24 @@ export default function BigCalendar({ tasks = [], isHidden = true }) {
     const dd = String(checkDate.getDate()).padStart(2, '0');
     const formattedDate = `${yyyy}-${mm}-${dd}`;
 
-    const taskList = [];
+    const matchingTasks = [];
     tasks.forEach((t) => {
       if (t.finished || !t.Deadline) return;
-      const taskDeadline = t.Deadline.split('T')[0];
+      const dt = new Date(t.Deadline);
+      if (isNaN(dt.getTime())) return;
+      const taskDeadline = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(
+        2,
+        '0'
+      )}-${String(dt.getDate()).padStart(2, '0')}`;
       if (formattedDate === taskDeadline) {
-        taskList.push(t.TaskName);
+        matchingTasks.push(t);
       }
     });
+
+    matchingTasks.sort(
+      (a, b) => new Date(a.Deadline).getTime() - new Date(b.Deadline).getTime()
+    );
+    const taskList = matchingTasks.map((t) => t.TaskName);
 
     if (taskList.length === 0) return [];
 

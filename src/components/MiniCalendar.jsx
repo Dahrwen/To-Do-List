@@ -31,22 +31,35 @@ export default function MiniCalendar({ tasks = [], isHidden = false }) {
 
   const currentDate = new Date();
 
+  const toLocalDateKey = (dateVal) => {
+    const dt = new Date(dateVal);
+    if (isNaN(dt.getTime())) return '';
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(
+      dt.getDate()
+    ).padStart(2, '0')}`;
+  };
+
   // Compute calendar days data for the next 14 consecutive days starting today
   const daysData = [];
   for (let x = 0; x < 14; x++) {
     const d = new Date();
     d.setDate(currentDate.getDate() + x);
-    const formattedDate = d.toISOString().split('T')[0]; // "YYYY-MM-DD" format
+    const formattedDate = toLocalDateKey(d); // Local "YYYY-MM-DD" format
 
-    // Find all active tasks matching this day's deadline
-    const dayTasks = [];
+    // Find all active tasks matching this day's deadline, sorted by nearest time first
+    const matchingTasks = [];
     tasks.forEach((t) => {
       if (t.finished || !t.Deadline) return;
-      const taskDeadline = new Date(t.Deadline).toISOString().split('T')[0];
+      const taskDeadline = toLocalDateKey(t.Deadline);
       if (formattedDate === taskDeadline) {
-        dayTasks.push(t.TaskName);
+        matchingTasks.push(t);
       }
     });
+
+    matchingTasks.sort(
+      (a, b) => new Date(a.Deadline).getTime() - new Date(b.Deadline).getTime()
+    );
+    const dayTasks = matchingTasks.map((t) => t.TaskName);
 
     // Truncate to maximum 3 tasks per day card
     let displayTasks = [];

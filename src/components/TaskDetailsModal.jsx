@@ -31,7 +31,21 @@ export default function TaskDetailsModal({
   const description = !task.Description
     ? 'Edit to add description'
     : task.Description;
-  const deadline = !task.Deadline ? 'No Due Date' : task.Deadline;
+  const formatDeadlineDisplay = (t) => {
+    if (t.deadLine && t.deadLine !== 'No due date') return t.deadLine;
+    if (!t.Deadline) return 'No Due Date';
+    const d = new Date(t.Deadline);
+    if (isNaN(d.getTime())) return t.Deadline;
+    const datePart = d.toDateString().split(' ').slice(1).join(' ');
+    const timePart = d.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+    return `${datePart} • ${timePart}`;
+  };
+
+  const deadline = formatDeadlineDisplay(task);
 
   // If task is completed (finished: true), button says "Restore", otherwise "Finish"
   const finishBtnLabel = task.finished ? 'Restore' : 'Finish';

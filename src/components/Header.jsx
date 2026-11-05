@@ -26,6 +26,7 @@ export default function Header({
   isClassroomConnected = false,
   isSyncingClassroom = false,
   onConnectClassroom,
+  onManageCourses,
   onDisconnectClassroom,
   onSearch,
   onLogout,
@@ -166,6 +167,22 @@ export default function Header({
                       ? 'Synced ✓ (Resync)'
                       : 'Connect to Google Classroom'}
                   </button>
+
+                  {/* Option to filter/hide specific Google Classroom classes */}
+                  {isClassroomConnected && onManageCourses && (
+                    <button
+                      id="classroomFilterBtn"
+                      className="dropdown-item"
+                      style={{ color: '#444', fontSize: '13px' }}
+                      type="button"
+                      onClick={() => {
+                        setDropdownOpen(false);
+                        onManageCourses();
+                      }}
+                    >
+                      <i className="fa-solid fa-eye-slash"></i> Filter Classes
+                    </button>
+                  )}
 
                   {/* Option to disconnect Google Classroom */}
                   {isClassroomConnected && (

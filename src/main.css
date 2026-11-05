@@ -527,7 +527,8 @@ form input[type="checkbox"] {
     margin-top: 12px;
 }
 
-form input[type="date"] {
+form input[type="date"],
+form input[type="time"] {
     font-size: clamp(13px, 1.6vh, 16px);
     padding: 4px 8px;
     border-radius: 6px;

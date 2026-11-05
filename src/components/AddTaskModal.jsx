@@ -1,5 +1,5 @@
 // Import React hooks:
-// - useState: to manage task form inputs (task name, category checkboxes, deadline)
+// - useState: to manage task form inputs (task name, category checkboxes, deadline date & time)
 import React, { useState } from 'react';
 
 // Definitions for the 6 task category options matching the database boolean columns (Type1 to Type6)
@@ -14,8 +14,8 @@ const taskTypes = [
 
 /**
  * AddTaskModal Component
- * Modal dialog for inputting and submitting a new task.
- * 
+ * Modal dialog for inputting and submitting a new task with both date and time.
+ *
  * Props:
  * - isOpen: boolean, whether the modal is visible
  * - onClose: callback to close the modal
@@ -33,9 +33,13 @@ export default function AddTaskModal({ isOpen, onClose, onAddTask }) {
     Type6: false,
   });
   const [deadline, setDeadline] = useState('');
+  const [deadlineTime, setDeadlineTime] = useState('23:59');
 
-  // Today's date in YYYY-MM-DD format to prevent choosing past dates as deadlines
-  const minDate = new Date().toISOString().split('T')[0];
+  // Today's local date in YYYY-MM-DD format to prevent choosing past dates as deadlines
+  const now = new Date();
+  const minDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+    now.getDate()
+  ).padStart(2, '0')}`;
 
   // Toggles an individual category checkbox on/off
   const handleTypeChange = (key) => {
@@ -45,10 +49,20 @@ export default function AddTaskModal({ isOpen, onClose, onAddTask }) {
   // Handles form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    let deadlineIso = null;
+    if (deadline) {
+      const timePart = deadlineTime || '23:59';
+      const combined = new Date(`${deadline}T${timePart}:00`);
+      if (!isNaN(combined.getTime())) {
+        deadlineIso = combined.toISOString();
+      }
+    }
+
     await onAddTask({
       TaskName: taskName,
       ...types,
-      Deadline: deadline || null,
+      Deadline: deadlineIso,
     });
 
     // Reset form fields back to empty defaults
@@ -62,6 +76,7 @@ export default function AddTaskModal({ isOpen, onClose, onAddTask }) {
       Type6: false,
     });
     setDeadline('');
+    setDeadlineTime('23:59');
     onClose();
   };
 
@@ -105,15 +120,25 @@ export default function AddTaskModal({ isOpen, onClose, onAddTask }) {
             </React.Fragment>
           ))}
 
-          {/* Deadline Date Picker */}
+          {/* Deadline Date & Time Pickers */}
           <label htmlFor="deadLine">Deadline: </label>
-          <input
-            type="date"
-            id="deadLine"
-            min={minDate}
-            value={deadline}
-            onChange={(e) => setDeadline(e.target.value)}
-          />
+          <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <input
+              type="date"
+              id="deadLine"
+              min={minDate}
+              value={deadline}
+              onChange={(e) => setDeadline(e.target.value)}
+            />
+            <input
+              type="time"
+              id="deadLineTime"
+              value={deadlineTime}
+              onChange={(e) => setDeadlineTime(e.target.value)}
+              disabled={!deadline}
+              title="Deadline Time"
+            />
+          </div>
           <br />
           <br />
 

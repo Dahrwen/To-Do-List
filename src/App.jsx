@@ -18,7 +18,10 @@ import BigCalendar from './components/BigCalendar';
 import AddTaskModal from './components/AddTaskModal';
 import TaskDetailsModal from './components/TaskDetailsModal';
 import EditTaskModal from './components/EditTaskModal';
-import { syncGoogleClassroomTasks } from './services/classroomSync';
+import {
+  syncGoogleClassroomTasks,
+  getHiddenClassroomCourses,
+} from './services/classroomSync';
 
 // Immediately capture Google OAuth provider_token from URL hash on module load
 if (typeof window !== 'undefined' && window.location.hash) {
@@ -93,11 +96,63 @@ export default function App() {
     return localStorage.getItem('classroom_connected') === 'true';
   });
   const [isSyncingClassroom, setIsSyncingClassroom] = useState(false);
+  const [isManageCoursesOpen, setIsManageCoursesOpen] = useState(false);
+  const [classroomCourses, setClassroomCourses] = useState(() => {
+    try {
+      const saved = localStorage.getItem('classroom_courses');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [hiddenCourseList, setHiddenCourseList] = useState(() => {
+    try {
+      const saved = localStorage.getItem('hidden_classroom_courses');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  /**
+   * Checks whether a task belongs to a hidden Google Classroom course.
+   */
+  const isTaskFromHiddenCourse = (task) => {
+    const desc = task?.Description || '';
+    if (!desc.startsWith('[Google Classroom]')) return false;
+    const courseName = desc
+      .split('\n')[0]
+      .replace('[Google Classroom]', '')
+      .trim()
+      .toLowerCase();
+    const hiddenSet = getHiddenClassroomCourses();
+    return hiddenSet.has(courseName);
+  };
+
+  /**
+   * Sorts tasks so that activities with the nearest deadline are displayed first,
+   * and tasks with "No due date" (null Deadline) are placed at the end.
+   */
+  const sortTasksByNearestDeadline = (tasks) => {
+    return [...tasks].sort((a, b) => {
+      const timeA = a.Deadline ? new Date(a.Deadline).getTime() : NaN;
+      const timeB = b.Deadline ? new Date(b.Deadline).getTime() : NaN;
+      const hasA = !isNaN(timeA);
+      const hasB = !isNaN(timeB);
+
+      if (hasA && hasB) {
+        return timeA - timeB;
+      }
+      if (hasA && !hasB) return -1;
+      if (!hasA && hasB) return 1;
+      return (a.id || 0) - (b.id || 0);
+    });
+  };
 
   /**
    * Transforms raw Supabase Task database rows into convenient frontend objects.
    * - Maps boolean flags (Type1..Type6) to an array of category name strings
-   * - Formats the deadline date string for display (e.g. "Nov 02 2026")
+   * - Formats the deadline date and time string for display (e.g. "Nov 06 2026 • 11:59 PM")
    */
   const formatTask = (task) => {
     const selectedTypes = [];
@@ -111,8 +166,15 @@ export default function App() {
     let dateString = 'No due date';
     if (task.Deadline) {
       const dateObj = new Date(task.Deadline);
-      // Converts Date to "Month Day Year" format
-      dateString = dateObj.toDateString().split(' ').slice(1).join(' ');
+      if (!isNaN(dateObj.getTime())) {
+        const datePart = dateObj.toDateString().split(' ').slice(1).join(' ');
+        const timePart = dateObj.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        });
+        dateString = `${datePart} • ${timePart}`;
+      }
     }
 
     const isGoogleClassroom =
@@ -130,7 +192,7 @@ export default function App() {
 
   /**
    * Fetches all unfinished tasks for the current user from Supabase.
-   * This is used by MiniCalendar and BigCalendar to display task deadlines.
+   * Excludes tasks from hidden classes and sorts by nearest deadline first.
    */
   const loadAllUnfinishedTasks = useCallback(async (userId) => {
     if (!userId) return;
@@ -141,7 +203,9 @@ export default function App() {
       .eq('finished', false);
 
     if (!error && data) {
-      setAllUnfinishedTasks(data);
+      const visible = data.filter((t) => !isTaskFromHiddenCourse(t));
+      const sorted = sortTasksByNearestDeadline(visible);
+      setAllUnfinishedTasks(sorted);
     }
   }, []);
 
@@ -150,6 +214,8 @@ export default function App() {
    * - mode: 'todo' fetches unfinished tasks (finished = false)
    * - mode: 'archive' fetches completed tasks (finished = true)
    * - searchTerm: filters TaskName using case-insensitive ILIKE match
+   * - Excludes hidden Google Classroom classes
+   * - Sorts so activities with the nearest deadline appear first
    */
   const loadTasks = useCallback(
     async (searchTerm = '', mode = 'todo', userId = currentUser?.userID) => {
@@ -176,7 +242,9 @@ export default function App() {
         return;
       }
 
-      const formatted = (data || []).map(formatTask);
+      const visible = (data || []).filter((t) => !isTaskFromHiddenCourse(t));
+      const sorted = sortTasksByNearestDeadline(visible);
+      const formatted = sorted.map(formatTask);
       setDisplayedTasks(formatted);
     },
     [currentUser?.userID]
@@ -344,36 +412,54 @@ export default function App() {
         setIsSyncingClassroom(true);
 
         syncGoogleClassroomTasks(resolvedUserId, activeToken)
-          .then(({ syncedCount, activeSyncedCount, archivedSyncedCount, totalFound, message }) => {
-            localStorage.setItem('classroom_connected', 'true');
-            setIsClassroomConnected(true);
-            refreshAllData(resolvedUserId, 'todo');
+          .then(
+            ({
+              syncedCount,
+              updatedCount,
+              removedCount,
+              activeSyncedCount,
+              archivedSyncedCount,
+              totalFound,
+              courses,
+              message,
+            }) => {
+              localStorage.setItem('classroom_connected', 'true');
+              setIsClassroomConnected(true);
+              if (courses && courses.length > 0) {
+                setClassroomCourses(courses);
+              }
+              refreshAllData(resolvedUserId, 'todo');
 
-            if (wasOAuthPending) {
-              sessionStorage.removeItem('classroom_oauth_pending');
-              if (syncedCount > 0) {
-                if (archivedSyncedCount > 0 && activeSyncedCount > 0) {
+              if (wasOAuthPending) {
+                sessionStorage.removeItem('classroom_oauth_pending');
+                if (syncedCount > 0) {
+                  if (archivedSyncedCount > 0 && activeSyncedCount > 0) {
+                    alert(
+                      `Successfully imported ${activeSyncedCount} active assignment(s) to To-Do List and ${archivedSyncedCount} completed assignment(s) to Archive!`
+                    );
+                  } else if (archivedSyncedCount > 0) {
+                    alert(
+                      `Imported ${archivedSyncedCount} completed Google Classroom assignment(s) into Archive!`
+                    );
+                  } else {
+                    alert(
+                      `Successfully imported ${syncedCount} new activities from Google Classroom!`
+                    );
+                  }
+                } else if (updatedCount > 0 || removedCount > 0) {
                   alert(
-                    `Successfully imported ${activeSyncedCount} active assignment(s) to To-Do List and ${archivedSyncedCount} completed assignment(s) to Archive!`
+                    `Synced ✓ Updated ${updatedCount} deadline timestamp(s) and cleaned up ${removedCount} hidden/archived course task(s).`
                   );
-                } else if (archivedSyncedCount > 0) {
+                } else if (totalFound > 0) {
                   alert(
-                    `Imported ${archivedSyncedCount} completed Google Classroom assignment(s) into Archive!`
+                    `Synced ✓ All ${totalFound} Google Classroom activities are already up to date!`
                   );
-                } else {
-                  alert(
-                    `Successfully imported ${syncedCount} new activities from Google Classroom!`
-                  );
+                } else if (message) {
+                  alert(message);
                 }
-              } else if (totalFound > 0) {
-                alert(
-                  `Synced ✓ All ${totalFound} Google Classroom activities are already up to date!`
-                );
-              } else if (message) {
-                alert(message);
               }
             }
-          })
+          )
           .catch((e) => {
             console.warn('Classroom sync error:', e.message);
             if (wasOAuthPending || e.needsReauth === false) {
@@ -472,6 +558,7 @@ export default function App() {
     setIsAddTaskOpen(false);
     setIsDetailsOpen(false);
     setIsEditOpen(false);
+    setIsManageCoursesOpen(false);
   };
 
   // ============================================================================
@@ -668,15 +755,21 @@ export default function App() {
         try {
           const {
             syncedCount,
+            updatedCount,
+            removedCount,
             activeSyncedCount,
             archivedSyncedCount,
             totalFound,
             coursesCount,
+            courses,
             message,
           } = await syncGoogleClassroomTasks(activeUserId, storedToken);
 
           localStorage.setItem('classroom_connected', 'true');
           setIsClassroomConnected(true);
+          if (courses && courses.length > 0) {
+            setClassroomCourses(courses);
+          }
           refreshAllData(activeUserId, currentViewMode);
 
           if (syncedCount > 0) {
@@ -693,6 +786,11 @@ export default function App() {
                 `Successfully imported ${syncedCount} new activities from Google Classroom!`
               );
             }
+            return;
+          } else if (updatedCount > 0 || removedCount > 0) {
+            alert(
+              `Synced ✓ Updated ${updatedCount} deadline timestamp(s) and cleaned up ${removedCount} hidden/archived course task(s).`
+            );
             return;
           } else if (totalFound > 0) {
             alert(
@@ -751,6 +849,126 @@ export default function App() {
     }
   };
 
+  // Opens the Filter / Hide Google Classroom Classes modal
+  const handleOpenManageCourses = async () => {
+    closeAllPopups();
+
+    // Combine cached active courses with any courses already present in user's tasks
+    const courseNamesMap = new Map();
+    try {
+      const saved = localStorage.getItem('classroom_courses');
+      const parsed = saved ? JSON.parse(saved) : [];
+      for (const c of parsed) {
+        if (c && c.name) {
+          courseNamesMap.set(c.name.trim().toLowerCase(), {
+            id: c.id || c.name,
+            name: c.name.trim(),
+          });
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    const activeUserId = currentUser?.userID || currentUserRef.current?.userID;
+    if (activeUserId) {
+      const { data } = await supabase
+        .from('Tasks')
+        .select('Description')
+        .eq('userID', activeUserId);
+      for (const row of data || []) {
+        const desc = row.Description || '';
+        if (desc.startsWith('[Google Classroom]')) {
+          const courseName = desc
+            .split('\n')[0]
+            .replace('[Google Classroom]', '')
+            .trim();
+          if (courseName && !courseNamesMap.has(courseName.toLowerCase())) {
+            courseNamesMap.set(courseName.toLowerCase(), {
+              id: courseName,
+              name: courseName,
+            });
+          }
+        }
+      }
+    }
+
+    const mergedCourses = Array.from(courseNamesMap.values());
+    setClassroomCourses(mergedCourses);
+    try {
+      localStorage.setItem('classroom_courses', JSON.stringify(mergedCourses));
+    } catch {
+      // ignore
+    }
+
+    try {
+      const savedHidden = localStorage.getItem('hidden_classroom_courses');
+      setHiddenCourseList(savedHidden ? JSON.parse(savedHidden) : []);
+    } catch {
+      setHiddenCourseList([]);
+    }
+
+    setIsManageCoursesOpen(true);
+  };
+
+  // Toggles whether a specific Google Classroom course is hidden or visible
+  const handleToggleCourseVisibility = async (courseName) => {
+    const norm = courseName.trim().toLowerCase();
+    const currentSet = new Set(
+      hiddenCourseList.map((n) => String(n).trim().toLowerCase())
+    );
+
+    if (currentSet.has(norm)) {
+      currentSet.delete(norm);
+    } else {
+      currentSet.add(norm);
+    }
+
+    const updatedHidden = Array.from(currentSet);
+    setHiddenCourseList(updatedHidden);
+    localStorage.setItem('hidden_classroom_courses', JSON.stringify(updatedHidden));
+
+    const activeUserId = currentUser?.userID || currentUserRef.current?.userID;
+    if (activeUserId) {
+      // If newly hidden, also remove its imported tasks from Supabase so they don't clutter the DB
+      if (currentSet.has(norm)) {
+        const { data: userTasks } = await supabase
+          .from('Tasks')
+          .select('id, Description')
+          .eq('userID', activeUserId);
+        const idsToDelete = (userTasks || [])
+          .filter((t) => {
+            const d = t.Description || '';
+            if (!d.startsWith('[Google Classroom]')) return false;
+            const cName = d
+              .split('\n')[0]
+              .replace('[Google Classroom]', '')
+              .trim()
+              .toLowerCase();
+            return cName === norm;
+          })
+          .map((t) => t.id);
+
+        if (idsToDelete.length > 0) {
+          await supabase
+            .from('Tasks')
+            .delete()
+            .in('id', idsToDelete)
+            .eq('userID', activeUserId);
+        }
+      } else {
+        // Course was un-hidden: if we have a token, re-sync in background to pull its tasks
+        const storedToken = getGoogleProviderToken();
+        if (storedToken) {
+          syncGoogleClassroomTasks(activeUserId, storedToken).then(() => {
+            refreshAllData(activeUserId, currentViewMode);
+          }).catch(() => {});
+        }
+      }
+      refreshAllData(activeUserId, currentViewMode);
+    }
+  };
+
   // Disconnects Google Classroom integration
   const handleDisconnectClassroom = () => {
     localStorage.removeItem('classroom_connected');
@@ -786,6 +1004,7 @@ export default function App() {
           isClassroomConnected={isClassroomConnected}
           isSyncingClassroom={isSyncingClassroom}
           onConnectClassroom={handleConnectClassroom}
+          onManageCourses={handleOpenManageCourses}
           onDisconnectClassroom={handleDisconnectClassroom}
           onSearch={handleSearch}
           onLogout={handleLogout}
@@ -843,6 +1062,101 @@ export default function App() {
           onClose={() => setIsEditOpen(false)}
           onUpdateTask={handleUpdateTask}
         />
+
+        {/* Modal popup to filter / hide specific Google Classroom classes */}
+        {isManageCoursesOpen && (
+          <div className="popup" style={{ display: 'flex' }}>
+            <div
+              className="popup-content"
+              style={{ maxWidth: '420px', width: '90%' }}
+            >
+              <span
+                className="close-btn"
+                onClick={() => setIsManageCoursesOpen(false)}
+              >
+                &times;
+              </span>
+              <h2 style={{ marginBottom: '6px' }}>Filter Classroom Classes</h2>
+              <p
+                style={{
+                  fontSize: '12px',
+                  color: '#555',
+                  marginBottom: '14px',
+                  lineHeight: '1.4',
+                }}
+              >
+                Archived classes are automatically excluded. Uncheck any active
+                class below to hide its activities from your tracker:
+              </p>
+
+              {classroomCourses.length === 0 ? (
+                <p style={{ fontSize: '13px', color: '#777', margin: '16px 0' }}>
+                  No classes loaded yet. Click &ldquo;Synced ✓ (Resync)&rdquo; in the
+                  profile menu first.
+                </p>
+              ) : (
+                <div
+                  style={{
+                    maxHeight: '260px',
+                    overflowY: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                    marginBottom: '16px',
+                  }}
+                >
+                  {classroomCourses.map((course) => {
+                    const isHiddenCourse = hiddenCourseList
+                      .map((n) => String(n).trim().toLowerCase())
+                      .includes(course.name.trim().toLowerCase());
+                    return (
+                      <label
+                        key={course.id || course.name}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '8px 10px',
+                          borderRadius: '8px',
+                          border: '1px solid #ddd',
+                          backgroundColor: isHiddenCourse ? '#f5f5f5' : '#fff',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          fontWeight: 500,
+                          color: isHiddenCourse ? '#888' : '#222',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={!isHiddenCourse}
+                          onChange={() => handleToggleCourseVisibility(course.name)}
+                          style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                        />
+                        <span style={{ flex: 1 }}>{course.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setIsManageCoursesOpen(false)}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  border: '2px solid #000',
+                  backgroundColor: '#72a1ff',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

@@ -153,6 +153,12 @@ export async function syncGoogleClassroomTasks(userId, providerToken) {
 
         // HTTP 401 Unauthorized -> OAuth access token has expired (tokens last ~1 hour)
         if (res.status === 401) {
+          try {
+            sessionStorage.removeItem('google_provider_token');
+            localStorage.removeItem('google_provider_token');
+          } catch {
+            // ignore storage errors
+          }
           const err = new Error('Your Google Classroom session token has expired. Reconnecting...');
           err.needsReauth = true;
           throw err;
@@ -292,19 +298,61 @@ export async function syncGoogleClassroomTasks(userId, providerToken) {
     };
   }
 
-  // Build an in-memory lookup Map of remaining existing tasks for O(1) duplicate detection
-  // Tasks are indexed by both their unique Google Classroom URL (`link::...`) and (`title_course::...`)
+  // Build an in-memory lookup Map of remaining existing tasks for O(1) duplicate detection.
+  // Each key maps to an Array of matching task rows so even if duplicates existed, ALL get updated.
   const existingTaskMap = new Map();
+  const addToExistingMap = (key, taskObj) => {
+    if (!key) return;
+    const list = existingTaskMap.get(key) || [];
+    if (!list.some((item) => item.id && taskObj.id && item.id === taskObj.id)) {
+      list.push(taskObj);
+      existingTaskMap.set(key, list);
+    }
+  };
+
   for (const t of remainingExistingTasks) {
     const titleNorm = (t.TaskName || '').trim().toLowerCase();
     const desc = t.Description || '';
     const linkMatch = desc.match(/Classroom Link:\s*(\S+)/i);
     if (linkMatch && linkMatch[1]) {
-      existingTaskMap.set(`link::${linkMatch[1].trim()}`, t);
+      addToExistingMap(`link::${linkMatch[1].trim()}`, t);
     }
     const firstLine = desc.split('\n')[0].trim().toLowerCase();
-    existingTaskMap.set(`title_course::${titleNorm}::${firstLine}`, t);
+    addToExistingMap(`title_course::${titleNorm}::${firstLine}`, t);
+    if (desc.startsWith('[Google Classroom]')) {
+      addToExistingMap(`classroom_title::${titleNorm}`, t);
+    }
   }
+
+  // Helper to inspect a single Google Classroom StudentSubmission object and record completion
+  const processSubmissionRecord = (sub, assignedSet, completedSet) => {
+    if (!sub || !sub.courseWorkId) return;
+    const cwIdStr = String(sub.courseWorkId);
+    assignedSet.add(cwIdStr);
+
+    // Check top-level submission state
+    const subState = String(sub.state || '').toUpperCase();
+    let isTurnedInOrReturned =
+      subState === 'TURNED_IN' ||
+      subState === 'RETURNED' ||
+      (sub.assignedGrade !== undefined && sub.assignedGrade !== null);
+
+    // Also inspect submissionHistory in case state is reflected in the latest stateHistory entry
+    if (!isTurnedInOrReturned && Array.isArray(sub.submissionHistory)) {
+      for (const hist of sub.submissionHistory) {
+        const histState = String(hist?.stateHistory?.state || '').toUpperCase();
+        if (histState === 'TURNED_IN' || histState === 'RETURNED') {
+          isTurnedInOrReturned = true;
+        } else if (histState === 'RECLAIMED_BY_STUDENT' || histState === 'CREATED') {
+          isTurnedInOrReturned = false;
+        }
+      }
+    }
+
+    if (isTurnedInOrReturned) {
+      completedSet.add(cwIdStr);
+    }
+  };
 
   // ==========================================================================
   // PHASE 3: FETCH COURSEWORK & SUBMISSIONS FOR EACH VISIBLE ACTIVE COURSE
@@ -346,66 +394,83 @@ export async function syncGoogleClassroomTasks(userId, providerToken) {
 
       if (courseWorkList.length === 0) continue;
 
-      // Fetch the current student's submissions (`userId=me`) for this course to:
+      // Fetch the current student's submissions for this course to:
       // 1. Know which assignments have already been turned in or returned (`TURNED_IN` / `RETURNED`)
       // 2. Know whether an `INDIVIDUAL_STUDENTS` assignment is actually assigned to this user
       const completedCourseWorkIds = new Set();
       const assignedCourseWorkIds = new Set();
       let submissionsChecked = false;
 
-      try {
-        let subPageToken = null;
-        do {
-          let subUrl = `https://classroom.googleapis.com/v1/courses/${course.id}/courseWork/-/studentSubmissions?userId=me&pageSize=100`;
-          if (subPageToken) {
-            subUrl += `&pageToken=${encodeURIComponent(subPageToken)}`;
-          }
+      // Tier 1 & Tier 2: Try course-wide wildcard endpoint (`courseWork/-/studentSubmissions`)
+      const wildcardUrls = [
+        `https://classroom.googleapis.com/v1/courses/${course.id}/courseWork/-/studentSubmissions?userId=me&pageSize=100`,
+        `https://classroom.googleapis.com/v1/courses/${course.id}/courseWork/-/studentSubmissions?pageSize=100`,
+      ];
 
-          const subRes = await fetch(subUrl, {
-            headers: {
-              Authorization: `Bearer ${providerToken}`,
-              Accept: 'application/json',
-            },
-          });
-
-          if (subRes.ok) {
-            submissionsChecked = true;
-            const subData = await subRes.json();
-            const submissions = subData.studentSubmissions || [];
-
-            for (const sub of submissions) {
-              if (sub.courseWorkId) {
-                const cwIdStr = String(sub.courseWorkId);
-                assignedCourseWorkIds.add(cwIdStr);
-
-                // Google Classroom submission states:
-                // 'TURNED_IN': The student has turned in the assignment
-                // 'RETURNED': The teacher has graded or returned the assignment
-                // If either, or if assignedGrade is set, the student has completed and turned it in
-                const subState = String(sub.state || '').toUpperCase();
-                const isTurnedInOrReturned =
-                  subState === 'TURNED_IN' ||
-                  subState === 'RETURNED' ||
-                  (sub.assignedGrade !== undefined && sub.assignedGrade !== null);
-
-                if (isTurnedInOrReturned) {
-                  completedCourseWorkIds.add(cwIdStr);
-                }
-              }
+      for (const baseSubUrl of wildcardUrls) {
+        if (submissionsChecked && assignedCourseWorkIds.size > 0) break;
+        try {
+          let subPageToken = null;
+          do {
+            let subUrl = baseSubUrl;
+            if (subPageToken) {
+              subUrl += `&pageToken=${encodeURIComponent(subPageToken)}`;
             }
 
-            subPageToken = subData.nextPageToken || null;
-          } else {
-            const subErrJson = await subRes.json().catch(() => ({}));
-            console.warn(
-              `[ClassroomSync] Student submissions fetch failed for "${course.name}" (${course.id}): ${subRes.status}`,
-              subErrJson
-            );
-            break;
-          }
-        } while (subPageToken);
-      } catch (subErr) {
-        console.warn(`[ClassroomSync] Submissions fetch error for course ${course.id}:`, subErr);
+            const subRes = await fetch(subUrl, {
+              headers: {
+                Authorization: `Bearer ${providerToken}`,
+                Accept: 'application/json',
+              },
+            });
+
+            if (subRes.ok) {
+              submissionsChecked = true;
+              const subData = await subRes.json();
+              const submissions = subData.studentSubmissions || [];
+
+              for (const sub of submissions) {
+                processSubmissionRecord(sub, assignedCourseWorkIds, completedCourseWorkIds);
+              }
+
+              subPageToken = subData.nextPageToken || null;
+            } else {
+              break;
+            }
+          } while (subPageToken);
+        } catch (subErr) {
+          console.warn(`[ClassroomSync] Wildcard submissions fetch error for course ${course.id}:`, subErr);
+        }
+      }
+
+      // Tier 3 Fallback: If wildcard `courseWork/-/` failed or returned no submissions for this course,
+      // query each coursework item's `studentSubmissions` endpoint directly in parallel
+      if (!submissionsChecked || assignedCourseWorkIds.size === 0) {
+        await Promise.all(
+          courseWorkList.map(async (cw) => {
+            if (!cw || !cw.id) return;
+            try {
+              const cwSubRes = await fetch(
+                `https://classroom.googleapis.com/v1/courses/${course.id}/courseWork/${cw.id}/studentSubmissions`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${providerToken}`,
+                    Accept: 'application/json',
+                  },
+                }
+              );
+              if (cwSubRes.ok) {
+                submissionsChecked = true;
+                const cwSubData = await cwSubRes.json();
+                for (const sub of cwSubData.studentSubmissions || []) {
+                  processSubmissionRecord(sub, assignedCourseWorkIds, completedCourseWorkIds);
+                }
+              }
+            } catch {
+              // ignore individual coursework submission error
+            }
+          })
+        );
       }
 
       // Iterate through each published assignment in the course
@@ -430,14 +495,11 @@ export async function syncGoogleClassroomTasks(userId, providerToken) {
         const courseHeaderNorm = courseHeader.toLowerCase();
         const linkKey = cw.alternateLink ? `link::${cw.alternateLink.trim()}` : null;
         const titleCourseKey = `title_course::${titleNorm}::${courseHeaderNorm}`;
+        const classroomTitleKey = `classroom_title::${titleNorm}`;
 
         // --------------------------------------------------------------------
         // UTC DUE DATE & TIME -> ISO TIMESTAMPTZ CONVERSION
         // --------------------------------------------------------------------
-        // Google Classroom stores dueDate and dueTime in UTC.
-        // Using `Date.UTC(year, month - 1, day, hours, minutes, seconds)` produces the exact
-        // UTC instant so that when the browser renders `new Date(task.Deadline)`, JavaScript
-        // automatically converts it into the user's local timezone (e.g. Nov 06 2026 • 11:59 PM).
         let deadlineIso = null;
         if (cw.dueDate && cw.dueDate.year && cw.dueDate.month && cw.dueDate.day) {
           const { year, month, day } = cw.dueDate;
@@ -459,45 +521,54 @@ export async function syncGoogleClassroomTasks(userId, providerToken) {
 
         const isCompleted = Boolean(cw.id && completedCourseWorkIds.has(String(cw.id)));
 
-        // Check if this assignment was already imported into Supabase
-        const existingMatch =
-          (linkKey && existingTaskMap.get(linkKey)) ||
-          existingTaskMap.get(titleCourseKey);
-
-        if (existingMatch) {
-          // If the task already exists:
-          // 1. Check if deadline timestamp changed
-          const existingTime = existingMatch.Deadline
-            ? new Date(existingMatch.Deadline).getTime()
-            : null;
-          const newTime = deadlineIso ? new Date(deadlineIso).getTime() : null;
-
-          const updatePayload = {};
-
-          if (existingTime !== newTime) {
-            updatePayload.Deadline = deadlineIso;
+        // Gather all matching existing task rows in Supabase (by link, title+course, or Classroom title)
+        const matchedRowsMap = new Map();
+        const candidatesFromMap = [
+          ...(linkKey ? existingTaskMap.get(linkKey) || [] : []),
+          ...(existingTaskMap.get(titleCourseKey) || []),
+          ...(existingTaskMap.get(classroomTitleKey) || []),
+        ];
+        for (const row of candidatesFromMap) {
+          if (row && row.id) {
+            matchedRowsMap.set(row.id, row);
           }
+        }
+        const existingMatches = Array.from(matchedRowsMap.values());
 
-          // 2. AUTOMATICALLY FINISH TASK IF TURNED IN ON GOOGLE CLASSROOM:
-          // If student has turned in / returned the coursework on Google Classroom, but it is
-          // currently unfinished (false) in our tracker, automatically update it to finished!
-          if (submissionsChecked && isCompleted && !existingMatch.finished) {
-            updatePayload.finished = true;
-          }
+        if (existingMatches.length > 0) {
+          for (const existingMatch of existingMatches) {
+            // 1. Check if deadline timestamp changed
+            const existingTime = existingMatch.Deadline
+              ? new Date(existingMatch.Deadline).getTime()
+              : null;
+            const newTime = deadlineIso ? new Date(deadlineIso).getTime() : null;
 
-          if (Object.keys(updatePayload).length > 0) {
-            tasksToUpdate.push({
-              id: existingMatch.id,
-              ...updatePayload,
-              autoFinished: Boolean(updatePayload.finished),
-            });
+            const updatePayload = {};
 
-            // Update in-memory record so subsequent checks in this loop reflect latest status
-            if (updatePayload.finished !== undefined) {
-              existingMatch.finished = updatePayload.finished;
+            if (existingTime !== newTime) {
+              updatePayload.Deadline = deadlineIso;
             }
-            if (updatePayload.Deadline !== undefined) {
-              existingMatch.Deadline = updatePayload.Deadline;
+
+            // 2. AUTOMATICALLY FINISH TASK IF TURNED IN ON GOOGLE CLASSROOM:
+            // If student has turned in / returned the coursework on Google Classroom,
+            // automatically mark it `finished: true` so it moves to Archive!
+            if (isCompleted && !existingMatch.finished) {
+              updatePayload.finished = true;
+            }
+
+            if (Object.keys(updatePayload).length > 0) {
+              tasksToUpdate.push({
+                id: existingMatch.id,
+                ...updatePayload,
+                autoFinished: Boolean(updatePayload.finished),
+              });
+
+              if (updatePayload.finished !== undefined) {
+                existingMatch.finished = updatePayload.finished;
+              }
+              if (updatePayload.Deadline !== undefined) {
+                existingMatch.Deadline = updatePayload.Deadline;
+              }
             }
           }
           continue;
@@ -530,8 +601,9 @@ export async function syncGoogleClassroomTasks(userId, providerToken) {
         candidateTasks.push(newTaskObj);
 
         // Register in existingTaskMap to prevent duplicate inserts within the same sync batch
-        if (linkKey) existingTaskMap.set(linkKey, newTaskObj);
-        existingTaskMap.set(titleCourseKey, newTaskObj);
+        if (linkKey) addToExistingMap(linkKey, newTaskObj);
+        addToExistingMap(titleCourseKey, newTaskObj);
+        addToExistingMap(classroomTitleKey, newTaskObj);
       }
     } catch (err) {
       console.warn(`[ClassroomSync] Error scanning course ${course.id}:`, err);

@@ -463,6 +463,7 @@ export default function App() {
               message,
             }) => {
               localStorage.setItem('classroom_connected', 'true');
+              sessionStorage.removeItem('classroom_auto_reauth_done');
               setIsClassroomConnected(true);
               if (courses && courses.length > 0) {
                 setClassroomCourses(courses);
@@ -504,6 +505,26 @@ export default function App() {
           )
           .catch((e) => {
             console.warn('Classroom sync error:', e.message);
+            if (e.needsReauth) {
+              sessionStorage.removeItem('google_provider_token');
+              localStorage.removeItem('google_provider_token');
+              // Automatically refresh expired Google OAuth token once per browser session
+              if (
+                localStorage.getItem('classroom_connected') === 'true' &&
+                sessionStorage.getItem('classroom_auto_reauth_done') !== 'true'
+              ) {
+                sessionStorage.setItem('classroom_auto_reauth_done', 'true');
+                supabase.auth.signInWithOAuth({
+                  provider: 'google',
+                  options: {
+                    redirectTo: window.location.origin,
+                    scopes:
+                      'https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me https://www.googleapis.com/auth/classroom.coursework.me.readonly',
+                  },
+                });
+                return;
+              }
+            }
             if (wasOAuthPending || e.needsReauth === false) {
               sessionStorage.removeItem('classroom_oauth_pending');
               alert('Google Classroom Sync Notice:\n\n' + e.message);
@@ -931,6 +952,7 @@ export default function App() {
       }
 
       // Request Google OAuth authorization to obtain a fresh provider_token with Classroom scopes
+      const wasAlreadyConnected = localStorage.getItem('classroom_connected') === 'true';
       localStorage.setItem('classroom_connected', 'true');
       sessionStorage.setItem('classroom_oauth_pending', 'true');
       setIsClassroomConnected(true);
@@ -941,10 +963,9 @@ export default function App() {
           redirectTo: window.location.origin,
           scopes:
             'https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me https://www.googleapis.com/auth/classroom.coursework.me.readonly',
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
+          queryParams: wasAlreadyConnected
+            ? { access_type: 'offline' }
+            : { access_type: 'offline', prompt: 'consent' },
         },
       });
 

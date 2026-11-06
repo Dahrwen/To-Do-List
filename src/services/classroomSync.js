@@ -69,6 +69,7 @@ export function getHiddenClassroomCourses() {
  * @returns {Promise<{
  *   syncedCount: number,
  *   updatedCount: number,
+ *   autoFinishedCount: number,
  *   removedCount: number,
  *   activeSyncedCount: number,
  *   archivedSyncedCount: number,
@@ -76,7 +77,7 @@ export function getHiddenClassroomCourses() {
  *   coursesCount: number,
  *   courses: Array<{id: string, name: string}>,
  *   message?: string
- * }>} Detailed summary of newly inserted, updated, and cleaned-up tasks
+ * }>} Detailed summary of newly inserted, updated, auto-finished, and cleaned-up tasks
  * @throws {Error} Throws an Error with `.needsReauth = true` on HTTP 401 / insufficient scopes,
  *                 or `.needsReauth = false` on configuration/database errors
  * @sideEffects
@@ -353,30 +354,58 @@ export async function syncGoogleClassroomTasks(userId, providerToken) {
       let submissionsChecked = false;
 
       try {
-        const subRes = await fetch(
-          `https://classroom.googleapis.com/v1/courses/${course.id}/courseWork/-/studentSubmissions?userId=me&pageSize=100`,
-          {
+        let subPageToken = null;
+        do {
+          let subUrl = `https://classroom.googleapis.com/v1/courses/${course.id}/courseWork/-/studentSubmissions?userId=me&pageSize=100`;
+          if (subPageToken) {
+            subUrl += `&pageToken=${encodeURIComponent(subPageToken)}`;
+          }
+
+          const subRes = await fetch(subUrl, {
             headers: {
               Authorization: `Bearer ${providerToken}`,
               Accept: 'application/json',
             },
-          }
-        );
-        if (subRes.ok) {
-          submissionsChecked = true;
-          const subData = await subRes.json();
-          const submissions = subData.studentSubmissions || [];
-          for (const sub of submissions) {
-            if (sub.courseWorkId) {
-              assignedCourseWorkIds.add(sub.courseWorkId);
-              if (sub.state === 'TURNED_IN' || sub.state === 'RETURNED') {
-                completedCourseWorkIds.add(sub.courseWorkId);
+          });
+
+          if (subRes.ok) {
+            submissionsChecked = true;
+            const subData = await subRes.json();
+            const submissions = subData.studentSubmissions || [];
+
+            for (const sub of submissions) {
+              if (sub.courseWorkId) {
+                const cwIdStr = String(sub.courseWorkId);
+                assignedCourseWorkIds.add(cwIdStr);
+
+                // Google Classroom submission states:
+                // 'TURNED_IN': The student has turned in the assignment
+                // 'RETURNED': The teacher has graded or returned the assignment
+                // If either, or if assignedGrade is set, the student has completed and turned it in
+                const subState = String(sub.state || '').toUpperCase();
+                const isTurnedInOrReturned =
+                  subState === 'TURNED_IN' ||
+                  subState === 'RETURNED' ||
+                  (sub.assignedGrade !== undefined && sub.assignedGrade !== null);
+
+                if (isTurnedInOrReturned) {
+                  completedCourseWorkIds.add(cwIdStr);
+                }
               }
             }
+
+            subPageToken = subData.nextPageToken || null;
+          } else {
+            const subErrJson = await subRes.json().catch(() => ({}));
+            console.warn(
+              `[ClassroomSync] Student submissions fetch failed for "${course.name}" (${course.id}): ${subRes.status}`,
+              subErrJson
+            );
+            break;
           }
-        }
+        } while (subPageToken);
       } catch (subErr) {
-        // Non-fatal: if studentSubmissions fails, we still import published courseWork
+        console.warn(`[ClassroomSync] Submissions fetch error for course ${course.id}:`, subErr);
       }
 
       // Iterate through each published assignment in the course
@@ -389,7 +418,7 @@ export async function syncGoogleClassroomTasks(userId, providerToken) {
           submissionsChecked &&
           assignedCourseWorkIds.size > 0 &&
           cw.assigneeMode === 'INDIVIDUAL_STUDENTS' &&
-          !assignedCourseWorkIds.has(cw.id)
+          !assignedCourseWorkIds.has(String(cw.id))
         ) {
           continue;
         }
@@ -428,7 +457,7 @@ export async function syncGoogleClassroomTasks(userId, providerToken) {
           }
         }
 
-        const isCompleted = Boolean(cw.id && completedCourseWorkIds.has(cw.id));
+        const isCompleted = Boolean(cw.id && completedCourseWorkIds.has(String(cw.id)));
 
         // Check if this assignment was already imported into Supabase
         const existingMatch =
@@ -436,18 +465,40 @@ export async function syncGoogleClassroomTasks(userId, providerToken) {
           existingTaskMap.get(titleCourseKey);
 
         if (existingMatch) {
-          // If the task already exists but its stored Deadline differs (e.g., upgrading from
-          // date-only to full timestamptz with time, or teacher changed the due date), queue an update
+          // If the task already exists:
+          // 1. Check if deadline timestamp changed
           const existingTime = existingMatch.Deadline
             ? new Date(existingMatch.Deadline).getTime()
             : null;
           const newTime = deadlineIso ? new Date(deadlineIso).getTime() : null;
 
+          const updatePayload = {};
+
           if (existingTime !== newTime) {
+            updatePayload.Deadline = deadlineIso;
+          }
+
+          // 2. AUTOMATICALLY FINISH TASK IF TURNED IN ON GOOGLE CLASSROOM:
+          // If student has turned in / returned the coursework on Google Classroom, but it is
+          // currently unfinished (false) in our tracker, automatically update it to finished!
+          if (submissionsChecked && isCompleted && !existingMatch.finished) {
+            updatePayload.finished = true;
+          }
+
+          if (Object.keys(updatePayload).length > 0) {
             tasksToUpdate.push({
               id: existingMatch.id,
-              Deadline: deadlineIso,
+              ...updatePayload,
+              autoFinished: Boolean(updatePayload.finished),
             });
+
+            // Update in-memory record so subsequent checks in this loop reflect latest status
+            if (updatePayload.finished !== undefined) {
+              existingMatch.finished = updatePayload.finished;
+            }
+            if (updatePayload.Deadline !== undefined) {
+              existingMatch.Deadline = updatePayload.Deadline;
+            }
           }
           continue;
         }
@@ -488,17 +539,28 @@ export async function syncGoogleClassroomTasks(userId, providerToken) {
   }
 
   // ==========================================================================
-  // PHASE 4: APPLY DEADLINE UPDATES & INSERT NEW TASKS INTO SUPABASE
+  // PHASE 4: APPLY DEADLINE & FINISHED UPDATES & INSERT NEW TASKS INTO SUPABASE
   // ==========================================================================
-  // Update existing tasks whose `Deadline` needed upgrading to accurate `timestamptz`
+  // Update existing tasks whose Deadline changed or that have been turned in on Google Classroom
+  let autoFinishedCount = 0;
   for (const item of tasksToUpdate) {
+    const updateObj = {};
+    if (item.Deadline !== undefined) updateObj.Deadline = item.Deadline;
+    if (item.finished !== undefined) updateObj.finished = item.finished;
+
     const { error: upErr } = await supabase
       .from('Tasks')
-      .update({ Deadline: item.Deadline })
+      .update(updateObj)
       .eq('id', item.id)
       .eq('userID', userId);
+
     if (!upErr) {
       updatedCount++;
+      if (item.autoFinished) {
+        autoFinishedCount++;
+      }
+    } else {
+      console.error('[ClassroomSync] Error updating task:', item.id, upErr.message);
     }
   }
 
@@ -544,6 +606,7 @@ export async function syncGoogleClassroomTasks(userId, providerToken) {
   return {
     syncedCount,
     updatedCount,
+    autoFinishedCount,
     removedCount,
     activeSyncedCount,
     archivedSyncedCount,

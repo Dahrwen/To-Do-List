@@ -454,6 +454,7 @@ export default function App() {
             ({
               syncedCount,
               updatedCount,
+              autoFinishedCount,
               removedCount,
               activeSyncedCount,
               archivedSyncedCount,
@@ -471,22 +472,25 @@ export default function App() {
               if (wasOAuthPending) {
                 sessionStorage.removeItem('classroom_oauth_pending');
                 if (syncedCount > 0) {
+                  let alertMsg = '';
                   if (archivedSyncedCount > 0 && activeSyncedCount > 0) {
-                    alert(
-                      `Successfully imported ${activeSyncedCount} active assignment(s) to To-Do List and ${archivedSyncedCount} completed assignment(s) to Archive!`
-                    );
+                    alertMsg = `Successfully imported ${activeSyncedCount} active assignment(s) to To-Do List and ${archivedSyncedCount} completed assignment(s) to Archive!`;
                   } else if (archivedSyncedCount > 0) {
-                    alert(
-                      `Imported ${archivedSyncedCount} completed Google Classroom assignment(s) into Archive!`
-                    );
+                    alertMsg = `Imported ${archivedSyncedCount} completed Google Classroom assignment(s) into Archive!`;
                   } else {
-                    alert(
-                      `Successfully imported ${syncedCount} new activities from Google Classroom!`
-                    );
+                    alertMsg = `Successfully imported ${syncedCount} new activities from Google Classroom!`;
                   }
+                  if (autoFinishedCount > 0) {
+                    alertMsg += ` Also automatically finished ${autoFinishedCount} turned-in task(s) and moved to Archive!`;
+                  }
+                  alert(alertMsg);
+                } else if (autoFinishedCount > 0) {
+                  alert(
+                    `Synced ✓ Automatically finished ${autoFinishedCount} task(s) turned in on Google Classroom and moved to Archive!`
+                  );
                 } else if (updatedCount > 0 || removedCount > 0) {
                   alert(
-                    `Synced ✓ Updated ${updatedCount} deadline timestamp(s) and cleaned up ${removedCount} hidden/archived course task(s).`
+                    `Synced ✓ Updated ${updatedCount} task(s) and cleaned up ${removedCount} hidden/archived course task(s).`
                   );
                 } else if (totalFound > 0) {
                   alert(
@@ -590,6 +594,70 @@ export default function App() {
       subscription?.unsubscribe();
     };
   }, [handleLoginSuccess]);
+
+  /**
+   * Automatic background Classroom sync:
+   * Periodically and whenever the user refocuses the app tab (e.g. after turning in
+   * an assignment on Google Classroom in another tab or window), quietly checks for updates.
+   * If any assignment has been turned in, it is automatically marked finished and moved to Archive!
+   */
+  useEffect(() => {
+    let lastAutoSync = 0;
+
+    const runBackgroundClassroomSync = async () => {
+      const activeUserId = currentUserRef.current?.userID || currentUser?.userID;
+      const activeToken = getGoogleProviderToken();
+      const isConnected = localStorage.getItem('classroom_connected') === 'true';
+
+      if (!activeUserId || !activeToken || !isConnected || isClassroomSyncingRef.current) {
+        return;
+      }
+
+      const now = Date.now();
+      // Throttle background sync checks to at most once every 20 seconds
+      if (now - lastAutoSync < 20000) {
+        return;
+      }
+      lastAutoSync = now;
+      isClassroomSyncingRef.current = true;
+
+      try {
+        const { autoFinishedCount, syncedCount, removedCount } =
+          await syncGoogleClassroomTasks(activeUserId, activeToken);
+
+        if (autoFinishedCount > 0 || syncedCount > 0 || removedCount > 0) {
+          console.log(
+            `[AutoSync] Google Classroom update: ${autoFinishedCount} task(s) auto-finished, ${syncedCount} new, ${removedCount} cleaned up.`
+          );
+          refreshAllData(activeUserId, currentViewMode);
+        }
+      } catch (err) {
+        // Silent in background: log without disturbing user
+        console.debug('[AutoSync] Background Classroom check skipped:', err.message);
+      } finally {
+        isClassroomSyncingRef.current = false;
+      }
+    };
+
+    // Refocus listener: automatically checks when returning from Google Classroom tab
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible') {
+        runBackgroundClassroomSync();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
+
+    // Periodic check every 2 minutes while tab remains open
+    const intervalId = setInterval(runBackgroundClassroomSync, 120000);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      clearInterval(intervalId);
+    };
+  }, [currentUser?.userID, currentViewMode, refreshAllData]);
 
   // Helper to dismiss all active popup modals
   const closeAllPopups = () => {
@@ -794,6 +862,7 @@ export default function App() {
           const {
             syncedCount,
             updatedCount,
+            autoFinishedCount,
             removedCount,
             activeSyncedCount,
             archivedSyncedCount,
@@ -811,23 +880,27 @@ export default function App() {
           refreshAllData(activeUserId, currentViewMode);
 
           if (syncedCount > 0) {
+            let alertMsg = '';
             if (archivedSyncedCount > 0 && activeSyncedCount > 0) {
-              alert(
-                `Successfully imported ${activeSyncedCount} active assignment(s) to To-Do List and ${archivedSyncedCount} completed assignment(s) to Archive!`
-              );
+              alertMsg = `Successfully imported ${activeSyncedCount} active assignment(s) to To-Do List and ${archivedSyncedCount} completed assignment(s) to Archive!`;
             } else if (archivedSyncedCount > 0) {
-              alert(
-                `Imported ${archivedSyncedCount} completed Google Classroom assignment(s) into Archive!`
-              );
+              alertMsg = `Imported ${archivedSyncedCount} completed Google Classroom assignment(s) into Archive!`;
             } else {
-              alert(
-                `Successfully imported ${syncedCount} new activities from Google Classroom!`
-              );
+              alertMsg = `Successfully imported ${syncedCount} new activities from Google Classroom!`;
             }
+            if (autoFinishedCount > 0) {
+              alertMsg += ` Also automatically finished ${autoFinishedCount} turned-in task(s) and moved to Archive!`;
+            }
+            alert(alertMsg);
+            return;
+          } else if (autoFinishedCount > 0) {
+            alert(
+              `Synced ✓ Automatically finished ${autoFinishedCount} task(s) turned in on Google Classroom and moved to Archive!`
+            );
             return;
           } else if (updatedCount > 0 || removedCount > 0) {
             alert(
-              `Synced ✓ Updated ${updatedCount} deadline timestamp(s) and cleaned up ${removedCount} hidden/archived course task(s).`
+              `Synced ✓ Updated ${updatedCount} task(s) and cleaned up ${removedCount} hidden/archived course task(s).`
             );
             return;
           } else if (totalFound > 0) {

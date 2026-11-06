@@ -179,6 +179,26 @@ serve(async (req: Request) => {
 
     // 6. For each active course, fetch published coursework and upsert into `Tasks`
     for (const course of courses) {
+      // Fetch student submissions to check which assignments have been turned in or returned
+      const completedIds = new Set<string>();
+      try {
+        const subRes = await fetch(
+          `https://classroom.googleapis.com/v1/courses/${course.id}/courseWork/-/studentSubmissions?userId=me&pageSize=100`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        if (subRes.ok) {
+          const subJson = await subRes.json();
+          for (const s of subJson.studentSubmissions || []) {
+            const state = String(s.state || "").toUpperCase();
+            if (s.courseWorkId && (state === "TURNED_IN" || state === "RETURNED" || s.assignedGrade !== undefined)) {
+              completedIds.add(String(s.courseWorkId));
+            }
+          }
+        }
+      } catch (subErr) {
+        // Non-fatal fallback
+      }
+
       const cwRes = await fetch(
         `https://classroom.googleapis.com/v1/courses/${course.id}/courseWork?courseWorkStates=PUBLISHED`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -209,7 +229,9 @@ serve(async (req: Request) => {
           ? `${courseHeader}\n\n${cw.description || ""}\n\nClassroom Link: ${cw.alternateLink}`
           : `${courseHeader}\n\n${cw.description || ""}`;
 
-        // Upsert into `Tasks` table
+        const isCompleted = Boolean(cw.id && completedIds.has(String(cw.id)));
+
+        // Upsert into `Tasks` table with auto-finished status when turned in
         const { error: upsertErr } = await supabaseAdmin.from("Tasks").upsert(
           {
             userID: userID,
@@ -222,7 +244,7 @@ serve(async (req: Request) => {
             Type6: false,
             Deadline: deadlineIso,
             Description: descriptionText.trim(),
-            finished: false,
+            finished: isCompleted,
           },
           { onConflict: "classroom_id,userID" }
         );

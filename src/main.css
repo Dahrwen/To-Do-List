@@ -5,16 +5,35 @@
     box-sizing: border-box;
 }
 
+html,
 body {
     font-family: 'Poppins', 'sans serif';
-    margin-top: 1vh;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    max-height: 100vh;
     background-color: #f1f1f1;
-    /* Responsive side margins: 3% on both sides centers the content cleanly without horizontal overflow */
-    margin-left: 3%;
-    margin-right: 3%;
     user-select: none;
-    /* Prevent accidental horizontal scrollbars when resizing or on different aspect-ratio monitors */
-    overflow-x: hidden;
+    /* Zero-Scroll Viewport Layout: prevent vertical & horizontal scrollbars */
+    overflow: hidden;
+}
+
+#root {
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
+}
+
+#websiteCont {
+    width: 100%;
+    max-width: 1600px;
+    height: 100vh;
+    max-height: 100vh;
+    margin: 0 auto;
+    padding: 0.8vh 3% 1.2vh 3%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .locked-content {
@@ -28,6 +47,7 @@ body {
 .topbar {
     /* Use 100% of container width so it aligns naturally with the rest of the page */
     width: 100%;
+    flex-shrink: 0;
 }
 
 .topbar table {
@@ -51,15 +71,15 @@ body {
 
 .searchbar {
     background-color: #e6e6e6;
-    /* 100% width fills the header column; vw-based clamp preserves the tall, prominent proportions from Image 2 across all monitor widths */
+    /* 100% width fills the header column; clamp maintains the chunky height while fitting 100vh */
     width: 100%;
-    height: clamp(70px, 5.2vw, 115px);
-    border-radius: clamp(20px, 1.5vw, 30px);
+    height: clamp(52px, 6.8vh, 74px);
+    border-radius: 20px;
     border-style: solid;
     border-color: black;
     border-width: 3px;
-    padding-left: clamp(12px, 1vw, 22px);
-    padding-right: clamp(14px, 1.2vw, 24px);
+    padding-left: clamp(10px, 1vh, 16px);
+    padding-right: clamp(12px, 1.2vh, 18px);
     display: flex;
     align-items: center;
 }
@@ -70,11 +90,11 @@ body {
     outline: none;
     font-family: 'Jeju Gothic', sans-serif;
     font-weight: 300;
-    /* Scales proportionally with searchbar height across standard and wide monitors */
-    font-size: clamp(26px, 2.4vw, 52px);
+    /* Scales cleanly across monitor sizes */
+    font-size: clamp(20px, 3.4vh, 34px);
     display: inline;
     width: 100%;
-    padding-left: 8px;
+    padding-left: 6px;
 }
 
 .searchButton {
@@ -88,9 +108,9 @@ body {
 }
 
 img.logo {
-    /* Prominent icon/avatar sizing that scales proportionally with the search bar */
-    width: clamp(50px, 3.9vw, 86px);
-    height: clamp(50px, 3.9vw, 86px);
+    /* Prominent icon sizing with clamp */
+    width: clamp(40px, 5.8vh, 58px);
+    height: clamp(40px, 5.8vh, 58px);
     object-fit: contain;
 }
 
@@ -131,7 +151,7 @@ img.logo {
 }
 
 .dropdown-arrow {
-    font-size: clamp(15px, 1.2vw, 24px);
+    font-size: clamp(14px, 2vh, 20px);
     color: #111111;
     transition: transform 0.25s ease;
     margin-left: 2px;
@@ -209,15 +229,15 @@ img.logo {
     font-family: 'Jeju Gothic', sans-serif;
     color: rgb(0, 0, 0);
     font-weight: 300;
-    /* Scales proportionally with profile header across standard and wide monitors */
-    font-size: clamp(22px, 1.85vw, 40px);
+    /* Restored original 3vh profile font size with clamp */
+    font-size: clamp(20px, 3vh, 30px);
     display: inline;
     margin: 0;
 }
 
 th {
-    /* Restored original 2vh padding with clamp */
-    padding: clamp(10px, 1.5vw, 24px);
+    /* Compact vertical padding so header + calendar + grid fit comfortably in 100vh */
+    padding: clamp(6px, 1vh, 12px) clamp(8px, 1vw, 14px);
     text-align: left;
     vertical-align: middle;
 }
@@ -226,6 +246,7 @@ th {
 .container {
     display: flex;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .child {
@@ -238,25 +259,26 @@ th {
     /* Full width within container; padding-inline reserves space for the < and > navigation buttons */
     width: 100%;
     position: relative;
-    margin: 1.5vh 0 2vh 0;
-    padding: 0 clamp(45px, 3.5vw, 68px);
+    margin: 0.6vh 0 1vh 0;
+    padding: 0 45px;
 }
 
 .wrapper .carousel {
     display: grid;
     grid-auto-flow: column;
-    /* Calculates 6 equal columns accounting for the responsive gaps between cards */
-    grid-auto-columns: calc((100% - (5 * clamp(16px, 1.5vw, 28px))) / 6);
-    gap: clamp(16px, 1.5vw, 28px);
+    /* Calculates 6 equal columns accounting for the wider 22px gaps between cards */
+    grid-auto-columns: calc((100% - (5 * 22px)) / 6);
+    /* Widened gap between calendar cards as requested for a cleaner, more spacious look */
+    gap: 22px;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
     scroll-behavior: smooth;
     height: auto;
-    /* Minimum height accommodates the proportional card height and drop-shadow */
-    min-height: clamp(220px, 14vw, 315px);
+    /* Responsive height accommodates the weekday card height and drop-shadow within 100vh */
+    min-height: clamp(150px, 21.5vh, 200px);
     /* Padding accommodates card box-shadow without clipping */
-    padding: 8px 4px 20px 4px;
+    padding: 4px 4px 14px 4px;
 }
 
 .carousel::-webkit-scrollbar {
@@ -278,10 +300,9 @@ th {
     display: flex;
     align-items: center;
     justify-content: center;
-    /* Responsive circle button size matching Image 2 proportions */
-    height: clamp(36px, 2.7vw, 56px);
-    width: clamp(36px, 2.7vw, 56px);
-    font-size: clamp(15px, 1.15vw, 24px);
+    /* Responsive circle button size */
+    height: clamp(34px, 4.5vh, 42px);
+    width: clamp(34px, 4.5vh, 42px);
     background-color: #e9e7e7;
     border-radius: 50%;
     text-align: center;
@@ -295,16 +316,6 @@ th {
     cursor: pointer;
     user-select: none;
     z-index: 2;
-    transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.wrapper b:hover {
-    background-color: #dcdada;
-    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.42);
-}
-
-.wrapper b:active {
-    transform: translateY(-50%) scale(0.95);
 }
 
 /* Positioned cleanly inside wrapper padding so arrows never clip or float off-screen */
@@ -320,39 +331,18 @@ th {
     cursor: pointer;
     list-style: none;
     background-color: #e9e7e7;
-    border-radius: clamp(10px, 0.8vw, 15px);
+    border-radius: 10px;
     border-style: solid;
     border-color: black;
     border-width: 3px;
-    /* Scales proportionally with card width (~0.86 height-to-width ratio matching Image 2) */
-    height: clamp(190px, 12.2vw, 275px);
-    padding: clamp(12px, 1.15vw, 24px);
+    /* Responsive height matched to the reference screenshot while fitting 100vh */
+    height: clamp(140px, 19.5vh, 180px);
+    padding: clamp(8px, 1.3vh, 14px);
     box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.carousel .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 3px 10px 12px rgba(0, 0, 0, 0.4);
-}
-
-.carousel .card h2 {
-    font-size: clamp(20px, 1.55vw, 32px);
-    line-height: 1.2;
-}
-
-.carousel .card h4 {
-    font-size: clamp(14px, 1.05vw, 22px);
-    line-height: 1.3;
-    margin-bottom: 4px;
-}
-
-.mini-cal-task-text {
-    font-size: clamp(14px, 1.02vw, 21px);
-    line-height: 1.35;
+    overflow: hidden;
 }
 
 .carousel.dragging {
@@ -384,48 +374,78 @@ th {
 @media screen and (max-width: 768px) {
     .wrapper .carousel {
         /* Shows 3 cards on compact screens */
-        grid-auto-columns: calc((100% - (2 * 12px)) / 3);
-        gap: 12px;
+        grid-auto-columns: calc((100% - (2 * 14px)) / 3);
+        gap: 14px;
     }
 }
 
 @media screen and (max-width: 520px) {
     .wrapper .carousel {
         /* Shows 2 cards on mobile */
-        grid-auto-columns: calc((100% - 10px) / 2);
-        gap: 10px;
+        grid-auto-columns: calc((100% - 12px) / 2);
+        gap: 12px;
     }
 }
 
-/* ============================================================================
- * HEADER CONTROLS, NAVIGATION TABS & FILTER DROPDOWN (.sectButton)
- * ============================================================================ */
+@media screen and (max-width: 768px) {
+    .wrapper .carousel {
+        /* Shows 3 cards on compact screens */
+        grid-auto-columns: calc((100% - (2 * 10px)) / 3);
+    }
+}
+
+@media screen and (max-width: 520px) {
+    .wrapper .carousel {
+        /* Shows 2 cards on mobile */
+        grid-auto-columns: calc((100% - 8px) / 2);
+    }
+}
+
+/*Buttons & Filter Toolbar*/
 .sectButton {
-    /* Centralized fluid container aligned with the 5x2 task grid */
-    width: 100%;
-    max-width: 100%;
-    padding: 0 1%;
-    margin: 1vh auto 2.5vh auto;
+    /* Aligns left edge with first column and right edge (+ Add task) with fifth column */
+    margin-left: 1%;
+    margin-right: 1%;
+    margin-top: 0.6vh;
+    margin-bottom: 1.8vh;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 14px;
     position: relative;
-    z-index: 20;
+    z-index: 25;
+    flex-shrink: 0;
 }
 
 .sectButton-left {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: clamp(12px, 1.1vw, 18px);
+    gap: 14px;
 }
 
 .sectButton-right {
     margin-left: auto;
-    display: flex;
+    flex-shrink: 0;
+}
+
+.tab-pill-wrapper {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
     align-items: center;
+}
+
+.tab-pill-wrapper.active-tab::after {
+    content: '';
+    position: absolute;
+    bottom: -7px;
+    left: 6%;
+    width: 88%;
+    height: 4px;
+    background-color: #9e9e9e;
+    border-radius: 4px;
 }
 
 .mybutton * {
@@ -434,36 +454,29 @@ th {
 
 .mybutton {
     margin-left: 0;
-    /* Responsive height, min-width, and font-size scaling with viewport width to match Image 2 */
-    height: clamp(42px, 3vw, 60px);
-    min-width: clamp(130px, 11vw, 200px);
-    padding: 0 clamp(14px, 1.4vw, 22px);
+    /* Responsive height and min-width with clamp prevents cramped text on smaller monitors */
+    height: clamp(38px, 5vh, 46px);
+    min-width: clamp(124px, 10.5vw, 160px);
+    padding: 0 clamp(12px, 1.4vw, 18px);
     background-color: #e9e7e7;
     cursor: pointer;
     border-radius: 10px;
     border-width: 3px;
     border-style: solid;
     border-color: black;
-    font-size: clamp(14px, 1.08vw, 21px);
+    font-size: clamp(13.5px, 1.75vh, 16.5px);
     font-family: inherit;
-    color: #111111;
+
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     box-shadow: 1px 3px 6px rgba(0, 0, 0, 0.15);
-    transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.15s ease;
+    transition: background-color 0.15s ease, transform 0.1s ease;
 }
 
 .mybutton:hover {
-    background-color: #dcdada;
-    transform: translateY(-2px);
-    box-shadow: 2px 6px 10px rgba(0, 0, 0, 0.25);
-}
-
-.mybutton:active {
-    transform: translateY(1px);
-    box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.2);
+    background-color: #dfdfdf;
 }
 
 .addbutton {
@@ -471,35 +484,33 @@ th {
 }
 
 .addbutton:hover {
-    background-color: #5591e6;
-    transform: translateY(-2px);
-    box-shadow: 2px 6px 10px rgba(0, 0, 0, 0.25);
+    background-color: #5a92e3;
 }
 
-.addbutton:active {
-    transform: translateY(1px);
-    box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.2);
+.sectButton img {
+    /* Responsive icon height */
+    height: clamp(20px, 3vh, 26px);
+    width: auto;
 }
 
-/* Filter Dropdown ("Filter ⌵") immediately next to Archive */
+/* Filter Dropdown Styling */
 .filter-dropdown-wrapper {
     position: relative;
     display: inline-block;
 }
 
 .filter-btn {
-    min-width: clamp(120px, 9.8vw, 180px);
-    justify-content: space-between;
-    gap: 10px;
+    min-width: clamp(115px, 9.5vw, 150px);
 }
 
 .filter-btn.filter-active {
-    background-color: #dce8fc;
+    background-color: #dcdcdc;
 }
 
 .filter-chevron {
-    font-size: 13px;
-    transition: transform 0.22s ease;
+    font-size: clamp(12px, 1.5vh, 14px);
+    margin-left: 4px;
+    transition: transform 0.2s ease;
 }
 
 .filter-dropdown-wrapper.open .filter-chevron {
@@ -510,20 +521,16 @@ th {
     position: absolute;
     top: calc(100% + 8px);
     left: 0;
-    min-width: 185px;
     background-color: #ffffff;
     border: 2.5px solid #000000;
     border-radius: 12px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
-    list-style: none;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    min-width: 175px;
     padding: 6px;
-    margin: 0;
-    z-index: 100;
-}
-
-.filter-dropdown-menu li {
-    margin: 0;
-    padding: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .filter-dropdown-item {
@@ -531,16 +538,18 @@ th {
     padding: 9px 12px;
     background: transparent;
     border: none;
-    border-radius: 8px;
+    outline: none;
+    text-align: left;
     font-family: 'Poppins', sans-serif;
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 600;
     color: #111111;
     cursor: pointer;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    text-align: left;
+    gap: 10px;
     transition: background-color 0.15s ease;
 }
 
@@ -549,20 +558,9 @@ th {
 }
 
 .filter-dropdown-item.selected {
-    background-color: #e3edff;
+    background-color: #e6effd;
     color: #1d4ed8;
     font-weight: 700;
-}
-
-.filter-check-icon {
-    font-size: 12px;
-    color: #1d4ed8;
-}
-
-.sectButton img {
-    /* Responsive icon height */
-    height: clamp(20px, 3vh, 26px);
-    width: auto;
 }
 
 /*Pop-Up Add Task*/
@@ -697,53 +695,43 @@ form input[type="time"] {
     resize: vertical;
 }
 
-/* ============================================================================
- * STRICT 5-COLUMN × 2-ROW CARD GRID & PAGINATION SLIDER (.taskCont, #tasks)
- * ============================================================================ */
+/*Tasks — Normalized 5-Column Grid & Persistent Bottom Pagination Dock*/
 .taskCont {
-    /* Centralized, fluid container aligned identically with .sectButton */
-    width: 100%;
-    max-width: 100%;
-    padding: 0 1%;
-    margin: 0 auto;
+    margin-left: 1%;
+    margin-right: 1%;
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    /* Smooth slide/fade transition when toggling Calendar / To-Do List / Archive */
-    opacity: 1;
-    visibility: visible;
-    transition: visibility .5s, opacity .5s, max-height 0.5s ease-in-out, transform 0.5s ease-in-out;
-    transform: translateY(0);
-    max-height: 2000px;
-    overflow: visible;
+    justify-content: space-between;
+    overflow: hidden;
 }
 
 #tasks {
-    /* Strict 5-column equal-ratio CSS Grid on desktop/laptops:
-       Eliminates trailing whitespace on wide monitors and prevents premature 4-column wrapping */
+    /* Strict 5-column responsive grid eliminating uneven right-side whitespace */
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    column-gap: clamp(14px, 1.8vw, 28px);
-    row-gap: clamp(16px, 2.4vh, 28px);
+    column-gap: clamp(14px, 1.6vw, 24px);
+    row-gap: clamp(12px, 1.8vh, 20px);
     width: 100%;
     list-style: none;
-    padding: 0;
+    padding: 2px 4px 10px 4px;
     margin: 0;
-    align-items: stretch;
+    align-content: start;
 }
 
-#tasks.tasks-empty {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 180px;
+#tasks.expanded-grid {
+    /* Slightly tighter vertical gap when rendering 3 rows (15 cards) in expanded mode */
+    row-gap: clamp(10px, 1.5vh, 16px);
 }
 
-.empty-tasks-message {
+.empty-tasks-notice {
+    grid-column: 1 / -1;
     width: 100%;
     text-align: center;
-    color: #666666;
+    color: #666;
     font-size: 18px;
-    margin-top: 20px;
+    margin-top: 24px;
     list-style: none;
 }
 
@@ -751,25 +739,29 @@ form input[type="time"] {
     cursor: pointer;
     list-style: none;
     background-color: #e9e7e7;
-    border-radius: 12px;
+    border-radius: 10px;
     border-style: solid;
     border-color: black;
     border-width: 3px;
-    /* 100% width fills its 1fr grid column evenly with zero trailing empty margin */
+    /* Stretches cleanly to fill its 1/5 grid column without horizontal overflow */
     width: 100%;
     min-width: 0;
-    min-height: clamp(165px, 19vh, 190px);
-    padding: clamp(12px, 1.3vw, 18px);
+    /* Proportional height for 2-row default view (10 cards max) within 100vh */
+    height: clamp(135px, 21vh, 180px);
+    min-height: 0;
+    padding: clamp(10px, 1.4vh, 15px);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
+    overflow: hidden;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.taskList:hover {
-    transform: translateY(-2px);
-    box-shadow: 3px 10px 12px rgba(0, 0, 0, 0.4);
+.taskList.taskList-expanded {
+    /* Proportional height for 3-row expanded view (15 cards max) within 100vh */
+    height: clamp(115px, 21vh, 165px);
+    padding: clamp(8px, 1.2vh, 13px);
 }
 
 .taskList h2,
@@ -778,107 +770,73 @@ form input[type="time"] {
     margin: 0;
 }
 
-.task-card-title {
-    font-size: clamp(15px, 1.35vw, 22px);
+.taskList h2 {
+    font-size: clamp(14px, 1.9vh, 19px);
     line-height: 1.25;
-    font-weight: 700;
-    color: #111111;
-    overflow-wrap: break-word;
-    word-break: break-word;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    margin-bottom: 6px !important;
+    text-overflow: ellipsis;
+    word-break: break-word;
+}
+
+.taskList.taskList-expanded h2 {
+    font-size: clamp(13px, 1.75vh, 17.5px);
+    line-height: 1.22;
 }
 
 .category-container {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    margin: 6px 0;
+    gap: 1px;
+    margin: 2px 0;
 }
 
 .task-category-tag {
-    font-size: clamp(12px, 1.05vw, 16px);
+    font-size: clamp(12px, 1.65vh, 15.5px);
     font-weight: 500;
-    line-height: 1.3;
-}
-
-.task-deadline {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-    font-size: clamp(11.5px, 0.95vw, 14.5px);
-    font-weight: 700;
-    color: #111111;
-    margin-top: 6px !important;
-}
-
-.task-deadline-left {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    min-width: 0;
-}
-
-.deadline-calendar-icon {
-    font-size: clamp(12px, 1vw, 15px);
-    color: #222222;
-    flex-shrink: 0;
-}
-
-.deadline-text {
+    line-height: 1.25;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
+.taskList.taskList-expanded .task-category-tag {
+    font-size: clamp(11.5px, 1.5vh, 14.5px);
+}
+
+.task-deadline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: clamp(11.5px, 1.45vh, 14px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.taskList.taskList-expanded .task-deadline {
+    font-size: clamp(11px, 1.35vh, 13.5px);
+}
+
 .classroom-badge-icon {
-    width: 18px;
-    height: 18px;
+    width: clamp(15px, 1.8vh, 18px);
+    height: clamp(15px, 1.8vh, 18px);
     object-fit: contain;
     vertical-align: middle;
     flex-shrink: 0;
 }
 
-/* Responsive breakpoint fallbacks for smaller tablet/mobile viewports:
-   Centers the grid and scales columns cleanly so right margin is never cut off */
-@media screen and (max-width: 1024px) {
-    #tasks {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-}
-
-@media screen and (max-width: 820px) {
-    #tasks {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-}
-
-@media screen and (max-width: 600px) {
-    #tasks {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media screen and (max-width: 400px) {
-    #tasks {
-        grid-template-columns: repeat(1, minmax(0, 1fr));
-    }
-}
-
-/* ============================================================================
- * BOTTOM PAGINATION SLIDER & INDICATOR CONTROLS (< ● ● ● >)
- * ============================================================================ */
-.pagination-slider {
+/* Persistent Bottom Pagination Slider Dock (< • • • >) */
+.pagination-dock {
+    margin-top: auto;
+    padding: 0.6vh 0 0.4vh 0;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 14px;
-    margin: 28px auto 20px auto;
-    padding: 6px 14px;
+    flex-shrink: 0;
     user-select: none;
 }
 
@@ -886,33 +844,31 @@ form input[type="time"] {
     background: transparent;
     border: none;
     outline: none;
-    font-size: 20px;
+    font-family: 'Poppins', sans-serif;
+    font-size: clamp(20px, 2.6vh, 26px);
     font-weight: 700;
+    line-height: 1;
     color: #111111;
     cursor: pointer;
+    padding: 2px 6px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    transition: color 0.15s ease, background-color 0.15s ease, transform 0.1s ease;
+    transition: color 0.15s ease, transform 0.1s ease;
 }
 
-.pagination-arrow:hover:not(:disabled) {
-    background-color: rgba(0, 0, 0, 0.08);
-    transform: scale(1.08);
+.pagination-arrow:hover:not(.disabled) {
+    transform: scale(1.12);
 }
 
-.pagination-arrow.disabled,
-.pagination-arrow:disabled {
-    color: #b5b5b5;
+.pagination-arrow.disabled {
+    color: #9ca3af;
     cursor: not-allowed;
     pointer-events: none;
 }
 
 .pagination-dots {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
@@ -929,18 +885,16 @@ form input[type="time"] {
     transition: background-color 0.2s ease, transform 0.15s ease;
 }
 
-.pagination-dot:hover:not(:disabled) {
-    background-color: #555555;
-    transform: scale(1.15);
-}
-
 .pagination-dot.active {
     background-color: #111111;
     transform: scale(1.1);
 }
 
-.pagination-dot.single-page-dot {
+.pagination-dot.single-dot {
+    background-color: #9e9e9e;
     cursor: default;
+    pointer-events: none;
+    transform: none;
 }
 
 .Personal {
@@ -971,18 +925,20 @@ form input[type="time"] {
 #calendarSection {
     opacity: 1;
     visibility: visible;
-    transition: visibility .5s, opacity .5s, max-height 0.5s ease-in-out, transform 0.5s ease-in-out;
+    transition: visibility .35s, opacity .35s, max-height 0.35s ease-in-out, transform 0.35s ease-in-out, margin 0.35s ease-in-out;
     transform: translateY(0);
-    /* Increased max-height to ensure smooth transition with bigger calendar cards */
-    max-height: 800px;
+    max-height: 260px;
     overflow: visible;
 }
 
 .hidden-section {
     opacity: 0 !important;
     visibility: hidden !important;
-    transform: translateY(-50px);
+    transform: translateY(-20px);
     max-height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
     overflow: hidden !important;
     pointer-events: none !important;
 }
@@ -1059,7 +1015,7 @@ form input[type="time"] {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 95px;
+    min-height: clamp(65px, 10vh, 95px);
     text-align: center;
     padding: 4px;
     border-radius: 5px;

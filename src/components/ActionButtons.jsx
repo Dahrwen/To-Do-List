@@ -124,47 +124,37 @@ export default function ActionButtons({
       {/* Left Navigation Group: Tabs + Filter Dropdown */}
       <div className="sectButton-left">
         {/* To-Do List Tab */}
-        <div className={`tab-btn-wrapper ${isTodoActive ? 'active-tab' : ''}`}>
-          <button
-            id="todo"
-            className="mybutton"
-            type="button"
-            onClick={onTodoClick}
-          >
-            <i className="fa-regular fa-clipboard"></i>
-            <b>To-Do List</b>
-          </button>
-        </div>
+        <button
+          id="todo"
+          className={`mybutton ${isTodoActive ? 'active-nav-btn' : ''}`}
+          type="button"
+          onClick={onTodoClick}
+        >
+          <i className="fa-regular fa-clipboard"></i>
+          <b>To-Do List</b>
+        </button>
 
         {/* Calendar Tab */}
-        <div
-          className={`tab-btn-wrapper ${isCalendarActive ? 'active-tab' : ''}`}
+        <button
+          id="Calendar"
+          className={`mybutton ${isCalendarActive ? 'active-nav-btn' : ''}`}
+          type="button"
+          onClick={onCalendarClick}
         >
-          <button
-            id="Calendar"
-            className="mybutton"
-            type="button"
-            onClick={onCalendarClick}
-          >
-            <i className="fa-regular fa-calendar-days"></i>
-            <b>Calendar</b>
-          </button>
-        </div>
+          <i className="fa-regular fa-calendar-days"></i>
+          <b>Calendar</b>
+        </button>
 
         {/* Archive Tab */}
-        <div
-          className={`tab-btn-wrapper ${isArchiveActive ? 'active-tab' : ''}`}
+        <button
+          id="archived"
+          className={`mybutton ${isArchiveActive ? 'active-nav-btn' : ''}`}
+          type="button"
+          onClick={onArchiveClick}
         >
-          <button
-            id="archived"
-            className="mybutton"
-            type="button"
-            onClick={onArchiveClick}
-          >
-            <i className="fa-solid fa-archive"></i>
-            <b>Archive</b>
-          </button>
-        </div>
+          <i className="fa-solid fa-archive"></i>
+          <b>Archive</b>
+        </button>
 
         {/* Filter Dropdown Button immediately next to Archive */}
         <div

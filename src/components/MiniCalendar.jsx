@@ -184,7 +184,7 @@ export default function MiniCalendar({ tasks = [], isHidden = false }) {
             <h4>
               {day.monthName} {day.dateNum}
             </h4>
-            <p style={{ fontSize: '15px', marginTop: '5px' }}>
+            <p className="mini-cal-task-text" style={{ marginTop: '6px' }}>
               {day.tasks.map((taskText, tIdx) => (
                 <React.Fragment key={tIdx}>
                   {taskText}

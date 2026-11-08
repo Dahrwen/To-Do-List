@@ -601,43 +601,51 @@ th {
     font-weight: 700;
 }
 
-/*Pop-Up Add Task*/
-.popUp {
-    z-index: 10;
-    /* Fixed positioning ensures modal is always centered in the viewport, regardless of scroll position */
+/* ============================================================================
+   TOP-LAYER REACT PORTAL MODAL ARCHITECTURE (z-index: 9999)
+   ============================================================================ */
+.modal-portal-backdrop {
     position: fixed;
-    top: -150%;
-    left: 50%;
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transform: translate(-50%, -50%) scale(1.25);
-    box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
-    background-color: #e6e6e6;
-    /* Responsive width and max-height with scroll prevents cutoff on small laptop screens */
-    width: clamp(340px, 32vw, 500px);
-    max-width: 92vw;
-    max-height: 90vh;
-    overflow-y: auto;
-    padding: clamp(20px, 3.5vh, 36px);
-    border-style: solid;
-    border-color: black;
-    border-width: 3px;
-    border-radius: 15px;
-    transition: opacity 200ms 200ms ease,
-        transform 1ms 1ms ease,
-        box-shadow .1ms .1ms ease;
+    inset: 0;
+    z-index: 9999;
+    background-color: rgba(0, 0, 0, 0.42);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5vh 3vw;
 }
 
-.popUp.active {
-    top: 50%;
+.popUp,
+.popUp2,
+.popUpDesc {
+    z-index: 10000;
+    position: relative;
+    top: auto;
+    left: auto;
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
-    transform: translate(-50%, -50%) scale(1);
-    transition: opacity 200ms 200ms ease,
-        transform 1ms 1ms ease,
-        box-shadow .1ms .1ms ease;
+    transform: none;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.38);
+    background-color: #e6e6e6;
+    border: 3px solid #000000;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    max-height: 88vh;
+    padding: clamp(18px, 2.6vh, 28px);
+}
+
+.modal-wide-dialog {
+    width: min(92vw, 740px);
+    max-width: 740px;
+}
+
+.modal-medium-dialog {
+    width: min(92vw, 560px);
+    max-width: 560px;
 }
 
 /* Standardized responsive close button across all modals */
@@ -645,92 +653,321 @@ th {
 .popUp2 .close-btn,
 .popUpDesc .close-btn {
     position: absolute;
-    top: 12px;
-    right: 12px;
-    font-size: 24px;
+    top: 14px;
+    right: 14px;
+    font-size: 22px;
+    font-weight: 700;
     width: 32px;
     height: 32px;
     background-color: #cacaca;
-    border-style: solid;
-    border-color: black;
-    border-width: 2px;
+    border: 2px solid #000000;
     border-radius: 50%;
-    text-align: center;
-    line-height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
     cursor: pointer;
+    padding: 0;
+    color: #000000;
+    transition: background-color 0.15s ease, transform 0.1s ease;
 }
 
-form h2 {
-    text-align: center;
-    font-size: clamp(20px, 2.8vh, 26px);
-    margin-top: 0;
+.popUp .close-btn:hover,
+.popUp2 .close-btn:hover,
+.popUpDesc .close-btn:hover {
+    background-color: #b5b5b5;
+    transform: scale(1.05);
 }
 
-form label,
-p {
-    font-size: clamp(14px, 1.9vh, 18px);
+/* Compact Modal Header & Adaptive Title Typography */
+.modal-header-block {
+    padding-right: 40px;
+    margin-bottom: 14px;
+    border-bottom: 1.5px solid rgba(0, 0, 0, 0.12);
+    padding-bottom: 10px;
+    flex-shrink: 0;
+}
+
+.modal-eyebrow-label {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #4b5563;
+    margin-bottom: 4px;
+}
+
+.modal-eyebrow-label.edit-eyebrow {
+    color: #ad1313;
+}
+
+.modal-adaptive-title {
+    margin: 0;
+    color: #111111;
+    text-align: left;
+    word-break: break-word;
+}
+
+/* <= 30 chars: text-lg font-semibold */
+.modal-title-lg {
+    font-size: clamp(17px, 2.2vh, 21px);
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+/* 31-60 chars: text-base font-medium */
+.modal-title-md {
+    font-size: clamp(15px, 1.9vh, 18px);
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+/* > 60 chars: text-sm font-medium leading-snug */
+.modal-title-sm {
+    font-size: clamp(13.5px, 1.7vh, 15.5px);
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.modal-form-layout {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.modal-body-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.modal-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    align-items: start;
+}
+
+.modal-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.modal-field-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #555555;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0;
+}
+
+.modal-field-label small {
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: normal;
+    color: #6b7280;
+}
+
+.modal-field-value-muted {
+    font-size: 13.5px;
+    color: #6b7280;
+    font-style: italic;
 }
 
 .popUp input[type="text"],
 .popUp2 input[type="text"] {
-    font-size: clamp(13px, 2vh, 16px);
-    padding: 4px 8px;
-    border-radius: 6px;
-    border: 1px solid #aaa;
+    font-family: inherit;
+    font-size: 14px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 2px solid #000000;
+    background-color: #ffffff;
     width: 100%;
     height: 40px;
+    outline: none;
+}
+
+.modal-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 12px;
+    background-color: #f4f4f4;
+    border: 1.5px solid rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+
+.modal-checkbox-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #111111;
+    cursor: pointer;
 }
 
 form input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     cursor: pointer;
     vertical-align: middle;
+    margin: 0;
 }
 
-.popUp .btn[type="submit"] {
-    width: 100%;
-    height: clamp(38px, 4.8vh, 46px);
-    background-color: black;
-    color: #f5f5f5;
-    border-radius: 15px;
-    font-size: clamp(14px, 1.9vh, 18px);
-    cursor: pointer;
-    border: none;
-    margin-top: 12px;
+.modal-deadline-inputs {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
 form input[type="date"],
 form input[type="time"] {
-    font-size: clamp(13px, 1.6vh, 16px);
-    padding: 4px 8px;
-    border-radius: 6px;
-    border: 1px solid #aaa;
+    font-family: inherit;
+    font-size: 13.5px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 2px solid #000000;
+    background-color: #ffffff;
 }
 
-#editForm .btn {
-    width: 48%;
-    height: clamp(38px, 4.8vh, 46px);
-    background-color: black;
-    color: #f5f5f5;
-    border-radius: 15px;
-    font-size: clamp(14px, 1.9vh, 18px);
-    cursor: pointer;
-    border: none;
+/* Locked Google Classroom Deadline Box */
+.locked-deadline-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    background-color: #dcdcdc;
+    border: 2px dashed #555555;
+    border-radius: 10px;
+    cursor: not-allowed;
+}
+
+.locked-deadline-inputs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    pointer-events: none;
+    opacity: 0.65;
+}
+
+.classroom-lock-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #e6f4ea;
+    color: #137333;
+    border: 1.5px solid #137333;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 11.5px;
+    font-weight: 700;
+    width: fit-content;
+}
+
+.modal-deadline-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.modal-deadline-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111111;
+}
+
+.modal-description-box {
+    background-color: #f7f7f7;
+    border: 2px solid #000000;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: #1f2937;
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 95px;
+    max-height: 36vh;
+    overflow-y: auto;
 }
 
 #editForm textarea {
     width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #767676;
-    border-radius: 8px;
+    padding: 10px 12px;
+    border: 2px solid #000000;
+    border-radius: 10px;
     outline: none;
     font-family: inherit;
-    font-size: clamp(14px, 1.8vh, 17px);
+    font-size: 14px;
+    line-height: 1.5;
     background-color: #ffffff;
-    min-height: 70px;
-    margin-bottom: 12px;
+    min-height: 90px;
     resize: vertical;
+}
+
+/* Dedicated Non-Overlapping Modal Footer Bar */
+.modal-footer-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 14px;
+    margin-top: 14px;
+    border-top: 1.5px solid rgba(0, 0, 0, 0.14);
+    flex-shrink: 0;
+}
+
+.modal-footer-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.modal-submit-btn,
+.modal-reset-btn {
+    flex: 1;
+    height: 40px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    border: 2px solid #000000;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.modal-submit-btn {
+    background-color: #0f0f0f;
+    color: #ffffff;
+}
+
+.modal-submit-btn:hover {
+    background-color: #262626;
+}
+
+.modal-reset-btn {
+    background-color: #d4d4d4;
+    color: #111111;
+}
+
+.modal-reset-btn:hover {
+    background-color: #c2c2c2;
+}
+
+.full-width-btn {
+    width: 100%;
 }
 
 /*Tasks — Normalized 5-Column Grid & Persistent Bottom Pagination Dock*/
@@ -1119,113 +1356,25 @@ form input[type="time"] {
     color: gray;
 }
 
-/*Pop-Up Edit Task*/
-.popUp2 {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    z-index: 10;
-    /* Fixed positioning keeps modal centered on any screen resolution */
-    position: fixed;
-    top: -150%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(1.25);
-    box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
-    background-color: #e6e6e6;
-    /* Responsive width and auto-height with scrolling so form elements never get cut off */
-    width: clamp(360px, 34vw, 520px);
-    max-width: 92vw;
-    height: auto;
-    max-height: 90vh;
-    overflow-y: auto;
-    padding: clamp(20px, 3.5vh, 36px);
-    padding-top: clamp(16px, 2vh, 24px);
-    border-style: solid;
-    border-color: black;
-    border-width: 3px;
-    border-radius: 15px;
-    transition: opacity 200ms 200ms ease,
-        transform 1ms 1ms ease,
-        box-shadow .1ms .1ms ease;
-}
-
-.popUp2.active2 {
-    top: 50%;
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    transform: translate(-50%, -50%) scale(1);
-    transition: opacity 200ms 200ms ease,
-        transform 1ms 1ms ease,
-        box-shadow .1ms .1ms ease;
-}
-
-/*PopUp Description*/
-.popUpDesc {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    z-index: 10;
-    /* Fixed positioning keeps modal centered on any screen resolution */
-    position: fixed;
-    top: -150%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(1.25);
-    box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
-    background-color: #e6e6e6;
-    /* Responsive modal size: fits content comfortably with bottom padding for action buttons */
-    width: clamp(340px, 32vw, 480px);
-    max-width: 92vw;
-    height: auto;
-    min-height: clamp(260px, 38vh, 360px);
-    max-height: 88vh;
-    overflow-y: auto;
-    padding: clamp(20px, 3vh, 32px);
-    padding-top: clamp(16px, 2vh, 24px);
-    padding-bottom: 70px;
-    border-style: solid;
-    border-color: black;
-    border-width: 3px;
-    border-radius: 15px;
-    transition: opacity 200ms 200ms ease,
-        transform 1ms 1ms ease,
-        box-shadow .1ms .1ms ease;
-}
-
-.popUpDesc.activeDesc {
-    top: 50%;
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    transform: translate(-50%, -50%) scale(1);
-    transition: opacity 200ms 200ms ease,
-        transform 1ms 1ms ease,
-        box-shadow .1ms .1ms ease;
-}
-
-.popUpDesc b,
-p {
-    font-size: clamp(16px, 2.2vh, 22px);
-    margin-bottom: .5vh;
-    margin-top: .5vh;
-}
-
+/* Task Details Category Pills & Action Footer Buttons */
+.modal-category-pills,
 .popUpDesc ul {
     display: flex;
     flex-direction: row;
-    /* Allows tags to wrap onto another line if multiple tags exist */
     flex-wrap: wrap;
     gap: 8px;
     padding: 0;
-    margin: 8px 0;
+    margin: 0;
 }
 
+.modal-category-pills li,
 .popUpDesc li {
     list-style: none;
-    border: solid 2px black;
-    border-radius: 15px;
+    border: 2px solid #000000;
+    border-radius: 999px;
     padding: 3px 12px;
-    font-size: clamp(13px, 1.8vh, 16px);
+    font-size: 12.5px;
+    font-weight: 700;
 }
 
 .popUpDesc .Personal {
@@ -1259,40 +1408,66 @@ p {
 }
 
 .eButton {
-    /* Proportional width and height that looks crisp on any screen */
-    width: clamp(80px, 22%, 105px);
-    height: clamp(34px, 4.5vh, 42px);
-    background-color: rgb(8, 8, 8);
+    min-width: 98px;
+    height: 38px;
+    padding: 0 18px;
+    background-color: #111111;
     color: #f5f5f5;
-    border-radius: 15px;
-    font-size: clamp(14px, 1.8vh, 17px);
-    position: absolute;
-    bottom: 20px;
-    left: clamp(20px, 3.5vh, 32px);
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    position: static;
     cursor: pointer;
-    border: none;
+    border: 2px solid #000000;
     font-family: inherit;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.eButton:hover {
+    background-color: #292929;
 }
 
 .fButton {
-    /* Proportional width and height that looks crisp on any screen */
-    width: clamp(80px, 22%, 105px);
-    height: clamp(34px, 4.5vh, 42px);
+    min-width: 104px;
+    height: 38px;
+    padding: 0 18px;
     background-color: #1a8842;
     color: #ffffff;
-    border-radius: 15px;
-    font-size: clamp(14px, 1.8vh, 17px);
-    position: absolute;
-    bottom: 20px;
-    left: calc(clamp(20px, 3.5vh, 32px) + clamp(80px, 22%, 105px) + 12px);
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    position: static;
     cursor: pointer;
-    border: none;
-    transition: background-color 0.2s ease, transform 0.1s ease;
+    border: 2px solid #000000;
+    transition: background-color 0.15s ease, transform 0.1s ease;
     font-family: inherit;
 }
 
 .fButton:hover {
     background-color: #16a34a;
+}
+
+.modal-delete-btn {
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    padding: 5px 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.modal-delete-btn:hover {
+    background-color: #fee2e2;
+    border-color: #dc2626;
+}
+
+.modal-delete-btn img {
+    height: 26px;
+    width: auto;
+    display: block;
 }
 
 /*LogIn CSS*/

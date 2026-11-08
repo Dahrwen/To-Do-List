@@ -301,6 +301,14 @@ export async function syncGoogleClassroomTasks(userId, providerToken) {
   // Build an in-memory lookup Map of remaining existing tasks for O(1) duplicate detection.
   // Each key maps to an Array of matching task rows so even if duplicates existed, ALL get updated.
   const existingTaskMap = new Map();
+
+  /**
+   * Registers an existing database task row under a normalized lookup key in `existingTaskMap`.
+   *
+   * @param {string|null} key - Normalized lookup key (`link::...`, `title_course::...`, or `classroom_title::...`)
+   * @param {Object} taskObj - Supabase `Tasks` row object
+   * @sideEffects Appends `taskObj` to the array stored at `existingTaskMap.get(key)`
+   */
   const addToExistingMap = (key, taskObj) => {
     if (!key) return;
     const list = existingTaskMap.get(key) || [];
@@ -324,7 +332,17 @@ export async function syncGoogleClassroomTasks(userId, providerToken) {
     }
   }
 
-  // Helper to inspect a single Google Classroom StudentSubmission object and record completion
+  /**
+   * Inspects a single Google Classroom `StudentSubmission` resource and records:
+   * 1. That the coursework ID is assigned to the authenticated student (`assignedSet`).
+   * 2. Whether the submission has been turned in or returned (`completedSet`), checking
+   *    top-level `sub.state`, `sub.assignedGrade`, and `sub.submissionHistory`.
+   *
+   * @param {Object} sub - Google Classroom `StudentSubmission` object
+   * @param {Set<string>} assignedSet - Set of coursework IDs assigned to the current user
+   * @param {Set<string>} completedSet - Set of coursework IDs turned in / returned by the current user
+   * @sideEffects Mutates `assignedSet` and `completedSet`
+   */
   const processSubmissionRecord = (sub, assignedSet, completedSet) => {
     if (!sub || !sub.courseWorkId) return;
     const cwIdStr = String(sub.courseWorkId);

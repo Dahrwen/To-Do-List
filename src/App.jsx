@@ -357,10 +357,10 @@ export default function App() {
   const refreshAllData = useCallback(
     (userId = currentUser?.userID, mode = currentViewMode) => {
       if (!userId) return;
-      loadTasks('', mode, userId);
+      loadTasks(searchQuery, mode, userId);
       loadAllUnfinishedTasks(userId);
     },
-    [currentUser?.userID, currentViewMode, loadTasks, loadAllUnfinishedTasks]
+    [currentUser?.userID, currentViewMode, searchQuery, loadTasks, loadAllUnfinishedTasks]
   );
 
   /**
@@ -751,43 +751,48 @@ export default function App() {
   };
 
   // ============================================================================
-  // NAVIGATION & VIEW SWITCHING HANDLERS
+  // NAVIGATION & SECOND-CLICK COLLAPSE STATE MACHINE
   // ============================================================================
 
-  // Single-click on "To-Do List": switches back to To-Do List view in default 2-row mode
+  /**
+   * Deterministic Click State Machine for "To-Do List":
+   * - First Click (from Calendar or Archive): Navigates to To-Do List in Standard View
+   *   (MiniCalendar visible, 2 rows × 5 columns = 10 cards max).
+   * - Second Click (clicking To-Do List while already on To-Do List): Toggles between
+   *   Standard View (2 rows, 10 cards) and Expanded View (MiniCalendar hidden, 3 rows, 15 cards).
+   *   Preserves activeFilter and searchQuery.
+   */
   const handleTodoClick = () => {
     closeAllPopups();
-    if (showBigCalendar || currentViewMode === 'archive') {
+    if (showBigCalendar || currentViewMode !== 'todo') {
+      // First Click -> enter To-Do List in Standard View (2 rows)
       setShowBigCalendar(false);
       setShowMiniCalendar(true);
       setShowTasks(true);
       setCurrentViewMode('todo');
       setCurrentPage(0);
       loadTasks(searchQuery, 'todo');
+    } else {
+      // Second Click on already-active To-Do List -> toggle Expanded View (3 rows) <-> Standard View (2 rows)
+      setShowBigCalendar(false);
+      setShowTasks(true);
+      setShowMiniCalendar((prev) => !prev);
+      setCurrentPage(0);
     }
   };
 
-  // Double-click on "To-Do List": toggles between default (2-row, 10 cards) and expanded (3-row, 15 cards) view
-  const handleTodoDoubleClick = () => {
-    closeAllPopups();
-    setShowBigCalendar(false);
-    setShowTasks(true);
-    setCurrentViewMode('todo');
-    setShowMiniCalendar((prev) => !prev);
-    setCurrentPage(0);
-    loadTasks(searchQuery, 'todo');
-  };
-
-  // Opens or closes the full Big Calendar view
+  /**
+   * Opens or closes the full-month Big Calendar view:
+   * - First Click: Opens BigCalendar and hides MiniCalendar & TaskList.
+   * - Second Click: Closes BigCalendar and restores active tab in Standard View (2 rows).
+   */
   const handleCalendarClick = () => {
     closeAllPopups();
     if (!showBigCalendar) {
-      // Open Big Calendar view and hide regular task list
       setShowBigCalendar(true);
       setShowMiniCalendar(false);
       setShowTasks(false);
     } else {
-      // Toggle Big Calendar off -> return to active task view
       setShowBigCalendar(false);
       setShowMiniCalendar(true);
       setShowTasks(true);
@@ -795,28 +800,31 @@ export default function App() {
     }
   };
 
-  // Single-click on "Archive": switches to the Archive view in default 2-row mode
+  /**
+   * Deterministic Click State Machine for "Archive":
+   * - First Click (from To-Do List or Calendar): Navigates to Archive in Standard View
+   *   (MiniCalendar visible, 2 rows × 5 columns = 10 cards max).
+   * - Second Click (clicking Archive while already on Archive): Toggles between
+   *   Standard View (2 rows, 10 cards) and Expanded View (MiniCalendar hidden, 3 rows, 15 cards).
+   *   Preserves activeFilter and searchQuery.
+   */
   const handleArchiveClick = () => {
     closeAllPopups();
     if (showBigCalendar || currentViewMode !== 'archive') {
+      // First Click -> enter Archive in Standard View (2 rows)
       setShowBigCalendar(false);
       setShowMiniCalendar(true);
       setShowTasks(true);
       setCurrentViewMode('archive');
       setCurrentPage(0);
       loadTasks(searchQuery, 'archive');
+    } else {
+      // Second Click on already-active Archive -> toggle Expanded View (3 rows) <-> Standard View (2 rows)
+      setShowBigCalendar(false);
+      setShowTasks(true);
+      setShowMiniCalendar((prev) => !prev);
+      setCurrentPage(0);
     }
-  };
-
-  // Double-click on "Archive": toggles between default (2-row, 10 cards) and expanded (3-row, 15 cards) view
-  const handleArchiveDoubleClick = () => {
-    closeAllPopups();
-    setShowBigCalendar(false);
-    setShowTasks(true);
-    setCurrentViewMode('archive');
-    setShowMiniCalendar((prev) => !prev);
-    setCurrentPage(0);
-    loadTasks(searchQuery, 'archive');
   };
 
   // Handles deadline filter dropdown selection ('all', 'this_week', 'next_week', 'later', 'no_due_date', 'late')
@@ -1253,13 +1261,12 @@ export default function App() {
         <ActionButtons
           currentViewMode={currentViewMode}
           showBigCalendar={showBigCalendar}
+          isExpanded={isExpandedView}
           activeFilter={activeFilter}
           onFilterChange={handleFilterChange}
           onTodoClick={handleTodoClick}
-          onTodoDoubleClick={handleTodoDoubleClick}
           onCalendarClick={handleCalendarClick}
           onArchiveClick={handleArchiveClick}
-          onArchiveDoubleClick={handleArchiveDoubleClick}
           onAddTaskClick={handleAddTaskClick}
         />
 

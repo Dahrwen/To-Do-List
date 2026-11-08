@@ -3,79 +3,69 @@
  * FILE: src/components/ActionButtons.jsx
  * ============================================================================
  * PURPOSE:
- *   Renders the primary navigation and control bar above the task grid:
- *   - Left group: "To-Do List", "Calendar", "Archive" tabs + "Filter ⌵" dropdown
- *   - Right group: "+ Add task" primary action button aligned to the far right
+ *   Primary navigation and filter toolbar rendering:
+ *   - Left group: "To-Do List", "Calendar", "Archive" tab buttons + "Filter ⌵"
+ *     deadline filter dropdown (`This Week`, `Next Week`, `Later`, `No Due Date`, `Late`).
+ *   - Right side: "+ Add task" button anchored to the far right (`margin-left: auto`).
  *
  * CORE RESPONSIBILITIES:
- *   1. View Switching:
- *      Dispatches `onTodoClick`, `onCalendarClick`, and `onArchiveClick` to
- *      `App.jsx` and highlights the currently active tab with an underline bar.
- *   2. Deadline Filtering ("Filter ⌵" Dropdown):
- *      Provides a dropdown menu immediately next to "Archive" allowing the user
- *      to filter both To-Do List and Archive cards by deadline window:
- *        - All Tasks (default)
- *        - This Week
- *        - Next Week
- *        - Later
- *        - No Due Date
- *        - Late (Overdue)
- *   3. Task Creation Trigger:
- *      Renders the "+ Add task" button on the far-right side (`margin-left: auto`).
+ *   1. Dispatches view-switching (`onTodoClick`, `onCalendarClick`, `onArchiveClick`)
+ *      and double-click expanded-view toggles (`onTodoDoubleClick`, `onArchiveDoubleClick`).
+ *   2. Manages the "Filter ⌵" dropdown state and outside-click dismissal,
+ *      notifying `App.jsx` via `onFilterChange(filterKey)`.
+ *   3. Dispatches `onAddTaskClick` to open `AddTaskModal`.
  *
  * IMPORTS FROM:
- *   - 'react': `useState`, `useEffect`, `useRef`
+ *   - 'react': `useState`, `useRef`, `useEffect`
  *
  * EXPORTS TO:
  *   - `src/App.jsx`: Default export `ActionButtons`
  * ============================================================================
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
-/**
- * Available deadline filter options displayed inside the "Filter ⌵" dropdown.
- */
-export const FILTER_OPTIONS = [
-  { value: 'all', label: 'All Tasks' },
-  { value: 'this_week', label: 'This Week' },
-  { value: 'next_week', label: 'Next Week' },
-  { value: 'later', label: 'Later' },
-  { value: 'no_due_date', label: 'No Due Date' },
-  { value: 'late', label: 'Late' },
+// Deadline filter options displayed in the "Filter ⌵" dropdown menu
+const FILTER_OPTIONS = [
+  { key: 'all', label: 'All Tasks' },
+  { key: 'this_week', label: 'This Week' },
+  { key: 'next_week', label: 'Next Week' },
+  { key: 'later', label: 'Later' },
+  { key: 'no_due_date', label: 'No Due Date' },
+  { key: 'late', label: 'Late' },
 ];
 
 /**
  * ActionButtons Component
  *
  * @param {Object} props
- * @param {string} props.currentViewMode - Current active list mode ('todo' | 'archive')
- * @param {boolean} props.showBigCalendar - True when the full-month BigCalendar view is active
- * @param {string} props.selectedFilter - Active deadline filter key ('all' | 'this_week' | 'next_week' | 'later' | 'no_due_date' | 'late')
- * @param {Function} props.onFilterChange - Callback `(filterValue: string) => void` invoked when a filter option is selected
- * @param {Function} props.onTodoClick - Callback to switch to the To-Do List view
- * @param {Function} props.onCalendarClick - Callback to toggle the full-month BigCalendar view
- * @param {Function} props.onArchiveClick - Callback to switch to the Archive view
- * @param {Function} props.onAddTaskClick - Callback to open the AddTaskModal
- * @returns {JSX.Element}
+ * @param {string} props.currentViewMode - 'todo' | 'archive'
+ * @param {boolean} props.showBigCalendar - True when full-month Calendar view is open
+ * @param {string} props.activeFilter - Currently active deadline filter key
+ * @param {Function} props.onFilterChange - Callback `(filterKey) => void`
+ * @param {Function} props.onTodoClick - Single-click handler for "To-Do List"
+ * @param {Function} props.onTodoDoubleClick - Double-click handler to toggle 3-row expanded view on "To-Do List"
+ * @param {Function} props.onCalendarClick - Handler to toggle full-month BigCalendar view
+ * @param {Function} props.onArchiveClick - Single-click handler for "Archive"
+ * @param {Function} props.onArchiveDoubleClick - Double-click handler to toggle 3-row expanded view on "Archive"
+ * @param {Function} props.onAddTaskClick - Handler to open the Add Task modal
  */
 export default function ActionButtons({
   currentViewMode = 'todo',
   showBigCalendar = false,
-  selectedFilter = 'all',
+  activeFilter = 'all',
   onFilterChange,
   onTodoClick,
+  onTodoDoubleClick,
   onCalendarClick,
   onArchiveClick,
+  onArchiveDoubleClick,
   onAddTaskClick,
 }) {
-  // Tracks whether the "Filter ⌵" dropdown menu is open
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const filterDropdownRef = useRef(null);
 
-  /**
-   * Automatically closes the Filter dropdown when the user clicks anywhere outside it.
-   */
+  // Close the Filter dropdown when clicking anywhere outside of it
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -85,135 +75,132 @@ export default function ActionButtons({
         setIsFilterOpen(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Determine which navigation tab is currently active for the bottom indicator bar
-  const isTodoActive = !showBigCalendar && currentViewMode === 'todo';
-  const isCalendarActive = showBigCalendar;
-  const isArchiveActive = !showBigCalendar && currentViewMode === 'archive';
-
-  // Resolve human-readable label for the currently selected filter
-  const activeFilterObj = FILTER_OPTIONS.find(
-    (opt) => opt.value === selectedFilter
-  );
+  const selectedFilterObj = FILTER_OPTIONS.find((f) => f.key === activeFilter);
   const filterButtonLabel =
-    selectedFilter === 'all' || !activeFilterObj
-      ? 'Filter'
-      : `Filter: ${activeFilterObj.label}`;
+    activeFilter !== 'all' && selectedFilterObj
+      ? selectedFilterObj.label
+      : 'Filter';
 
-  /**
-   * Handles selecting an option from the Filter dropdown.
-   * Clicking the already-active filter resets back to 'all'.
-   */
-  const handleSelectFilter = (value) => {
+  const handleSelectFilter = (key) => {
+    // Clicking the currently active filter toggles it back to 'all'
+    const nextFilter = activeFilter === key && key !== 'all' ? 'all' : key;
     if (onFilterChange) {
-      const nextValue =
-        selectedFilter === value && value !== 'all' ? 'all' : value;
-      onFilterChange(nextValue);
+      onFilterChange(nextFilter);
     }
     setIsFilterOpen(false);
   };
 
   return (
     <section className="sectButton">
-      {/* Left Navigation Group: Tabs + Filter Dropdown */}
+      {/* Left group: Tab pills + Filter dropdown */}
       <div className="sectButton-left">
-        {/* To-Do List Tab */}
-        <button
-          id="todo"
-          className={`mybutton ${isTodoActive ? 'active-nav-btn' : ''}`}
-          type="button"
-          onClick={onTodoClick}
+        {/* To-Do List button (single-click switches tab; double-click toggles 3-row expanded mode) */}
+        <div
+          className={`tab-pill-wrapper ${
+            !showBigCalendar && currentViewMode === 'todo' ? 'active-tab' : ''
+          }`}
         >
-          <i className="fa-regular fa-clipboard"></i>
-          <b>To-Do List</b>
-        </button>
+          <button
+            id="todo"
+            className="mybutton"
+            type="button"
+            onClick={onTodoClick}
+            onDoubleClick={onTodoDoubleClick}
+            title="Click to view To-Do List • Double-click to toggle full-screen 3-row view"
+          >
+            <i className="fa-regular fa-clipboard"></i>
+            <b> To-Do List</b>
+          </button>
+        </div>
 
-        {/* Calendar Tab */}
-        <button
-          id="Calendar"
-          className={`mybutton ${isCalendarActive ? 'active-nav-btn' : ''}`}
-          type="button"
-          onClick={onCalendarClick}
+        {/* Calendar toggle button */}
+        <div
+          className={`tab-pill-wrapper ${showBigCalendar ? 'active-tab' : ''}`}
         >
-          <i className="fa-regular fa-calendar-days"></i>
-          <b>Calendar</b>
-        </button>
+          <button
+            id="Calendar"
+            className="mybutton"
+            type="button"
+            onClick={onCalendarClick}
+          >
+            <i className="fa-regular fa-calendar-days"></i>
+            <b>Calendar</b>
+          </button>
+        </div>
 
-        {/* Archive Tab */}
-        <button
-          id="archived"
-          className={`mybutton ${isArchiveActive ? 'active-nav-btn' : ''}`}
-          type="button"
-          onClick={onArchiveClick}
+        {/* Archive view button (single-click switches tab; double-click toggles 3-row expanded mode) */}
+        <div
+          className={`tab-pill-wrapper ${
+            !showBigCalendar && currentViewMode === 'archive' ? 'active-tab' : ''
+          }`}
         >
-          <i className="fa-solid fa-archive"></i>
-          <b>Archive</b>
-        </button>
+          <button
+            id="archived"
+            className="mybutton"
+            type="button"
+            onClick={onArchiveClick}
+            onDoubleClick={onArchiveDoubleClick}
+            title="Click to view Archive • Double-click to toggle full-screen 3-row view"
+          >
+            <i className="fa-solid fa-archive"></i>
+            <b>Archive</b>
+          </button>
+        </div>
 
-        {/* Filter Dropdown Button immediately next to Archive */}
+        {/* Filter dropdown button immediately following Archive */}
         <div
           ref={filterDropdownRef}
           className={`filter-dropdown-wrapper ${isFilterOpen ? 'open' : ''}`}
         >
           <button
-            id="filterBtn"
+            id="filterTasks"
             className={`mybutton filter-btn ${
-              selectedFilter !== 'all' ? 'filter-active' : ''
+              activeFilter !== 'all' ? 'filter-active' : ''
             }`}
             type="button"
             onClick={() => setIsFilterOpen((prev) => !prev)}
-            aria-haspopup="listbox"
-            aria-expanded={isFilterOpen}
           >
             <b>{filterButtonLabel}</b>
             <i className="fa-solid fa-chevron-down filter-chevron"></i>
           </button>
 
-          {/* Dropdown Menu Options */}
           {isFilterOpen && (
-            <ul className="filter-dropdown-menu" role="listbox">
+            <div className="filter-dropdown-menu" role="menu">
               {FILTER_OPTIONS.map((option) => {
-                const isSelected = selectedFilter === option.value;
+                const isSelected = activeFilter === option.key;
                 return (
-                  <li key={option.value} role="option" aria-selected={isSelected}>
-                    <button
-                      type="button"
-                      className={`filter-dropdown-item ${
-                        isSelected ? 'selected' : ''
-                      }`}
-                      onClick={() => handleSelectFilter(option.value)}
-                    >
-                      <span>{option.label}</span>
-                      {isSelected && (
-                        <i className="fa-solid fa-check filter-check-icon"></i>
-                      )}
-                    </button>
-                  </li>
+                  <button
+                    key={option.key}
+                    type="button"
+                    className={`filter-dropdown-item ${
+                      isSelected ? 'selected' : ''
+                    }`}
+                    onClick={() => handleSelectFilter(option.key)}
+                  >
+                    <span>{option.label}</span>
+                    {isSelected && <i className="fa-solid fa-check"></i>}
+                  </button>
                 );
               })}
-            </ul>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Far-Right Primary Action Button: "+ Add task" */}
-      <div className="sectButton-right">
-        <button
-          id="addTask"
-          className="mybutton addbutton"
-          type="button"
-          onClick={onAddTaskClick}
-        >
-          <i className="fa-solid fa-plus"></i>
-          <b>Add task</b>
-        </button>
-      </div>
+      {/* Right side: Add Task modal trigger button anchored to the far right */}
+      <button
+        id="addTask"
+        className="mybutton addbutton sectButton-right"
+        type="button"
+        onClick={onAddTaskClick}
+      >
+        <i className="fa-solid fa-plus"></i>
+        <b>Add task</b>
+      </button>
     </section>
   );
 }

@@ -3,45 +3,66 @@
  * FILE: src/components/TaskDetailsModal.jsx
  * ============================================================================
  * PURPOSE:
- *   Modal dialog displaying the complete details of a selected task (title,
- *   all category tags, formatted date & time deadline, and full description
- *   including Google Classroom course name and link), along with actions to
- *   Finish/Restore, Edit, or Delete the task.
+ *   Top-layer React Portal modal dialog (`createPortal` to `document.body`)
+ *   displaying the complete details of a selected task in an expanded,
+ *   spacious container (`min(90vw, 720px)`).
  *
  * CORE RESPONSIBILITIES:
- *   1. Full Task Inspection:
- *      Shows all assigned categories (even when truncated to 2 on the card)
- *      and formats `task.Deadline` into `"Mon DD YYYY • h:mm AM/PM"`.
- *   2. Task Lifecycle Actions:
- *      - `onFinish(task.id)`: Toggles `finished` between `false` (To-Do) and `true` (Archive).
- *      - `onEdit(task)`: Transitions from `TaskDetailsModal` to `EditTaskModal`.
- *      - `onDelete(task.id)`: Permanently deletes the task row from Supabase `Tasks`.
+ *   1. Top-Most Layering via React Portal:
+ *      Renders directly into `document.body` at `z-index: 9999` with a blurred
+ *      backdrop overlay so it never collides with sticky toolbars, weekday
+ *      tracker cards, or the floating pagination pill.
+ *   2. Adaptive Title Typography:
+ *      Dynamically scales the task title font size based on character length:
+ *      - `<= 30 chars`: `.modal-title-lg`
+ *      - `31 - 60 chars`: `.modal-title-md`
+ *      - `> 60 chars`: `.modal-title-sm`
+ *   3. Google Classroom Deadline Lock Indicator:
+ *      When `task.source === 'google_classroom'`, renders the deadline with
+ *      the Google Classroom badge and an immutable lock badge (`Managed by
+ *      Google Classroom`).
+ *   4. Non-Overlapping Flex Footer Actions:
+ *      Renders `Edit`, `Finish` / `Restore`, and `Delete` inside a dedicated
+ *      static footer bar so buttons never overlap the description text.
  *
  * IMPORTS FROM:
- *   - 'react': Core React library
+ *   - 'react': Core React library, `useEffect`
+ *   - 'react-dom': `createPortal`
  *
  * EXPORTS TO:
  *   - `src/App.jsx`: Default export `TaskDetailsModal`
  * ============================================================================
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
+
+/**
+ * Computes the adaptive typography class for a task title based on character count.
+ * - <= 30 chars: 'modal-title-lg'
+ * - 31..60 chars: 'modal-title-md'
+ * - > 60 chars: 'modal-title-sm'
+ *
+ * @param {string} title
+ * @returns {string} CSS class name
+ */
+export const getAdaptiveTitleClass = (title = '') => {
+  const len = String(title).trim().length;
+  if (len <= 30) return 'modal-title-lg';
+  if (len <= 60) return 'modal-title-md';
+  return 'modal-title-sm';
+};
 
 /**
  * TaskDetailsModal Component
- * Modal dialog that displays full details of a selected task:
- * - Task name, categories, formatted deadline, and description
- * - "Finish" / "Restore" button to toggle completion status
- * - "Edit" button to open the edit modal
- * - Trash can icon to delete the task
- * 
- * Props:
- * - isOpen: boolean, whether the modal is open
- * - task: object, the selected task data
- * - onClose: callback to close the modal
- * - onFinish: callback to toggle task completion (finished / unfinished)
- * - onEdit: callback to switch to EditTaskModal
- * - onDelete: callback to delete the task from Supabase
+ *
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Whether the modal is open
+ * @param {Object|null} props.task - Selected task object
+ * @param {Function} props.onClose - Callback to dismiss the modal
+ * @param {Function} props.onFinish - Callback `(taskId) => void` to toggle completion
+ * @param {Function} props.onEdit - Callback `(task) => void` to open EditTaskModal
+ * @param {Function} props.onDelete - Callback `(taskId) => void` to delete the task
  */
 export default function TaskDetailsModal({
   isOpen,
@@ -51,13 +72,31 @@ export default function TaskDetailsModal({
   onEdit,
   onDelete,
 }) {
-  // If no task is selected, don't render anything
-  if (!task) return null;
+  // Allow dismissing modal with the Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
+  if (!isOpen || !task || typeof document === 'undefined') return null;
+
+  const taskTitle = task.TaskName || task.name || 'Untitled Task';
+  const titleSizeClass = getAdaptiveTitleClass(taskTitle);
   const categories = task.categories || [];
   const description = !task.Description
     ? 'Edit to add description'
     : task.Description;
+
+  const isGoogleClassroom =
+    task.source === 'google_classroom' ||
+    Boolean(task.Description && task.Description.includes('[Google Classroom]'));
+
   const formatDeadlineDisplay = (t) => {
     if (t.deadLine && t.deadLine !== 'No due date') return t.deadLine;
     if (!t.Deadline) return 'No Due Date';
@@ -73,84 +112,125 @@ export default function TaskDetailsModal({
   };
 
   const deadline = formatDeadlineDisplay(task);
-
-  // If task is completed (finished: true), button says "Restore", otherwise "Finish"
   const finishBtnLabel = task.finished ? 'Restore' : 'Finish';
 
-  return (
-    <section className={`popUpDesc ${isOpen ? 'activeDesc' : ''}`}>
-      {/* Close button (X) */}
-      <div className="close-btn" onClick={onClose}>
-        &times;
-      </div>
+  return createPortal(
+    <div
+      className="modal-portal-backdrop"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="task-details-heading"
+    >
+      <section
+        className="popUpDesc activeDesc modal-wide-dialog"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close button (X) */}
+        <button
+          type="button"
+          className="close-btn"
+          onClick={onClose}
+          aria-label="Close task details"
+        >
+          &times;
+        </button>
 
-      <div id="taskDesc">
-        <h1 style={{ textAlign: 'center' }}>Task Details</h1>
+        {/* Compact Modal Header */}
+        <header className="modal-header-block">
+          <span className="modal-eyebrow-label">Task Details</span>
+          <h1 id="task-details-heading" className={`modal-adaptive-title ${titleSizeClass}`}>
+            {taskTitle}
+          </h1>
+        </header>
 
-        {/* Task Name */}
-        <p>
-          <b>Task Name: </b>
-          {task.TaskName}
-        </p>
+        {/* Scrollable Modal Body */}
+        <div id="taskDesc" className="modal-body-scroll">
+          <div className="modal-meta-grid">
+            {/* Categories Field */}
+            <div className="modal-field-group">
+              <span className="modal-field-label">Categories</span>
+              {categories.length > 0 ? (
+                <ul className="modal-category-pills">
+                  {categories.map((cat, idx) => (
+                    <li key={idx} className={cat}>
+                      {cat}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <span className="modal-field-value-muted">Uncategorized</span>
+              )}
+            </div>
 
-        {/* Categories list */}
-        <ul>
-          {categories.map((cat, idx) => (
-            <li
-              key={idx}
-              style={{ fontSize: '2.5vh' }}
-              className={cat}
+            {/* Deadline Field (with Google Classroom immutable lock badge when applicable) */}
+            <div className="modal-field-group">
+              <span className="modal-field-label">Deadline</span>
+              <div className="modal-deadline-row">
+                <span className="modal-deadline-text">{deadline}</span>
+                {isGoogleClassroom && (
+                  <span
+                    className="classroom-lock-badge"
+                    title="Deadline managed by Google Classroom (Read-Only)"
+                  >
+                    <img
+                      src="/Pictures/GoogleClassroom.svg"
+                      alt="Google Classroom"
+                      className="classroom-badge-icon"
+                    />
+                    <i className="fa-solid fa-lock" aria-hidden="true"></i>
+                    <span>Managed by Classroom</span>
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Description Field */}
+          <div className="modal-field-group">
+            <span className="modal-field-label">Task Description</span>
+            <div className="modal-description-box">{description}</div>
+          </div>
+        </div>
+
+        {/* Dedicated Non-Overlapping Footer Actions */}
+        <footer className="modal-footer-bar">
+          <div className="modal-footer-left">
+            <button
+              className="eButton modal-action-btn"
+              id="editButton"
+              type="button"
+              onClick={() => onEdit(task)}
             >
-              {cat}
-            </li>
-          ))}
-        </ul>
+              Edit
+            </button>
 
-        {/* Deadline */}
-        <p>
-          <b>Deadline: </b>
-          {deadline}
-        </p>
+            <button
+              className="fButton modal-action-btn"
+              id="finishButton"
+              type="button"
+              onClick={() => onFinish(task.id)}
+            >
+              {finishBtnLabel}
+            </button>
+          </div>
 
-        {/* Description text */}
-        <b>Task Description:</b>
-        <p style={{ fontSize: '2vh' }}>{description}</p>
-
-        {/* Finish / Restore button */}
-        <button
-          className="fButton"
-          id="finishButton"
-          type="button"
-          onClick={() => onFinish(task.id)}
-        >
-          {finishBtnLabel}
-        </button>
-
-        {/* Edit button */}
-        <button
-          className="eButton"
-          id="editButton"
-          type="button"
-          onClick={() => onEdit(task)}
-        >
-          Edit
-        </button>
-
-        {/* Delete trash can icon */}
-        <img
-          id="delete"
-          style={{
-            height: 'clamp(26px, 4vh, 34px)',
-            position: 'absolute',
-            bottom: '20px',
-            right: '24px',
-            cursor: 'pointer',
-          }}
-          src="/Pictures/TrashCan.png"
-          alt="Delete"
-          onClick={() => onDelete(task.id)}
-        />
-      </div>
-    </section>
+          <button
+            type="button"
+            className="modal-delete-btn"
+            onClick={() => onDelete(task.id)}
+            title="Delete task"
+            aria-label="Delete task"
+          >
+            <img
+              id="delete"
+              src="/Pictures/TrashCan.png"
+              alt="Delete"
+            />
+          </button>
+        </footer>
+      </section>
+    </div>,
+    document.body
   );
 }

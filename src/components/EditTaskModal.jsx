@@ -3,32 +3,35 @@
  * FILE: src/components/EditTaskModal.jsx
  * ============================================================================
  * PURPOSE:
- *   Modal dialog for editing an existing task's name, category tags, deadline
- *   date & time (`timestamptz`), and text description.
+ *   Top-layer React Portal modal dialog (`createPortal` to `document.body`)
+ *   for editing an existing task's name, category tags, deadline date & time
+ *   (`timestamptz`), and description inside a spacious container.
  *
  * CORE RESPONSIBILITIES:
- *   1. Local Date & Time Pre-Population (`resetToTask`):
- *      Parses the task's stored ISO `timestamptz` `Deadline` into local
- *      `YYYY-MM-DD` (for `<input type="date">`) and local `HH:MM` (for
- *      `<input type="time">`) so the user edits in their own local timezone.
- *   2. ISO `timestamptz` Serialization (`handleSubmit`):
- *      Re-combines the edited local date and time into an ISO-8601 `timestamptz`
- *      string and invokes `onUpdateTask(task.id, updatedData)`.
- *   3. Form Reset (`handleReset`):
- *      Restores all form fields to the task's current saved values.
+ *   1. Top-Most Layering via React Portal:
+ *      Renders directly into `document.body` at `z-index: 9999` with a full
+ *      backdrop overlay.
+ *   2. Adaptive Header Typography:
+ *      Scales the task title preview dynamically (`<=30`, `31-60`, `>60` chars).
+ *   3. Google Classroom Deadline Immutability Lock:
+ *      Inspects `task.source === 'google_classroom'`. When true, locks and
+ *      disables the deadline date/time inputs (`disabled`, `pointer-events-none`)
+ *      with a `"Deadline managed by Google Classroom"` badge and prevents
+ *      mutating `Deadline` on form submission.
  *
  * IMPORTS FROM:
  *   - 'react': `useState`, `useEffect`
+ *   - 'react-dom': `createPortal`
+ *   - './TaskDetailsModal': `getAdaptiveTitleClass`
  *
  * EXPORTS TO:
  *   - `src/App.jsx`: Default export `EditTaskModal`
  * ============================================================================
  */
 
-// Import React hooks:
-// - useState: manages form input fields (name, category flags, deadline date & time, description)
-// - useEffect: initializes or resets the form inputs whenever the selected task prop changes
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { getAdaptiveTitleClass } from './TaskDetailsModal';
 
 // Definitions for the 6 task category options matching the database boolean columns (Type1 to Type6)
 const taskTypes = [
@@ -42,16 +45,14 @@ const taskTypes = [
 
 /**
  * EditTaskModal Component
- * Modal dialog that allows updating task name, categories, deadline (date + time), and description.
  *
- * Props:
- * - isOpen: boolean, whether the modal is visible
- * - task: object, the active task to edit
- * - onClose: callback to close the modal
- * - onUpdateTask: async callback invoked with updated task fields (taskId, updatedData)
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Whether the modal is visible
+ * @param {Object|null} props.task - The active task to edit
+ * @param {Function} props.onClose - Callback to close the modal
+ * @param {Function} props.onUpdateTask - Async callback `(taskId, updatedData) => Promise<void>`
  */
 export default function EditTaskModal({ isOpen, task, onClose, onUpdateTask }) {
-  // Form input states
   const [taskName, setTaskName] = useState('');
   const [types, setTypes] = useState({
     Type1: false,
@@ -65,7 +66,6 @@ export default function EditTaskModal({ isOpen, task, onClose, onUpdateTask }) {
   const [deadlineTime, setDeadlineTime] = useState('23:59');
   const [description, setDescription] = useState('');
 
-  // Helper function to populate form inputs from the selected task data
   const resetToTask = (t) => {
     if (!t) return;
     setTaskName(t.TaskName || '');
@@ -100,130 +100,224 @@ export default function EditTaskModal({ isOpen, task, onClose, onUpdateTask }) {
     setDescription(t.Description || '');
   };
 
-  // Re-sync form inputs when task prop changes
   useEffect(() => {
     if (task) {
       resetToTask(task);
     }
   }, [task]);
 
-  if (!task) return null;
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
-  // Toggle individual category checkbox on/off
+  if (!isOpen || !task || typeof document === 'undefined') return null;
+
+  const isGoogleClassroom =
+    task.source === 'google_classroom' ||
+    Boolean(task.Description && task.Description.includes('[Google Classroom]'));
+
+  const displayTitle = taskName || task.TaskName || 'Edit Task';
+  const titleSizeClass = getAdaptiveTitleClass(displayTitle);
+
   const handleTypeChange = (key) => {
     setTypes((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // Submit updated task data
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    let deadlineIso = null;
-    if (deadline) {
-      const timePart = deadlineTime || '23:59';
-      const combined = new Date(`${deadline}T${timePart}:00`);
-      if (!isNaN(combined.getTime())) {
-        deadlineIso = combined.toISOString();
-      }
-    }
-
-    await onUpdateTask(task.id, {
+    const updatePayload = {
       TaskName: taskName,
       ...types,
-      Deadline: deadlineIso,
       Description: description,
-    });
+    };
+
+    // Enforce Google Classroom Deadline Immutability: only allow deadline edits on manual tasks
+    if (!isGoogleClassroom) {
+      let deadlineIso = null;
+      if (deadline) {
+        const timePart = deadlineTime || '23:59';
+        const combined = new Date(`${deadline}T${timePart}:00`);
+        if (!isNaN(combined.getTime())) {
+          deadlineIso = combined.toISOString();
+        }
+      }
+      updatePayload.Deadline = deadlineIso;
+    }
+
+    await onUpdateTask(task.id, updatePayload);
     onClose();
   };
 
-  // Reset form inputs back to the original task state
   const handleReset = (e) => {
     e.preventDefault();
     resetToTask(task);
   };
 
-  return (
-    <section className={`popUp2 ${isOpen ? 'active2' : ''}`} id="taskDetails">
-      {/* Close button (X) */}
-      <div className="close-btn" onClick={onClose}>
-        &times;
-      </div>
+  return createPortal(
+    <div
+      className="modal-portal-backdrop"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-task-heading"
+    >
+      <section
+        className="popUp2 active2 modal-wide-dialog"
+        id="taskDetails"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close button (X) */}
+        <button
+          type="button"
+          className="close-btn"
+          onClick={onClose}
+          aria-label="Close edit task modal"
+        >
+          &times;
+        </button>
 
-      <form id="editForm" onSubmit={handleSubmit} onReset={handleReset}>
-        <h1 style={{ textAlign: 'center' }}>
-          {task.TaskName}
-          <div style={{ fontSize: '2vh', color: '#ad1313' }}>Edit Task</div>
-        </h1>
+        <form id="editForm" onSubmit={handleSubmit} onReset={handleReset} className="modal-form-layout">
+          {/* Compact Adaptive Header */}
+          <header className="modal-header-block">
+            <span className="modal-eyebrow-label edit-eyebrow">Edit Task</span>
+            <h1 id="edit-task-heading" className={`modal-adaptive-title ${titleSizeClass}`}>
+              {displayTitle}
+            </h1>
+          </header>
 
-        <div className="form-element">
-          {/* Edit Task Name */}
-          <label htmlFor="etask">Enter Task Name: </label>
-          <input
-            type="text"
-            id="etask"
-            required
-            placeholder={task.TaskName}
-            value={taskName}
-            onChange={(e) => setTaskName(e.target.value)}
-          />
-
-          {/* Edit Categories */}
-          <label>Pick type of task:</label>
-          <br />
-          <label style={{ fontSize: '1.5vh' }}>(Choose all that applies)</label>
-          <br />
-          {taskTypes.map((t) => (
-            <React.Fragment key={t.id}>
+          {/* Scrollable Form Body */}
+          <div className="form-element modal-body-scroll">
+            {/* Edit Task Name */}
+            <div className="modal-field-group">
+              <label className="modal-field-label" htmlFor="etask">
+                Task Name
+              </label>
               <input
-                type="checkbox"
-                id={t.id}
-                checked={types[t.key]}
-                onChange={() => handleTypeChange(t.key)}
+                type="text"
+                id="etask"
+                required
+                placeholder={task.TaskName}
+                value={taskName}
+                onChange={(e) => setTaskName(e.target.value)}
               />
-              <label htmlFor={t.id}>{t.label}</label>
-              <br />
-            </React.Fragment>
-          ))}
+            </div>
 
-          {/* Edit Deadline Date & Time */}
-          <label htmlFor="edeadLine">Deadline: </label>
-          <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <input
-              type="date"
-              id="edeadLine"
-              value={deadline}
-              onChange={(e) => setDeadline(e.target.value)}
-            />
-            <input
-              type="time"
-              id="edeadLineTime"
-              value={deadlineTime}
-              onChange={(e) => setDeadlineTime(e.target.value)}
-              disabled={!deadline}
-              title="Deadline Time"
-            />
+            {/* Two-column row for Categories & Deadline */}
+            <div className="modal-meta-grid">
+              {/* Edit Categories */}
+              <div className="modal-field-group">
+                <span className="modal-field-label">
+                  Categories <small>(Choose all that apply)</small>
+                </span>
+                <div className="modal-checkbox-grid">
+                  {taskTypes.map((t) => (
+                    <label key={t.id} htmlFor={t.id} className="modal-checkbox-item">
+                      <input
+                        type="checkbox"
+                        id={t.id}
+                        checked={types[t.key]}
+                        onChange={() => handleTypeChange(t.key)}
+                      />
+                      <span>{t.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Edit Deadline Date & Time (Locked if imported from Google Classroom) */}
+              <div className="modal-field-group">
+                <label className="modal-field-label" htmlFor="edeadLine">
+                  Deadline
+                </label>
+                {isGoogleClassroom ? (
+                  <div
+                    className="locked-deadline-box"
+                    title="Deadline managed by Google Classroom"
+                  >
+                    <div className="locked-deadline-inputs">
+                      <input
+                        type="date"
+                        id="edeadLine"
+                        value={deadline}
+                        disabled
+                        readOnly
+                        tabIndex={-1}
+                      />
+                      <input
+                        type="time"
+                        id="edeadLineTime"
+                        value={deadlineTime}
+                        disabled
+                        readOnly
+                        tabIndex={-1}
+                      />
+                    </div>
+                    <div className="classroom-lock-badge">
+                      <img
+                        src="/Pictures/GoogleClassroom.svg"
+                        alt="Google Classroom"
+                        className="classroom-badge-icon"
+                      />
+                      <i className="fa-solid fa-lock" aria-hidden="true"></i>
+                      <span>Deadline managed by Google Classroom</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="modal-deadline-inputs">
+                    <input
+                      type="date"
+                      id="edeadLine"
+                      value={deadline}
+                      onChange={(e) => setDeadline(e.target.value)}
+                    />
+                    <input
+                      type="time"
+                      id="edeadLineTime"
+                      value={deadlineTime}
+                      onChange={(e) => setDeadlineTime(e.target.value)}
+                      disabled={!deadline}
+                      title="Deadline Time"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Edit Description */}
+            <div className="modal-field-group">
+              <label className="modal-field-label" htmlFor="edescription">
+                Task Description
+              </label>
+              <textarea
+                id="edescription"
+                rows="4"
+                placeholder="Add a comment..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
           </div>
-          <br />
 
-          {/* Edit Description */}
-          <label htmlFor="edescription">Add a description: </label>
-          <textarea
-            id="edescription"
-            rows="3"
-            placeholder="Add a comment..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-
-          {/* Submit and Reset buttons */}
-          <button type="submit" className="btn">
-            Submit
-          </button>
-          <button type="reset" className="btn">
-            Reset
-          </button>
-        </div>
-      </form>
-    </section>
+          {/* Dedicated Non-Overlapping Footer Actions */}
+          <footer className="modal-footer-bar">
+            <button type="submit" className="btn modal-submit-btn">
+              Save Changes
+            </button>
+            <button type="reset" className="btn modal-reset-btn">
+              Reset
+            </button>
+          </footer>
+        </form>
+      </section>
+    </div>,
+    document.body
   );
 }

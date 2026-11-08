@@ -3,9 +3,9 @@
  * FILE: src/components/TaskList.jsx
  * ============================================================================
  * PURPOSE:
- *   Renders the 5-column normalized task card grid and the persistent bottom
- *   pagination slider dock (`< • • • >`) for both the "To-Do List" and
- *   "Archive" views.
+ *   Renders the 5-column normalized task card grid and mounts the floating
+ *   pagination slider pill (`FloatingPagination`) for both the "To-Do List"
+ *   and "Archive" views.
  *
  * CORE RESPONSIBILITIES:
  *   1. Normalized 5-Column Responsive Grid:
@@ -16,16 +16,13 @@
  *      Displays each task's title (`TaskName`), up to 2 color-coded category
  *      labels (plus `"..."` overflow indicator), formatted deadline date/time
  *      (`task.deadLine`), and the `/Pictures/GoogleClassroom.svg` icon badge.
- *   3. Persistent Bottom Pagination Slider (`< • • • >`):
- *      - Pinned at the bottom center of the viewport (`mt-auto`).
- *      - When `totalPages <= 1` (≤10 cards in default view, ≤15 in expanded view):
- *        renders a single dot and disables both `<` and `>` arrows (`disabled`,
- *        gray, `cursor-not-allowed`, `pointer-events-none`).
- *      - When `totalPages > 1`: renders one dot per page chunk and enables
- *        slide navigation.
+ *   3. Floating Pagination Slider (`FloatingPagination`):
+ *      Delegates slide indicator and `< • • • >` controls to the dedicated
+ *      floating pill component pinned at the bottom-center of the viewport.
  *
  * IMPORTS FROM:
  *   - 'react': Core React library
+ *   - './FloatingPagination': `FloatingPagination` component
  *
  * EXPORTS TO:
  *   - `src/App.jsx`: Default export `TaskList`
@@ -33,6 +30,7 @@
  */
 
 import React from 'react';
+import FloatingPagination from './FloatingPagination';
 
 /**
  * TaskList Component
@@ -60,22 +58,6 @@ export default function TaskList({
   if (isHidden) {
     return null;
   }
-
-  const isSinglePage = totalPages <= 1;
-  const isPrevDisabled = isSinglePage || currentPage <= 0;
-  const isNextDisabled = isSinglePage || currentPage >= totalPages - 1;
-
-  const handlePrevPage = () => {
-    if (!isPrevDisabled && onPageChange) {
-      onPageChange(currentPage - 1);
-    }
-  };
-
-  const handleNextPage = () => {
-    if (!isNextDisabled && onPageChange) {
-      onPageChange(currentPage + 1);
-    }
-  };
 
   return (
     <section
@@ -142,50 +124,13 @@ export default function TaskList({
         )}
       </ul>
 
-      {/* Persistent Bottom Pagination Slider Dock (< • • • >) */}
-      <nav
-        className="pagination-dock"
-        aria-label="Task pagination"
-      >
-        <button
-          type="button"
-          className={`pagination-arrow ${isPrevDisabled ? 'disabled' : ''}`}
-          onClick={handlePrevPage}
-          disabled={isPrevDisabled}
-          aria-label="Previous page"
-        >
-          &lt;
-        </button>
-
-        <div className="pagination-dots">
-          {Array.from({ length: Math.max(1, totalPages) }).map((_, idx) => (
-            <button
-              key={idx}
-              type="button"
-              className={`pagination-dot ${
-                idx === currentPage ? 'active' : ''
-              } ${isSinglePage ? 'single-dot' : ''}`}
-              onClick={() => {
-                if (!isSinglePage && onPageChange) {
-                  onPageChange(idx);
-                }
-              }}
-              disabled={isSinglePage}
-              aria-label={`Page ${idx + 1}`}
-            />
-          ))}
-        </div>
-
-        <button
-          type="button"
-          className={`pagination-arrow ${isNextDisabled ? 'disabled' : ''}`}
-          onClick={handleNextPage}
-          disabled={isNextDisabled}
-          aria-label="Next page"
-        >
-          &gt;
-        </button>
-      </nav>
+      {/* Dedicated Floating Bottom Pagination Pill Component ([ < • • • > ]) */}
+      <FloatingPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={onPageChange}
+        isHidden={isHidden}
+      />
     </section>
   );
 }

@@ -3,67 +3,112 @@
  * FILE: src/components/TaskList.jsx
  * ============================================================================
  * PURPOSE:
- *   Renders the main grid/list of task cards for either the active "To-Do List"
- *   view or the completed "Archive" view.
+ *   Renders the unified 5-Column × 2-Row (10 cards per page) task grid and
+ *   the bottom pagination slider (`< ● ● ● >`) for both the active "To-Do List"
+ *   view and the completed "Archive" view.
  *
  * CORE RESPONSIBILITIES:
- *   1. Task Card Rendering:
- *      Displays each task's title (`TaskName`), up to 2 color-coded category
- *      pills (plus `"..."` overflow badge), and the formatted deadline date/time
- *      string (`task.deadLine`, e.g. `"Nov 06 2026 • 11:59 PM"`).
- *   2. Google Classroom Origin Badge:
- *      Renders the official Google Classroom icon (`/Pictures/GoogleClassroom.svg`)
- *      to the right of the deadline text for any task where `task.source === 'google_classroom'`.
- *   3. Interactive Inspection:
- *      Invokes `onTaskClick(task)` when a card is clicked to open `TaskDetailsModal`.
+ *   1. Strict 5×2 Pagination (`CARDS_PER_PAGE = 10`):
+ *      Slices the filtered task list into 10-card pages so at most 2 rows of
+ *      5 cards are displayed per slide.
+ *   2. Responsive 5-Column Grid Card Rendering:
+ *      Renders each task's title (`TaskName`), up to 2 color-coded category
+ *      tags (plus `"..."` overflow indicator), calendar icon, formatted
+ *      deadline string (`task.deadLine`), and Google Classroom badge
+ *      (`/Pictures/GoogleClassroom.svg`).
+ *   3. Always-Visible Bottom Pagination Slider:
+ *      - Single-Page State (<= 10 cards): Renders 1 dot indicator and disables
+ *        both `<` and `>` navigation arrows with muted styling.
+ *      - Multi-Page State (> 10 cards): Renders 1 dot per 10-card slide and
+ *        dynamically enables/disables `<` and `>` based on the active slide.
  *
  * IMPORTS FROM:
- *   - 'react': Core React library
+ *   - 'react': `useState`, `useEffect`
  *
  * EXPORTS TO:
  *   - `src/App.jsx`: Default export `TaskList`
  * ============================================================================
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+
+/**
+ * Maximum number of cards rendered per slide (5 columns × 2 rows = 10 cards).
+ */
+const CARDS_PER_PAGE = 10;
 
 /**
  * TaskList Component
- * Displays a list of task cards (either active tasks or archived tasks).
- * 
- * Props:
- * - tasks: array of formatted task objects to display
- * - currentViewMode: 'todo' | 'archive' (controls empty state message)
- * - isHidden: boolean, hides the task list when BigCalendar is open
- * - onTaskClick: callback invoked when a user clicks on a task card (opens details modal)
+ *
+ * @param {Object} props
+ * @param {Array<Object>} props.tasks - Array of formatted & filtered task objects
+ * @param {string} props.currentViewMode - 'todo' | 'archive'
+ * @param {string} props.selectedFilter - Active filter key from the Filter dropdown
+ * @param {boolean} props.isHidden - Hides the task section when BigCalendar is active
+ * @param {Function} props.onTaskClick - Callback `(task) => void` when a card is clicked
+ * @returns {JSX.Element}
  */
 export default function TaskList({
   tasks = [],
   currentViewMode = 'todo',
+  selectedFilter = 'all',
   isHidden = false,
   onTaskClick,
 }) {
+  // Current 1-based slide index for the 5x2 pagination grid
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Total number of 10-card slides (minimum 1 slide even when 0 tasks exist)
+  const totalPages = Math.max(1, Math.ceil(tasks.length / CARDS_PER_PAGE));
+
+  // Reset back to Slide 1 whenever the user switches view modes or changes the filter
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [currentViewMode, selectedFilter]);
+
+  // Clamp currentPage if tasks are deleted/archived and totalPages decreases
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIndex = (safeCurrentPage - 1) * CARDS_PER_PAGE;
+  const paginatedTasks = tasks.slice(startIndex, startIndex + CARDS_PER_PAGE);
+
+  // Navigation arrow availability
+  const isSinglePage = totalPages <= 1;
+  const canGoPrev = !isSinglePage && safeCurrentPage > 1;
+  const canGoNext = !isSinglePage && safeCurrentPage < totalPages;
+
+  const handlePrevPage = () => {
+    if (canGoPrev) {
+      setCurrentPage((prev) => Math.max(1, prev - 1));
+    }
+  };
+
+  const handleNextPage = () => {
+    if (canGoNext) {
+      setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+    }
+  };
+
   return (
-    <section className="taskCont">
-      <ul id="tasks" className={isHidden ? 'hidden-section' : ''}>
-        {/* If no tasks are returned, display an appropriate empty state notice */}
-        {tasks.length === 0 ? (
-          <p
-            style={{
-              width: '100%',
-              textAlign: 'center',
-              color: '#666',
-              fontSize: '18px',
-              marginTop: '20px',
-            }}
-          >
+    <section className={`taskCont ${isHidden ? 'hidden-section' : ''}`}>
+      {/* 5-Column x 2-Row Card Grid Container */}
+      <ul
+        id="tasks"
+        className={paginatedTasks.length === 0 ? 'tasks-empty' : ''}
+      >
+        {paginatedTasks.length === 0 ? (
+          <li className="empty-tasks-message">
             {currentViewMode === 'archive'
               ? 'No archived tasks found.'
               : 'No tasks found.'}
-          </p>
+          </li>
         ) : (
-          // Render each task card
-          tasks.map((task) => {
+          paginatedTasks.map((task) => {
             // Display up to 2 category badges on the card; show "..." badge if more exist
             let categoriesToDisplay = [...(task.categories || [])];
             let hasMore = false;
@@ -79,30 +124,32 @@ export default function TaskList({
                 data-id={task.id || ''}
                 onClick={() => onTaskClick(task)}
               >
-                {/* Task title */}
-                <h2>{task.name || task.TaskName}</h2>
+                {/* Task Title */}
+                <h2 className="task-card-title">
+                  {task.name || task.TaskName}
+                </h2>
 
-                {/* Category tags */}
+                {/* Category Tags */}
                 <div className="category-container">
                   {categoriesToDisplay.map((cat, idx) => (
-                    <div
-                      key={idx}
-                      style={{ fontSize: '2vh' }}
-                      className={cat}
-                    >
+                    <div key={idx} className={`task-category-tag ${cat}`}>
                       {cat}
                     </div>
                   ))}
                   {hasMore && (
-                    <div style={{ fontSize: '2vh' }} className="...">
-                      ...
-                    </div>
+                    <div className="task-category-tag more-categories">...</div>
                   )}
                 </div>
 
-                {/* Deadline formatted string with Google Classroom badge */}
+                {/* Due Date Row with Calendar Icon & Google Classroom Badge */}
                 <h4 className="task-deadline">
-                  <span>{task.deadLine}</span>
+                  <span className="task-deadline-left">
+                    <i
+                      className="fa-regular fa-calendar-days deadline-calendar-icon"
+                      aria-hidden="true"
+                    ></i>
+                    <span className="deadline-text">{task.deadLine}</span>
+                  </span>
                   {task.source === 'google_classroom' && (
                     <img
                       src="/Pictures/GoogleClassroom.svg"
@@ -117,6 +164,60 @@ export default function TaskList({
           })
         )}
       </ul>
+
+      {/* Bottom Pagination Slider & Indicator Controls (< ● ● ● >) */}
+      <nav
+        className="pagination-slider"
+        aria-label="Task cards pagination"
+      >
+        {/* Previous Slide Button (<) */}
+        <button
+          type="button"
+          className={`pagination-arrow ${!canGoPrev ? 'disabled' : ''}`}
+          onClick={handlePrevPage}
+          disabled={!canGoPrev}
+          aria-label="Previous page"
+        >
+          <i className="fa-solid fa-chevron-left"></i>
+        </button>
+
+        {/* Slide Dot Indicators (Always renders at least 1 dot for single-page state) */}
+        <div className="pagination-dots" role="tablist">
+          {Array.from({ length: totalPages }, (_, idx) => {
+            const pageNumber = idx + 1;
+            const isActiveDot = pageNumber === safeCurrentPage;
+            return (
+              <button
+                key={pageNumber}
+                type="button"
+                role="tab"
+                aria-selected={isActiveDot}
+                aria-label={`Page ${pageNumber} of ${totalPages}`}
+                className={`pagination-dot ${isActiveDot ? 'active' : ''} ${
+                  isSinglePage ? 'single-page-dot' : ''
+                }`}
+                onClick={() => {
+                  if (!isSinglePage) {
+                    setCurrentPage(pageNumber);
+                  }
+                }}
+                disabled={isSinglePage}
+              />
+            );
+          })}
+        </div>
+
+        {/* Next Slide Button (>) */}
+        <button
+          type="button"
+          className={`pagination-arrow ${!canGoNext ? 'disabled' : ''}`}
+          onClick={handleNextPage}
+          disabled={!canGoNext}
+          aria-label="Next page"
+        >
+          <i className="fa-solid fa-chevron-right"></i>
+        </button>
+      </nav>
     </section>
   );
 }

@@ -118,6 +118,8 @@ export default function App() {
   const [showBigCalendar, setShowBigCalendar] = useState(false);  // True when the full month BigCalendar is displayed
   const [showMiniCalendar, setShowMiniCalendar] = useState(true); // Toggles the 14-day horizontal mini calendar
   const [showTasks, setShowTasks] = useState(true);               // Toggles visibility of the task card list
+  const [selectedFilter, setSelectedFilter] = useState('all');    // Active deadline filter ('all' | 'this_week' | 'next_week' | 'later' | 'no_due_date' | 'late')
+  const [searchQuery, setSearchQuery] = useState('');             // Active search query string from Header search bar
   
   // Tasks state: data stored from Supabase
   const [displayedTasks, setDisplayedTasks] = useState([]);       // Tasks currently visible in the list (filtered by mode & search)
@@ -229,8 +231,76 @@ export default function App() {
   };
 
   /**
+   * Evaluates whether a task matches the active deadline filter option selected
+   * in the "Filter ⌵" dropdown (`this_week`, `next_week`, `later`, `no_due_date`, `late`, or `all`).
+   *
+   * @param {Object} task - Task object containing an optional ISO `Deadline` string
+   * @param {string} filterKey - Filter identifier ('all' | 'this_week' | 'next_week' | 'later' | 'no_due_date' | 'late')
+   * @returns {boolean} True if the task satisfies the deadline filter
+   */
+  const matchesDeadlineFilter = useCallback((task, filterKey) => {
+    if (!filterKey || filterKey === 'all') return true;
+
+    const timeMs = task?.Deadline ? new Date(task.Deadline).getTime() : NaN;
+    const hasValidDeadline = !isNaN(timeMs);
+
+    if (filterKey === 'no_due_date') {
+      return !hasValidDeadline;
+    }
+
+    // All remaining filters require a valid deadline timestamp
+    if (!hasValidDeadline) return false;
+
+    const now = new Date();
+    const nowMs = now.getTime();
+
+    if (filterKey === 'late') {
+      return timeMs < nowMs;
+    }
+
+    // Compute calendar week boundaries in the user's local timezone:
+    // Current week runs from now until the end of the upcoming Sunday (23:59:59.999)
+    const dayOfWeek = now.getDay(); // 0 (Sunday) .. 6 (Saturday)
+    const daysToEndOfThisWeek = 7 - dayOfWeek;
+    const endOfThisWeek = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + daysToEndOfThisWeek,
+      23,
+      59,
+      59,
+      999
+    ).getTime();
+
+    const endOfNextWeek = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + daysToEndOfThisWeek + 7,
+      23,
+      59,
+      59,
+      999
+    ).getTime();
+
+    if (filterKey === 'this_week') {
+      return timeMs >= nowMs && timeMs <= endOfThisWeek;
+    }
+
+    if (filterKey === 'next_week') {
+      return timeMs > endOfThisWeek && timeMs <= endOfNextWeek;
+    }
+
+    if (filterKey === 'later') {
+      return timeMs > endOfNextWeek;
+    }
+
+    return true;
+  }, []);
+
+  /**
    * Fetches all unfinished tasks for the current user from Supabase.
-   * Excludes tasks from hidden classes and sorts by nearest deadline first.
+   * Enforces strict per-account row ownership (`Number(t.userID) === Number(userId)`),
+   * excludes tasks from hidden classes, and sorts by nearest deadline first.
    */
   const loadAllUnfinishedTasks = useCallback(async (userId) => {
     if (!userId) return;
@@ -241,7 +311,8 @@ export default function App() {
       .eq('finished', false);
 
     if (!error && data) {
-      const visible = data.filter((t) => !isTaskFromHiddenCourse(t));
+      const owned = data.filter((t) => Number(t.userID) === Number(userId));
+      const visible = owned.filter((t) => !isTaskFromHiddenCourse(t));
       const sorted = sortTasksByNearestDeadline(visible);
       setAllUnfinishedTasks(sorted);
     }
@@ -252,11 +323,16 @@ export default function App() {
    * - mode: 'todo' fetches unfinished tasks (finished = false)
    * - mode: 'archive' fetches completed tasks (finished = true)
    * - searchTerm: filters TaskName using case-insensitive ILIKE match
+   * - Enforces strict account isolation (`Number(t.userID) === Number(userId)`)
    * - Excludes hidden Google Classroom classes
    * - Sorts so activities with the nearest deadline appear first
    */
   const loadTasks = useCallback(
-    async (searchTerm = '', mode = 'todo', userId = currentUser?.userID) => {
+    async (
+      searchTerm = searchQuery,
+      mode = 'todo',
+      userId = currentUser?.userID
+    ) => {
       if (!userId) return;
 
       setCurrentViewMode(mode);
@@ -280,12 +356,15 @@ export default function App() {
         return;
       }
 
-      const visible = (data || []).filter((t) => !isTaskFromHiddenCourse(t));
+      const owned = (data || []).filter(
+        (t) => Number(t.userID) === Number(userId)
+      );
+      const visible = owned.filter((t) => !isTaskFromHiddenCourse(t));
       const sorted = sortTasksByNearestDeadline(visible);
       const formatted = sorted.map(formatTask);
       setDisplayedTasks(formatted);
     },
-    [currentUser?.userID]
+    [currentUser?.userID, searchQuery]
   );
 
   /**
@@ -295,10 +374,16 @@ export default function App() {
   const refreshAllData = useCallback(
     (userId = currentUser?.userID, mode = currentViewMode) => {
       if (!userId) return;
-      loadTasks('', mode, userId);
+      loadTasks(searchQuery, mode, userId);
       loadAllUnfinishedTasks(userId);
     },
-    [currentUser?.userID, currentViewMode, loadTasks, loadAllUnfinishedTasks]
+    [
+      currentUser?.userID,
+      currentViewMode,
+      searchQuery,
+      loadTasks,
+      loadAllUnfinishedTasks,
+    ]
   );
 
   /**
@@ -541,6 +626,7 @@ export default function App() {
 
   /**
    * Signs the user out of Supabase Auth and resets all UI & data states
+   * so no account-specific data persists in memory or browser storage.
    */
   const handleLogout = async () => {
     try {
@@ -551,11 +637,16 @@ export default function App() {
     sessionStorage.removeItem('google_provider_token');
     localStorage.removeItem('google_provider_token');
     sessionStorage.removeItem('classroom_oauth_pending');
+    sessionStorage.removeItem('classroom_auto_reauth_done');
+    localStorage.removeItem('classroom_courses');
     currentUserRef.current = null;
     setCurrentUser(null);
     setIsAuthOpen(true);
     setDisplayedTasks([]);
     setAllUnfinishedTasks([]);
+    setClassroomCourses([]);
+    setSelectedFilter('all');
+    setSearchQuery('');
     setIsAddTaskOpen(false);
     setIsDetailsOpen(false);
     setIsEditOpen(false);
@@ -701,13 +792,13 @@ export default function App() {
       setShowMiniCalendar(true);
       setShowTasks(true);
       setCurrentViewMode('todo');
-      loadTasks('', 'todo');
+      loadTasks(searchQuery, 'todo');
     } else {
       // Toggle mini-calendar visibility while staying on To-Do List
       setShowBigCalendar(false);
       setShowTasks(true);
       setShowMiniCalendar((prev) => !prev);
-      loadTasks('', 'todo');
+      loadTasks(searchQuery, 'todo');
     }
   };
 
@@ -724,7 +815,7 @@ export default function App() {
       setShowBigCalendar(false);
       setShowMiniCalendar(true);
       setShowTasks(true);
-      loadTasks('', currentViewMode);
+      loadTasks(searchQuery, currentViewMode);
     }
   };
 
@@ -735,7 +826,7 @@ export default function App() {
     setShowMiniCalendar(true);
     setShowTasks(true);
     setCurrentViewMode('archive');
-    loadTasks('', 'archive');
+    loadTasks(searchQuery, 'archive');
   };
 
   // Opens the Add Task modal
@@ -858,8 +949,20 @@ export default function App() {
 
   // Handles search filtering from the Header search bar
   const handleSearch = (query) => {
+    setSearchQuery(query);
     loadTasks(query, currentViewMode);
   };
+
+  // Handles deadline filter selection from the ActionButtons "Filter ⌵" dropdown
+  const handleFilterChange = (filterValue) => {
+    setSelectedFilter(filterValue);
+  };
+
+  // Apply the active deadline filter ('all' | 'this_week' | 'next_week' | 'later' | 'no_due_date' | 'late')
+  // to both To-Do List and Archive views
+  const filteredDisplayedTasks = displayedTasks.filter((task) =>
+    matchesDeadlineFilter(task, selectedFilter)
+  );
 
   // ============================================================================
   // GOOGLE CLASSROOM INTEGRATION HANDLERS
@@ -1148,8 +1251,12 @@ export default function App() {
           isHidden={!showMiniCalendar}
         />
 
-        {/* View switching action buttons (To-Do, Calendar, Archive, Add Task) */}
+        {/* View switching action buttons (To-Do, Calendar, Archive, Filter dropdown, Add Task) */}
         <ActionButtons
+          currentViewMode={currentViewMode}
+          showBigCalendar={showBigCalendar}
+          selectedFilter={selectedFilter}
+          onFilterChange={handleFilterChange}
           onTodoClick={handleTodoClick}
           onCalendarClick={handleCalendarClick}
           onArchiveClick={handleArchiveClick}
@@ -1163,10 +1270,11 @@ export default function App() {
           onAddTask={handleAddTask}
         />
 
-        {/* Main task cards list (shows To-Do tasks or Archived tasks) */}
+        {/* Main task cards list (shows To-Do tasks or Archived tasks in a 5x2 paginated grid) */}
         <TaskList
-          tasks={displayedTasks}
+          tasks={filteredDisplayedTasks}
           currentViewMode={currentViewMode}
+          selectedFilter={selectedFilter}
           isHidden={!showTasks}
           onTaskClick={handleTaskClick}
         />

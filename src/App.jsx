@@ -42,6 +42,7 @@
 // - useCallback: memoizes functions so they aren't unnecessarily recreated on each render
 // - useRef: stores mutable values across renders without triggering a re-render
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 // Import the configured Supabase client instance and token helper
 import { supabase, getGoogleProviderToken } from './config/supabase';
@@ -357,10 +358,10 @@ export default function App() {
   const refreshAllData = useCallback(
     (userId = currentUser?.userID, mode = currentViewMode) => {
       if (!userId) return;
-      loadTasks(searchQuery, mode, userId);
+      loadTasks('', mode, userId);
       loadAllUnfinishedTasks(userId);
     },
-    [currentUser?.userID, currentViewMode, searchQuery, loadTasks, loadAllUnfinishedTasks]
+    [currentUser?.userID, currentViewMode, loadTasks, loadAllUnfinishedTasks]
   );
 
   /**
@@ -751,48 +752,43 @@ export default function App() {
   };
 
   // ============================================================================
-  // NAVIGATION & SECOND-CLICK COLLAPSE STATE MACHINE
+  // NAVIGATION & VIEW SWITCHING HANDLERS
   // ============================================================================
 
-  /**
-   * Deterministic Click State Machine for "To-Do List":
-   * - First Click (from Calendar or Archive): Navigates to To-Do List in Standard View
-   *   (MiniCalendar visible, 2 rows × 5 columns = 10 cards max).
-   * - Second Click (clicking To-Do List while already on To-Do List): Toggles between
-   *   Standard View (2 rows, 10 cards) and Expanded View (MiniCalendar hidden, 3 rows, 15 cards).
-   *   Preserves activeFilter and searchQuery.
-   */
+  // Single-click on "To-Do List": switches back to To-Do List view in default 2-row mode
   const handleTodoClick = () => {
     closeAllPopups();
-    if (showBigCalendar || currentViewMode !== 'todo') {
-      // First Click -> enter To-Do List in Standard View (2 rows)
+    if (showBigCalendar || currentViewMode === 'archive') {
       setShowBigCalendar(false);
       setShowMiniCalendar(true);
       setShowTasks(true);
       setCurrentViewMode('todo');
       setCurrentPage(0);
       loadTasks(searchQuery, 'todo');
-    } else {
-      // Second Click on already-active To-Do List -> toggle Expanded View (3 rows) <-> Standard View (2 rows)
-      setShowBigCalendar(false);
-      setShowTasks(true);
-      setShowMiniCalendar((prev) => !prev);
-      setCurrentPage(0);
     }
   };
 
-  /**
-   * Opens or closes the full-month Big Calendar view:
-   * - First Click: Opens BigCalendar and hides MiniCalendar & TaskList.
-   * - Second Click: Closes BigCalendar and restores active tab in Standard View (2 rows).
-   */
+  // Double-click on "To-Do List": toggles between default (2-row, 10 cards) and expanded (3-row, 15 cards) view
+  const handleTodoDoubleClick = () => {
+    closeAllPopups();
+    setShowBigCalendar(false);
+    setShowTasks(true);
+    setCurrentViewMode('todo');
+    setShowMiniCalendar((prev) => !prev);
+    setCurrentPage(0);
+    loadTasks(searchQuery, 'todo');
+  };
+
+  // Opens or closes the full Big Calendar view
   const handleCalendarClick = () => {
     closeAllPopups();
     if (!showBigCalendar) {
+      // Open Big Calendar view and hide regular task list
       setShowBigCalendar(true);
       setShowMiniCalendar(false);
       setShowTasks(false);
     } else {
+      // Toggle Big Calendar off -> return to active task view
       setShowBigCalendar(false);
       setShowMiniCalendar(true);
       setShowTasks(true);
@@ -800,31 +796,28 @@ export default function App() {
     }
   };
 
-  /**
-   * Deterministic Click State Machine for "Archive":
-   * - First Click (from To-Do List or Calendar): Navigates to Archive in Standard View
-   *   (MiniCalendar visible, 2 rows × 5 columns = 10 cards max).
-   * - Second Click (clicking Archive while already on Archive): Toggles between
-   *   Standard View (2 rows, 10 cards) and Expanded View (MiniCalendar hidden, 3 rows, 15 cards).
-   *   Preserves activeFilter and searchQuery.
-   */
+  // Single-click on "Archive": switches to the Archive view in default 2-row mode
   const handleArchiveClick = () => {
     closeAllPopups();
     if (showBigCalendar || currentViewMode !== 'archive') {
-      // First Click -> enter Archive in Standard View (2 rows)
       setShowBigCalendar(false);
       setShowMiniCalendar(true);
       setShowTasks(true);
       setCurrentViewMode('archive');
       setCurrentPage(0);
       loadTasks(searchQuery, 'archive');
-    } else {
-      // Second Click on already-active Archive -> toggle Expanded View (3 rows) <-> Standard View (2 rows)
-      setShowBigCalendar(false);
-      setShowTasks(true);
-      setShowMiniCalendar((prev) => !prev);
-      setCurrentPage(0);
     }
+  };
+
+  // Double-click on "Archive": toggles between default (2-row, 10 cards) and expanded (3-row, 15 cards) view
+  const handleArchiveDoubleClick = () => {
+    closeAllPopups();
+    setShowBigCalendar(false);
+    setShowTasks(true);
+    setCurrentViewMode('archive');
+    setShowMiniCalendar((prev) => !prev);
+    setCurrentPage(0);
+    loadTasks(searchQuery, 'archive');
   };
 
   // Handles deadline filter dropdown selection ('all', 'this_week', 'next_week', 'later', 'no_due_date', 'late')
@@ -932,13 +925,39 @@ export default function App() {
     setIsEditOpen(true);
   };
 
-  // Updates an existing task's fields in Supabase
+  // Updates an existing task's fields in Supabase (enforcing ownership and Classroom deadline immutability)
   const handleUpdateTask = async (taskId, updatedData) => {
     if (!currentUser?.userID) return;
 
+    // 1. Verify ownership and inspect origin before mutating
+    const { data: existingTask, error: fetchError } = await supabase
+      .from('Tasks')
+      .select('id, userID, Deadline, Description')
+      .eq('id', taskId)
+      .eq('userID', currentUser.userID)
+      .maybeSingle();
+
+    if (fetchError || !existingTask) {
+      console.error('Unauthorized or missing task for update:', fetchError?.message);
+      return;
+    }
+
+    const isClassroomOrigin =
+      selectedTask?.source === 'google_classroom' ||
+      Boolean(
+        existingTask.Description &&
+          existingTask.Description.includes('[Google Classroom]')
+      );
+
+    // 2. Backend/Service Mutation Guard: reject any attempt to alter a Google Classroom deadline
+    const sanitizedPayload = { ...updatedData };
+    if (isClassroomOrigin && 'Deadline' in sanitizedPayload) {
+      delete sanitizedPayload.Deadline;
+    }
+
     const { error } = await supabase
       .from('Tasks')
-      .update(updatedData)
+      .update(sanitizedPayload)
       .eq('id', taskId)
       .eq('userID', currentUser.userID);
 
@@ -1261,12 +1280,13 @@ export default function App() {
         <ActionButtons
           currentViewMode={currentViewMode}
           showBigCalendar={showBigCalendar}
-          isExpanded={isExpandedView}
           activeFilter={activeFilter}
           onFilterChange={handleFilterChange}
           onTodoClick={handleTodoClick}
+          onTodoDoubleClick={handleTodoDoubleClick}
           onCalendarClick={handleCalendarClick}
           onArchiveClick={handleArchiveClick}
+          onArchiveDoubleClick={handleArchiveDoubleClick}
           onAddTaskClick={handleAddTaskClick}
         />
 
@@ -1313,100 +1333,109 @@ export default function App() {
           onUpdateTask={handleUpdateTask}
         />
 
-        {/* Modal popup to filter / hide specific Google Classroom classes */}
-        {isManageCoursesOpen && (
-          <div className="popup" style={{ display: 'flex' }}>
+        {/* Modal popup to filter / hide specific Google Classroom classes (Rendered via Top-Layer Portal) */}
+        {isManageCoursesOpen &&
+          typeof document !== 'undefined' &&
+          createPortal(
             <div
-              className="popup-content"
-              style={{ maxWidth: '420px', width: '90%' }}
+              className="modal-portal-backdrop"
+              onClick={() => setIsManageCoursesOpen(false)}
+              role="dialog"
+              aria-modal="true"
             >
-              <span
-                className="close-btn"
-                onClick={() => setIsManageCoursesOpen(false)}
+              <section
+                className="popUp active modal-medium-dialog"
+                onClick={(e) => e.stopPropagation()}
               >
-                &times;
-              </span>
-              <h2 style={{ marginBottom: '6px' }}>Filter Classroom Classes</h2>
-              <p
-                style={{
-                  fontSize: '12px',
-                  color: '#555',
-                  marginBottom: '14px',
-                  lineHeight: '1.4',
-                }}
-              >
-                Archived classes are automatically excluded. Uncheck any active
-                class below to hide its activities from your tracker:
-              </p>
-
-              {classroomCourses.length === 0 ? (
-                <p style={{ fontSize: '13px', color: '#777', margin: '16px 0' }}>
-                  No classes loaded yet. Click &ldquo;Synced ✓ (Resync)&rdquo; in the
-                  profile menu first.
-                </p>
-              ) : (
-                <div
+                <button
+                  type="button"
+                  className="close-btn"
+                  onClick={() => setIsManageCoursesOpen(false)}
+                  aria-label="Close filter classes modal"
+                >
+                  &times;
+                </button>
+                <header className="modal-header-block">
+                  <span className="modal-eyebrow-label">Google Classroom</span>
+                  <h2 className="modal-adaptive-title modal-title-lg">
+                    Filter Classroom Classes
+                  </h2>
+                </header>
+                <p
                   style={{
-                    maxHeight: '260px',
-                    overflowY: 'auto',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                    marginBottom: '16px',
+                    fontSize: '12.5px',
+                    color: '#555',
+                    marginBottom: '12px',
+                    lineHeight: '1.45',
                   }}
                 >
-                  {classroomCourses.map((course) => {
-                    const isHiddenCourse = hiddenCourseList
-                      .map((n) => String(n).trim().toLowerCase())
-                      .includes(course.name.trim().toLowerCase());
-                    return (
-                      <label
-                        key={course.id || course.name}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                          padding: '8px 10px',
-                          borderRadius: '8px',
-                          border: '1px solid #ddd',
-                          backgroundColor: isHiddenCourse ? '#f5f5f5' : '#fff',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          fontWeight: 500,
-                          color: isHiddenCourse ? '#888' : '#222',
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={!isHiddenCourse}
-                          onChange={() => handleToggleCourseVisibility(course.name)}
-                          style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                        />
-                        <span style={{ flex: 1 }}>{course.name}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
+                  Archived classes are automatically excluded. Uncheck any active
+                  class below to hide its activities from your tracker:
+                </p>
 
-              <button
-                type="button"
-                onClick={() => setIsManageCoursesOpen(false)}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  borderRadius: '8px',
-                  border: '2px solid #000',
-                  backgroundColor: '#72a1ff',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        )}
+                {classroomCourses.length === 0 ? (
+                  <p style={{ fontSize: '13px', color: '#777', margin: '16px 0' }}>
+                    No classes loaded yet. Click &ldquo;Synced ✓ (Resync)&rdquo; in the
+                    profile menu first.
+                  </p>
+                ) : (
+                  <div
+                    style={{
+                      maxHeight: '280px',
+                      overflowY: 'auto',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      marginBottom: '16px',
+                    }}
+                  >
+                    {classroomCourses.map((course) => {
+                      const isHiddenCourse = hiddenCourseList
+                        .map((n) => String(n).trim().toLowerCase())
+                        .includes(course.name.trim().toLowerCase());
+                      return (
+                        <label
+                          key={course.id || course.name}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            padding: '8px 10px',
+                            borderRadius: '8px',
+                            border: '1.5px solid #000',
+                            backgroundColor: isHiddenCourse ? '#f5f5f5' : '#fff',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            color: isHiddenCourse ? '#888' : '#222',
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={!isHiddenCourse}
+                            onChange={() => handleToggleCourseVisibility(course.name)}
+                            style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                          />
+                          <span style={{ flex: 1 }}>{course.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <footer className="modal-footer-bar">
+                  <button
+                    type="button"
+                    onClick={() => setIsManageCoursesOpen(false)}
+                    className="btn modal-submit-btn full-width-btn"
+                  >
+                    Done
+                  </button>
+                </footer>
+              </section>
+            </div>,
+            document.body
+          )}
       </div>
     </>
   );

@@ -184,14 +184,15 @@ export default function MiniCalendar({ tasks = [], isHidden = false }) {
             <h4>
               {day.monthName} {day.dateNum}
             </h4>
-            <p style={{ fontSize: '15px', marginTop: '5px' }}>
-              {day.tasks.map((taskText, tIdx) => (
-                <React.Fragment key={tIdx}>
-                  {taskText}
-                  {tIdx < day.tasks.length - 1 && <br />}
-                </React.Fragment>
-              ))}
-            </p>
+            {day.tasks.length > 0 && (
+              <div className="mini-card-tasks">
+                {day.tasks.map((taskText, tIdx) => (
+                  <p className="mini-card-task-item" key={tIdx}>
+                    {taskText}
+                  </p>
+                ))}
+              </div>
+            )}
           </li>
         ))}
       </ul>

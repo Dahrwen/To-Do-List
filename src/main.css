@@ -25,16 +25,13 @@ body {
 }
 
 #websiteCont {
-    /* Fluid Full-Screen Container: fills 100% width and 100vh height without clamping or scrolling */
     width: 100%;
-    max-width: none;
     height: 100vh;
     max-height: 100vh;
-    margin: 0;
-    padding: 1.2vh 2.2vw 1vh 2.2vw;
+    margin: 0 auto;
+    padding: 0.8vh 3% 1.2vh 3%;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     overflow: hidden;
 }
 
@@ -238,22 +235,16 @@ img.logo {
 }
 
 th {
-    /* Aligns header left and right edges flush with the fluid container */
-    padding: clamp(4px, 0.8vh, 10px) 0;
+    /* Compact vertical padding so header + calendar + grid fit comfortably in 100vh */
+    padding: clamp(6px, 1vh, 12px) clamp(8px, 1vw, 14px);
     text-align: left;
     vertical-align: middle;
 }
 
 /*Days Cards*/
 .container {
-    width: 100%;
-    height: 23vh;
-    min-height: 145px;
-    max-height: 220px;
-    margin: 0.6vh 0 1vh 0;
     display: flex;
     justify-content: center;
-    align-items: stretch;
     flex-shrink: 0;
 }
 
@@ -264,32 +255,29 @@ th {
 
 .wrapper {
     box-sizing: border-box;
-    /* Full width and height within container; padding-inline reserves space for the < and > navigation buttons */
+    /* Full width within container; padding-inline reserves space for the < and > navigation buttons */
     width: 100%;
-    height: 100%;
     position: relative;
-    margin: 0;
-    padding: 0 46px;
-    display: flex;
-    align-items: stretch;
+    margin: 0.6vh 0 1vh 0;
+    padding: 0 45px;
 }
 
 .wrapper .carousel {
     display: grid;
     grid-auto-flow: column;
-    /* Calculates 6 equal columns accounting for the wider 20px gaps between cards */
-    grid-auto-columns: calc((100% - (5 * 20px)) / 6);
-    gap: 20px;
+    /* Calculates 6 equal columns accounting for the wider 22px gaps between cards */
+    grid-auto-columns: calc((100% - (5 * 22px)) / 6);
+    /* Widened gap between calendar cards as requested for a cleaner, more spacious look */
+    gap: 22px;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
     scroll-behavior: smooth;
-    width: 100%;
-    height: 100%;
-    min-height: 0;
+    height: auto;
+    /* Responsive height accommodates the weekday card height and drop-shadow within 100vh */
+    min-height: clamp(150px, 21.5vh, 200px);
     /* Padding accommodates card box-shadow without clipping */
-    padding: 4px 4px 12px 4px;
-    align-items: stretch;
+    padding: 4px 4px 14px 4px;
 }
 
 .carousel::-webkit-scrollbar {
@@ -346,15 +334,53 @@ th {
     border-style: solid;
     border-color: black;
     border-width: 3px;
-    /* Stretches proportionally to fill the weekday strip container height */
-    height: 100%;
-    min-height: 0;
-    padding: clamp(8px, 1.3vh, 14px);
+    /* Responsive height matched to the reference screenshot while fitting 100vh */
+    height: clamp(148px, 20.5vh, 185px);
+    padding: clamp(10px, 1.4vh, 15px);
     box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
     overflow: hidden;
+}
+
+.carousel .card h2 {
+    font-size: clamp(18px, 2.25vh, 23px);
+    font-weight: 700;
+    line-height: 1.15;
+    color: #000000;
+}
+
+.carousel .card h4 {
+    font-size: clamp(13px, 1.65vh, 15.5px);
+    font-weight: 600;
+    line-height: 1.2;
+    margin-top: 2px;
+    color: #111111;
+}
+
+.mini-card-tasks {
+    margin-top: clamp(6px, 0.9vh, 10px);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.mini-card-task-item {
+    font-size: clamp(13px, 1.65vh, 15.5px);
+    font-weight: 500;
+    line-height: 1.26;
+    color: rgb(201, 15, 15);
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
 }
 
 .carousel.dragging {
@@ -416,8 +442,10 @@ th {
 /*Buttons & Filter Toolbar*/
 .sectButton {
     /* Aligns left edge with first column and right edge (+ Add task) with fifth column */
-    width: 100%;
-    margin: 0.4vh 0 1.4vh 0;
+    margin-left: 1%;
+    margin-right: 1%;
+    margin-top: 0.6vh;
+    margin-bottom: 1.8vh;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -707,8 +735,8 @@ form input[type="time"] {
 
 /*Tasks — Normalized 5-Column Grid & Persistent Bottom Pagination Dock*/
 .taskCont {
-    width: 100%;
-    margin: 0;
+    margin-left: 1%;
+    margin-right: 1%;
     flex: 1;
     min-height: 0;
     display: flex;
@@ -718,36 +746,30 @@ form input[type="time"] {
 }
 
 #tasks {
-    /* Strict 5-column × 2-row responsive grid filling available vertical & horizontal space */
+    /* Strict 5-column responsive grid eliminating uneven right-side whitespace */
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    grid-template-rows: repeat(2, minmax(0, 1fr));
-    column-gap: clamp(14px, 1.5vw, 24px);
-    row-gap: clamp(14px, 2vh, 22px);
+    column-gap: clamp(14px, 1.6vw, 24px);
+    row-gap: clamp(12px, 1.8vh, 20px);
     width: 100%;
-    flex: 1;
-    min-height: 0;
     list-style: none;
-    padding: 2px 4px 12px 4px;
+    padding: 2px 4px 10px 4px;
     margin: 0;
+    align-content: start;
 }
 
 #tasks.expanded-grid {
-    /* 5-column × 3-row responsive grid filling freed vertical space when weekday strip is collapsed */
-    grid-template-rows: repeat(3, minmax(0, 1fr));
-    row-gap: clamp(10px, 1.5vh, 18px);
+    /* Slightly tighter vertical gap when rendering 3 rows (15 cards) in expanded mode */
+    row-gap: clamp(10px, 1.5vh, 16px);
 }
 
 .empty-tasks-notice {
     grid-column: 1 / -1;
-    grid-row: 1 / -1;
     width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     text-align: center;
     color: #666;
     font-size: 18px;
+    margin-top: 24px;
     list-style: none;
 }
 
@@ -759,12 +781,13 @@ form input[type="time"] {
     border-style: solid;
     border-color: black;
     border-width: 3px;
-    /* Stretches cleanly to fill its 1/5 column × 1/2 (or 1/3) row grid cell */
+    /* Stretches cleanly to fill its 1/5 grid column without horizontal overflow */
     width: 100%;
-    height: 100%;
     min-width: 0;
+    /* Proportional height for 2-row default view (10 cards max) within 100vh */
+    height: clamp(135px, 21vh, 180px);
     min-height: 0;
-    padding: clamp(10px, 1.6vh, 18px) clamp(12px, 1.2vw, 18px);
+    padding: clamp(10px, 1.4vh, 15px);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -774,8 +797,9 @@ form input[type="time"] {
 }
 
 .taskList.taskList-expanded {
-    /* Proportionally scaled padding for 3-row expanded view (15 cards max) */
-    padding: clamp(8px, 1.2vh, 14px) clamp(10px, 1vw, 16px);
+    /* Proportional height for 3-row expanded view (15 cards max) within 100vh */
+    height: clamp(115px, 21vh, 165px);
+    padding: clamp(8px, 1.2vh, 13px);
 }
 
 .taskList h2,
@@ -785,10 +809,11 @@ form input[type="time"] {
 }
 
 .taskList h2 {
-    font-size: clamp(14px, 1.9vh, 19px);
-    line-height: 1.25;
+    font-size: clamp(15.5px, 2.1vh, 20.5px);
+    font-weight: 700;
+    line-height: 1.22;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -796,8 +821,9 @@ form input[type="time"] {
 }
 
 .taskList.taskList-expanded h2 {
-    font-size: clamp(13px, 1.75vh, 17.5px);
-    line-height: 1.22;
+    font-size: clamp(14px, 1.85vh, 18.5px);
+    line-height: 1.2;
+    -webkit-line-clamp: 2;
 }
 
 .category-container {
@@ -949,7 +975,6 @@ form input[type="time"] {
     opacity: 0 !important;
     visibility: hidden !important;
     transform: translateY(-20px);
-    height: 0 !important;
     max-height: 0 !important;
     min-height: 0 !important;
     margin: 0 !important;
@@ -962,10 +987,15 @@ form input[type="time"] {
 .calendarBig {
     opacity: 1;
     visibility: visible;
-    transition: visibility .5s, opacity .5s, max-height 0.5s ease-in-out, transform 0.5s ease-in-out;
+    transition: visibility .35s, opacity .35s, max-height 0.35s ease-in-out, transform 0.35s ease-in-out;
     transform: translateY(0);
+    flex: 1;
+    min-height: 0;
     max-height: 85vh;
-    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0 1% 0.8vh 1%;
     /* 100% width prevents horizontal overflow while filling available area cleanly */
     width: 100%;
 }
@@ -973,6 +1003,7 @@ form input[type="time"] {
 .weekdays {
     width: 100%;
     margin: 0;
+    flex-shrink: 0;
 }
 
 #weekdayList {
@@ -988,7 +1019,7 @@ form input[type="time"] {
     font-size: clamp(14px, 1.8vh, 18px);
     font-weight: 700;
     text-align: center;
-    padding: 6px 0;
+    padding: 4px 0;
 }
 
 .days {
@@ -1002,12 +1033,14 @@ form input[type="time"] {
     border-width: 3px;
     padding: 10px;
     width: 100%;
-    min-height: clamp(350px, 50vh, 500px);
+    flex: 1;
+    min-height: 0;
     box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
     overflow: hidden;
     /* CSS Grid 7 columns guarantees every day cell lines up under the right day of the week */
     display: grid;
     grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: 1fr;
     gap: 4px;
 }
 
@@ -1017,8 +1050,16 @@ form input[type="time"] {
     align-items: center;
     gap: clamp(24px, 6vw, 60px);
     padding: 0;
-    margin: 1vh 0;
-    margin-top: -3%;
+    /* Dedicated vertical breathing room separating the tab bar from < Month Year > */
+    margin: clamp(10px, 1.8vh, 20px) 0 clamp(6px, 1vh, 12px) 0;
+    flex-shrink: 0;
+}
+
+#month-year {
+    margin: 0;
+    font-size: clamp(22px, 3vh, 30px);
+    font-weight: 700;
+    line-height: 1.2;
 }
 
 .btn {
@@ -1030,14 +1071,15 @@ form input[type="time"] {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: clamp(65px, 10vh, 95px);
+    min-height: 0;
     text-align: center;
     padding: 4px;
     border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.3s;
     font-size: clamp(14px, 1.8vh, 18px);
-    color: black
+    color: black;
+    overflow: hidden;
 }
 
 .days p {

@@ -444,8 +444,8 @@ th {
     /* Aligns left edge with first column and right edge (+ Add task) with fifth column */
     margin-left: 1%;
     margin-right: 1%;
-    margin-top: 0.6vh;
-    margin-bottom: 1.8vh;
+    margin-top: 1vh;
+    margin-bottom: 2.2vh;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -749,18 +749,18 @@ form input[type="time"] {
     /* Strict 5-column responsive grid eliminating uneven right-side whitespace */
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    column-gap: clamp(14px, 1.6vw, 24px);
-    row-gap: clamp(12px, 1.8vh, 20px);
+    column-gap: clamp(16px, 1.8vw, 26px);
+    row-gap: clamp(20px, 3.2vh, 36px);
     width: 100%;
     list-style: none;
-    padding: 2px 4px 10px 4px;
+    padding: 4px 4px 12px 4px;
     margin: 0;
     align-content: start;
 }
 
 #tasks.expanded-grid {
-    /* Slightly tighter vertical gap when rendering 3 rows (15 cards) in expanded mode */
-    row-gap: clamp(10px, 1.5vh, 16px);
+    /* Generous vertical spacing between all 3 rows in expanded mode so no dead space remains below */
+    row-gap: clamp(18px, 2.8vh, 32px);
 }
 
 .empty-tasks-notice {
@@ -785,9 +785,9 @@ form input[type="time"] {
     width: 100%;
     min-width: 0;
     /* Proportional height for 2-row default view (10 cards max) within 100vh */
-    height: clamp(135px, 21vh, 180px);
+    height: clamp(145px, 22vh, 190px);
     min-height: 0;
-    padding: clamp(10px, 1.4vh, 15px);
+    padding: clamp(12px, 1.6vh, 16px);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -798,8 +798,8 @@ form input[type="time"] {
 
 .taskList.taskList-expanded {
     /* Proportional height for 3-row expanded view (15 cards max) within 100vh */
-    height: clamp(115px, 21vh, 165px);
-    padding: clamp(8px, 1.2vh, 13px);
+    height: clamp(135px, 21.5vh, 185px);
+    padding: clamp(10px, 1.4vh, 15px);
 }
 
 .taskList h2,

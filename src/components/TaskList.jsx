@@ -3,113 +3,98 @@
  * FILE: src/components/TaskList.jsx
  * ============================================================================
  * PURPOSE:
- *   Renders the unified 5-Column × 2-Row (10 cards per page) task grid and
- *   the bottom pagination slider (`< ● ● ● >`) for both the active "To-Do List"
- *   view and the completed "Archive" view.
+ *   Renders the 5-column normalized task card grid and the persistent bottom
+ *   pagination slider dock (`< • • • >`) for both the "To-Do List" and
+ *   "Archive" views.
  *
  * CORE RESPONSIBILITIES:
- *   1. Strict 5×2 Pagination (`CARDS_PER_PAGE = 10`):
- *      Slices the filtered task list into 10-card pages so at most 2 rows of
- *      5 cards are displayed per slide.
- *   2. Responsive 5-Column Grid Card Rendering:
- *      Renders each task's title (`TaskName`), up to 2 color-coded category
- *      tags (plus `"..."` overflow indicator), calendar icon, formatted
- *      deadline string (`task.deadLine`), and Google Classroom badge
- *      (`/Pictures/GoogleClassroom.svg`).
- *   3. Always-Visible Bottom Pagination Slider:
- *      - Single-Page State (<= 10 cards): Renders 1 dot indicator and disables
- *        both `<` and `>` navigation arrows with muted styling.
- *      - Multi-Page State (> 10 cards): Renders 1 dot per 10-card slide and
- *        dynamically enables/disables `<` and `>` based on the active slide.
+ *   1. Normalized 5-Column Responsive Grid:
+ *      Renders up to 10 cards per page (5 columns × 2 rows) in default mode,
+ *      or up to 15 cards per page (5 columns × 3 rows) when expanded mode
+ *      (`isExpanded === true`) is active via double-clicking "To-Do List" or "Archive".
+ *   2. Task Card Rendering & Google Classroom Badge:
+ *      Displays each task's title (`TaskName`), up to 2 color-coded category
+ *      labels (plus `"..."` overflow indicator), formatted deadline date/time
+ *      (`task.deadLine`), and the `/Pictures/GoogleClassroom.svg` icon badge.
+ *   3. Persistent Bottom Pagination Slider (`< • • • >`):
+ *      - Pinned at the bottom center of the viewport (`mt-auto`).
+ *      - When `totalPages <= 1` (≤10 cards in default view, ≤15 in expanded view):
+ *        renders a single dot and disables both `<` and `>` arrows (`disabled`,
+ *        gray, `cursor-not-allowed`, `pointer-events-none`).
+ *      - When `totalPages > 1`: renders one dot per page chunk and enables
+ *        slide navigation.
  *
  * IMPORTS FROM:
- *   - 'react': `useState`, `useEffect`
+ *   - 'react': Core React library
  *
  * EXPORTS TO:
  *   - `src/App.jsx`: Default export `TaskList`
  * ============================================================================
  */
 
-import React, { useState, useEffect } from 'react';
-
-/**
- * Maximum number of cards rendered per slide (5 columns × 2 rows = 10 cards).
- */
-const CARDS_PER_PAGE = 10;
+import React from 'react';
 
 /**
  * TaskList Component
  *
  * @param {Object} props
- * @param {Array<Object>} props.tasks - Array of formatted & filtered task objects
+ * @param {Array<Object>} props.tasks - Current page slice of formatted task objects
  * @param {string} props.currentViewMode - 'todo' | 'archive'
- * @param {string} props.selectedFilter - Active filter key from the Filter dropdown
- * @param {boolean} props.isHidden - Hides the task section when BigCalendar is active
- * @param {Function} props.onTaskClick - Callback `(task) => void` when a card is clicked
- * @returns {JSX.Element}
+ * @param {boolean} props.isHidden - Hides the task section when BigCalendar is open
+ * @param {boolean} props.isExpanded - True when MiniCalendar is collapsed (3 rows × 5 cols = 15 cards max)
+ * @param {number} props.currentPage - Zero-based active page index
+ * @param {number} props.totalPages - Total number of pages (minimum 1)
+ * @param {Function} props.onPageChange - Callback `(newPageIndex) => void`
+ * @param {Function} props.onTaskClick - Callback `(task) => void` to open TaskDetailsModal
  */
 export default function TaskList({
   tasks = [],
   currentViewMode = 'todo',
-  selectedFilter = 'all',
   isHidden = false,
+  isExpanded = false,
+  currentPage = 0,
+  totalPages = 1,
+  onPageChange,
   onTaskClick,
 }) {
-  // Current 1-based slide index for the 5x2 pagination grid
-  const [currentPage, setCurrentPage] = useState(1);
+  if (isHidden) {
+    return null;
+  }
 
-  // Total number of 10-card slides (minimum 1 slide even when 0 tasks exist)
-  const totalPages = Math.max(1, Math.ceil(tasks.length / CARDS_PER_PAGE));
-
-  // Reset back to Slide 1 whenever the user switches view modes or changes the filter
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [currentViewMode, selectedFilter]);
-
-  // Clamp currentPage if tasks are deleted/archived and totalPages decreases
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
-  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
-  const startIndex = (safeCurrentPage - 1) * CARDS_PER_PAGE;
-  const paginatedTasks = tasks.slice(startIndex, startIndex + CARDS_PER_PAGE);
-
-  // Navigation arrow availability
   const isSinglePage = totalPages <= 1;
-  const canGoPrev = !isSinglePage && safeCurrentPage > 1;
-  const canGoNext = !isSinglePage && safeCurrentPage < totalPages;
+  const isPrevDisabled = isSinglePage || currentPage <= 0;
+  const isNextDisabled = isSinglePage || currentPage >= totalPages - 1;
 
   const handlePrevPage = () => {
-    if (canGoPrev) {
-      setCurrentPage((prev) => Math.max(1, prev - 1));
+    if (!isPrevDisabled && onPageChange) {
+      onPageChange(currentPage - 1);
     }
   };
 
   const handleNextPage = () => {
-    if (canGoNext) {
-      setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+    if (!isNextDisabled && onPageChange) {
+      onPageChange(currentPage + 1);
     }
   };
 
   return (
-    <section className={`taskCont ${isHidden ? 'hidden-section' : ''}`}>
-      {/* 5-Column x 2-Row Card Grid Container */}
+    <section
+      className={`taskCont ${isExpanded ? 'taskCont-expanded' : ''}`}
+    >
+      {/* 5-Column Normalized Task Grid (2 rows default / 3 rows expanded) */}
       <ul
         id="tasks"
-        className={paginatedTasks.length === 0 ? 'tasks-empty' : ''}
+        className={isExpanded ? 'expanded-grid' : 'default-grid'}
       >
-        {paginatedTasks.length === 0 ? (
-          <li className="empty-tasks-message">
+        {tasks.length === 0 ? (
+          <li className="empty-tasks-notice">
             {currentViewMode === 'archive'
               ? 'No archived tasks found.'
               : 'No tasks found.'}
           </li>
         ) : (
-          paginatedTasks.map((task) => {
-            // Display up to 2 category badges on the card; show "..." badge if more exist
+          tasks.map((task) => {
+            // Display up to 2 category badges on the card; show "..." if more exist
             let categoriesToDisplay = [...(task.categories || [])];
             let hasMore = false;
             if (categoriesToDisplay.length > 2) {
@@ -120,14 +105,12 @@ export default function TaskList({
             return (
               <li
                 key={task.id}
-                className="taskList"
+                className={`taskList ${isExpanded ? 'taskList-expanded' : ''}`}
                 data-id={task.id || ''}
                 onClick={() => onTaskClick(task)}
               >
                 {/* Task Title */}
-                <h2 className="task-card-title">
-                  {task.name || task.TaskName}
-                </h2>
+                <h2>{task.name || task.TaskName}</h2>
 
                 {/* Category Tags */}
                 <div className="category-container">
@@ -141,15 +124,9 @@ export default function TaskList({
                   )}
                 </div>
 
-                {/* Due Date Row with Calendar Icon & Google Classroom Badge */}
+                {/* Deadline formatted string with Google Classroom badge */}
                 <h4 className="task-deadline">
-                  <span className="task-deadline-left">
-                    <i
-                      className="fa-regular fa-calendar-days deadline-calendar-icon"
-                      aria-hidden="true"
-                    ></i>
-                    <span className="deadline-text">{task.deadLine}</span>
-                  </span>
+                  <span>{task.deadLine}</span>
                   {task.source === 'google_classroom' && (
                     <img
                       src="/Pictures/GoogleClassroom.svg"
@@ -165,57 +142,48 @@ export default function TaskList({
         )}
       </ul>
 
-      {/* Bottom Pagination Slider & Indicator Controls (< ● ● ● >) */}
+      {/* Persistent Bottom Pagination Slider Dock (< • • • >) */}
       <nav
-        className="pagination-slider"
-        aria-label="Task cards pagination"
+        className="pagination-dock"
+        aria-label="Task pagination"
       >
-        {/* Previous Slide Button (<) */}
         <button
           type="button"
-          className={`pagination-arrow ${!canGoPrev ? 'disabled' : ''}`}
+          className={`pagination-arrow ${isPrevDisabled ? 'disabled' : ''}`}
           onClick={handlePrevPage}
-          disabled={!canGoPrev}
+          disabled={isPrevDisabled}
           aria-label="Previous page"
         >
-          <i className="fa-solid fa-chevron-left"></i>
+          &lt;
         </button>
 
-        {/* Slide Dot Indicators (Always renders at least 1 dot for single-page state) */}
-        <div className="pagination-dots" role="tablist">
-          {Array.from({ length: totalPages }, (_, idx) => {
-            const pageNumber = idx + 1;
-            const isActiveDot = pageNumber === safeCurrentPage;
-            return (
-              <button
-                key={pageNumber}
-                type="button"
-                role="tab"
-                aria-selected={isActiveDot}
-                aria-label={`Page ${pageNumber} of ${totalPages}`}
-                className={`pagination-dot ${isActiveDot ? 'active' : ''} ${
-                  isSinglePage ? 'single-page-dot' : ''
-                }`}
-                onClick={() => {
-                  if (!isSinglePage) {
-                    setCurrentPage(pageNumber);
-                  }
-                }}
-                disabled={isSinglePage}
-              />
-            );
-          })}
+        <div className="pagination-dots">
+          {Array.from({ length: Math.max(1, totalPages) }).map((_, idx) => (
+            <button
+              key={idx}
+              type="button"
+              className={`pagination-dot ${
+                idx === currentPage ? 'active' : ''
+              } ${isSinglePage ? 'single-dot' : ''}`}
+              onClick={() => {
+                if (!isSinglePage && onPageChange) {
+                  onPageChange(idx);
+                }
+              }}
+              disabled={isSinglePage}
+              aria-label={`Page ${idx + 1}`}
+            />
+          ))}
         </div>
 
-        {/* Next Slide Button (>) */}
         <button
           type="button"
-          className={`pagination-arrow ${!canGoNext ? 'disabled' : ''}`}
+          className={`pagination-arrow ${isNextDisabled ? 'disabled' : ''}`}
           onClick={handleNextPage}
-          disabled={!canGoNext}
+          disabled={isNextDisabled}
           aria-label="Next page"
         >
-          <i className="fa-solid fa-chevron-right"></i>
+          &gt;
         </button>
       </nav>
     </section>

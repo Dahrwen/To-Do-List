@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * FILE: src/components/AddTaskModal.jsx
+ * FILE: src/components/AddTaskModal/AddTaskModal.jsx
  * ============================================================================
  * PURPOSE:
  *   Top-layer React Portal modal dialog (`createPortal` to `document.body`)
@@ -20,14 +20,17 @@
  * IMPORTS FROM:
  *   - 'react': `useState`, `useEffect`
  *   - 'react-dom': `createPortal`
+ *   - './AddTaskModal.css': Scoped component styles
  *
  * EXPORTS TO:
+ *   - `src/components/AddTaskModal/index.js`
  *   - `src/App.jsx`: Default export `AddTaskModal`
  * ============================================================================
  */
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import './AddTaskModal.css';
 
 // Definitions for the 6 task category options matching the database boolean columns (Type1 to Type6)
 const taskTypes = [

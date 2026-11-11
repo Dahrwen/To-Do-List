@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * FILE: src/components/AuthModal.jsx
+ * FILE: src/components/AuthModal/AuthModal.jsx
  * ============================================================================
  * PURPOSE:
  *   Full-screen authentication modal providing Sign In, Sign Up (Registration),
@@ -19,17 +19,18 @@
  *
  * IMPORTS FROM:
  *   - 'react': `useState` hook for form inputs, loading flags, and sliding panel state
- *   - '../config/supabase': Shared `supabase` client instance
+ *   - '../../config/supabase': Shared `supabase` client instance
+ *   - './AuthModal.css': Scoped component styles
  *
  * EXPORTS TO:
+ *   - `src/components/AuthModal/index.js`
  *   - `src/App.jsx`: Default export `AuthModal`
  * ============================================================================
  */
 
-// Import React hooks for local component state
 import React, { useState } from 'react';
-// Import the shared Supabase client
-import { supabase } from '../config/supabase';
+import { supabase } from '../../config/supabase';
+import './AuthModal.css';
 
 /**
  * AuthModal Component

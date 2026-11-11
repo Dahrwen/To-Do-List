@@ -1,0 +1,205 @@
+/**
+ * ============================================================================
+ * STYLESHEET: Header Scoped Styles
+ * FILE: src/components/Header/Header.css
+ * ============================================================================
+ */
+
+/*TOP searchbar etc*/
+.topbar {
+    /* Use 100% of container width so it aligns naturally with the rest of the page */
+    width: 100%;
+    flex-shrink: 0;
+}
+
+.topbar table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* Auto-width allows the search column to expand across available space */
+.searchCol {
+    width: auto;
+    /* Clean spacing between the search bar and the profile email, removing unnecessary white space on the left of email */
+    padding-right: clamp(12px, 2vw, 28px);
+}
+
+/* 1% width tightly shrink-wraps the email profile column, eliminating empty white space on its left */
+.profileCol {
+    width: 1%;
+    white-space: nowrap;
+    padding-left: 0;
+}
+
+.searchbar {
+    background-color: #e6e6e6;
+    /* 100% width fills the header column; clamp maintains the chunky height while fitting 100vh */
+    width: 100%;
+    height: clamp(52px, 6.8vh, 74px);
+    border-radius: 20px;
+    border-style: solid;
+    border-color: black;
+    border-width: 3px;
+    padding-left: clamp(10px, 1vh, 16px);
+    padding-right: clamp(12px, 1.2vh, 18px);
+    display: flex;
+    align-items: center;
+}
+
+.searchBox {
+    background-color: #e6e6e6;
+    border: none;
+    outline: none;
+    font-family: 'Jeju Gothic', sans-serif;
+    font-weight: 300;
+    /* Scales cleanly across monitor sizes */
+    font-size: clamp(20px, 3.4vh, 34px);
+    display: inline;
+    width: 100%;
+    padding-left: 6px;
+}
+
+.searchButton {
+    outline: none;
+    background-color: #e6e6e6;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 0;
+}
+
+img.logo {
+    /* Prominent icon sizing with clamp */
+    width: clamp(40px, 5.8vh, 58px);
+    height: clamp(40px, 5.8vh, 58px);
+    object-fit: contain;
+}
+
+/* User profile avatar / Gmail image styling */
+.gmailp img.logo {
+    border: 2.5px solid #000000;
+    border-radius: 50%;
+    background-color: #ffffff;
+    padding: 4px;
+    object-fit: contain;
+}
+
+.gmailp img.logo.user-avatar {
+    border-radius: 50%;
+    object-fit: cover;
+    padding: 0;
+}
+
+.user-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.gmailp {
+    display: flex;
+    align-items: center;
+    gap: clamp(8px, 1vh, 14px);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    padding: 6px 12px;
+    border-radius: 12px;
+    transition: background-color 0.2s ease;
+}
+
+.gmailp:hover {
+    background-color: rgba(0, 0, 0, 0.07);
+}
+
+.dropdown-arrow {
+    font-size: clamp(14px, 2vh, 20px);
+    color: #111111;
+    transition: transform 0.25s ease;
+    margin-left: 2px;
+}
+
+.user-dropdown.active .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    background-color: #ffffff;
+    border: 2.5px solid #000000;
+    border-radius: 12px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    min-width: 140px;
+    z-index: 1000;
+    overflow: hidden;
+    padding: 6px;
+}
+
+.user-dropdown.active .dropdown-menu {
+    display: block;
+}
+
+.dropdown-item {
+    width: 100%;
+    padding: 10px 14px;
+    background: transparent;
+    border: none;
+    outline: none;
+    text-align: left;
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #db1616;
+    cursor: pointer;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #ffebeb;
+    color: #b80000;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background-color: #e5e5e5;
+    margin: 4px 0;
+}
+
+.dropdown-item.classroom-item {
+    color: #137333;
+}
+
+.dropdown-item.classroom-item:hover {
+    background-color: #e6f4ea;
+    color: #0d5223;
+}
+
+.classroom-dropdown-icon {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+}
+
+.gmailp b {
+    font-family: 'Jeju Gothic', sans-serif;
+    color: rgb(0, 0, 0);
+    font-weight: 300;
+    /* Restored original 3vh profile font size with clamp */
+    font-size: clamp(20px, 3vh, 30px);
+    display: inline;
+    margin: 0;
+}
+
+th {
+    /* Compact vertical padding so header + calendar + grid fit comfortably in 100vh */
+    padding: clamp(6px, 1vh, 12px) clamp(8px, 1vw, 14px);
+    text-align: left;
+    vertical-align: middle;
+}

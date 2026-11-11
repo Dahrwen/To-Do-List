@@ -1,0 +1,226 @@
+/**
+ * ============================================================================
+ * STYLESHEET: MiniCalendar Scoped Styles
+ * FILE: src/components/MiniCalendar/MiniCalendar.css
+ * ============================================================================
+ */
+
+/*Days Cards*/
+.container {
+    display: flex;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.child {
+    background-color: inherit;
+    padding: 0;
+}
+
+.wrapper {
+    box-sizing: border-box;
+    /* Full width within container; padding-inline reserves space for the < and > navigation buttons */
+    width: 100%;
+    position: relative;
+    margin: 0.6vh 0 1vh 0;
+    padding: 0 45px;
+}
+
+.wrapper .carousel {
+    display: grid;
+    grid-auto-flow: column;
+    /* Calculates 6 equal columns accounting for the wider 22px gaps between cards */
+    grid-auto-columns: calc((100% - (5 * 22px)) / 6);
+    /* Widened gap between calendar cards as requested for a cleaner, more spacious look */
+    gap: 22px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    scroll-behavior: smooth;
+    height: auto;
+    /* Responsive height accommodates the weekday card height and drop-shadow within 100vh */
+    min-height: clamp(150px, 21.5vh, 200px);
+    /* Padding accommodates card box-shadow without clipping */
+    padding: 4px 4px 14px 4px;
+}
+
+.carousel::-webkit-scrollbar {
+    display: none;
+}
+
+.wrapper h2,
+.wrapper h4,
+.wrapper p,
+.wrapper b {
+    margin: 0;
+}
+
+.wrapper p {
+    color: rgb(201, 15, 15);
+}
+
+.wrapper b {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Responsive circle button size */
+    height: clamp(34px, 4.5vh, 42px);
+    width: clamp(34px, 4.5vh, 42px);
+    background-color: #e9e7e7;
+    border-radius: 50%;
+    text-align: center;
+    border-style: solid;
+    border-color: black;
+    border-width: 2px;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.356);
+    cursor: pointer;
+    user-select: none;
+    z-index: 2;
+}
+
+/* Positioned cleanly inside wrapper padding so arrows never clip or float off-screen */
+.wrapper b:first-child {
+    left: 2px;
+}
+
+.wrapper b:last-child {
+    right: 2px;
+}
+
+.carousel .card {
+    cursor: pointer;
+    list-style: none;
+    background-color: #e9e7e7;
+    border-radius: 10px;
+    border-style: solid;
+    border-color: black;
+    border-width: 3px;
+    /* Responsive height matched to the reference screenshot while fitting 100vh */
+    height: clamp(148px, 20.5vh, 185px);
+    padding: clamp(10px, 1.4vh, 15px);
+    box-shadow: 2px 8px 8px rgba(0, 0, 0, 0.356);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    overflow: hidden;
+}
+
+.carousel .card h2 {
+    font-size: clamp(18px, 2.25vh, 23px);
+    font-weight: 700;
+    line-height: 1.15;
+    color: #000000;
+}
+
+.carousel .card h4 {
+    font-size: clamp(13px, 1.65vh, 15.5px);
+    font-weight: 600;
+    line-height: 1.2;
+    margin-top: 2px;
+    color: #111111;
+}
+
+.mini-card-tasks {
+    margin-top: clamp(6px, 0.9vh, 10px);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.mini-card-task-item {
+    font-size: clamp(13px, 1.65vh, 15.5px);
+    font-weight: 500;
+    line-height: 1.26;
+    color: rgb(201, 15, 15);
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
+}
+
+.carousel.dragging {
+    scroll-behavior: auto;
+}
+
+.carousel.dragging .card {
+    cursor: grab;
+    user-select: none;
+}
+
+/* Visibility and collapsed transition for weekday strip */
+#calendarSection {
+    opacity: 1;
+    visibility: visible;
+    transition: visibility .35s, opacity .35s, max-height 0.35s ease-in-out, transform 0.35s ease-in-out, margin 0.35s ease-in-out;
+    transform: translateY(0);
+    max-height: 260px;
+    overflow: visible;
+}
+
+.hidden-section {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transform: translateY(-20px);
+    max-height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+}
+
+/* Breakpoints based on screen width (px) instead of viewport height (vh) for correct responsive behavior */
+@media screen and (max-width: 1200px) {
+    .wrapper .carousel {
+        /* Shows 5 cards on smaller laptops or narrower windows with spacious gaps */
+        grid-auto-columns: calc((100% - (4 * 18px)) / 5);
+        gap: 18px;
+    }
+}
+
+@media screen and (max-width: 992px) {
+    .wrapper .carousel {
+        /* Shows 4 cards on tablets or medium screens */
+        grid-auto-columns: calc((100% - (3 * 16px)) / 4);
+        gap: 16px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .wrapper .carousel {
+        /* Shows 3 cards on compact screens */
+        grid-auto-columns: calc((100% - (2 * 14px)) / 3);
+        gap: 14px;
+    }
+}
+
+@media screen and (max-width: 520px) {
+    .wrapper .carousel {
+        /* Shows 2 cards on mobile */
+        grid-auto-columns: calc((100% - 12px) / 2);
+        gap: 12px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .wrapper .carousel {
+        /* Shows 3 cards on compact screens */
+        grid-auto-columns: calc((100% - (2 * 10px)) / 3);
+    }
+}
+
+@media screen and (max-width: 520px) {
+    .wrapper .carousel {
+        /* Shows 2 cards on mobile */
+        grid-auto-columns: calc((100% - 8px) / 2);
+    }
+}

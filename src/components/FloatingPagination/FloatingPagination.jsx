@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * FILE: src/components/FloatingPagination.jsx
+ * FILE: src/components/FloatingPagination/FloatingPagination.jsx
  * ============================================================================
  * PURPOSE:
  *   Dedicated floating pagination slider pill (`[ < • • • > ]`) pinned at the
@@ -22,13 +22,16 @@
  *
  * IMPORTS FROM:
  *   - 'react': Core React library
+ *   - './FloatingPagination.css': Scoped component styles
  *
  * EXPORTS TO:
- *   - `src/components/TaskList.jsx` / `src/App.jsx`: Default export `FloatingPagination`
+ *   - `src/components/FloatingPagination/index.js`
+ *   - `src/components/TaskList/TaskList.jsx` / `src/App.jsx`: Default export `FloatingPagination`
  * ============================================================================
  */
 
 import React from 'react';
+import './FloatingPagination.css';
 
 /**
  * FloatingPagination Component
@@ -91,8 +94,8 @@ export default function FloatingPagination({
             onClick={() => {
               if (!isSinglePage && onPageChange) {
                 onPageChange(idx);
-              }}
-            }
+              }
+            }}
             disabled={isSinglePage}
             aria-label={`Page ${idx + 1}`}
           />
@@ -111,4 +114,3 @@ export default function FloatingPagination({
     </nav>
   );
 }
-

@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * FILE: src/components/TaskDetailsModal.jsx
+ * FILE: src/components/TaskDetailsModal/TaskDetailsModal.jsx
  * ============================================================================
  * PURPOSE:
  *   Top-layer React Portal modal dialog (`createPortal` to `document.body`)
@@ -28,14 +28,17 @@
  * IMPORTS FROM:
  *   - 'react': Core React library, `useEffect`
  *   - 'react-dom': `createPortal`
+ *   - './TaskDetailsModal.css': Scoped component styles
  *
  * EXPORTS TO:
- *   - `src/App.jsx`: Default export `TaskDetailsModal`
+ *   - `src/components/TaskDetailsModal/index.js`
+ *   - `src/App.jsx`: Default export `TaskDetailsModal`, named export `getAdaptiveTitleClass`
  * ============================================================================
  */
 
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import './TaskDetailsModal.css';
 
 /**
  * Computes the adaptive typography class for a task title based on character count.

@@ -1,0 +1,76 @@
+/**
+ * ============================================================================
+ * STYLESHEET: TaskList Scoped Styles
+ * FILE: src/components/TaskList/TaskList.css
+ * ============================================================================
+ */
+
+/*Tasks — Normalized 5-Column Grid & Persistent Bottom Pagination Dock*/
+.taskCont {
+    margin-left: 1%;
+    margin-right: 1%;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+}
+
+#tasks {
+    /* Strict 5-column & proportional row grid that adapts to any monitor height (laptop to 4K) */
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    column-gap: clamp(16px, 1.8vw, 28px);
+    row-gap: clamp(20px, 3.2vh, 40px);
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    list-style: none;
+    /* Bottom padding reserves clean space for the floating pagination pill */
+    padding: 4px 4px clamp(48px, 6.2vh, 66px) 4px;
+    margin: 0;
+}
+
+#tasks.expanded-grid {
+    /* 3 equal fractional rows filling the available viewport height in expanded mode */
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+    row-gap: clamp(18px, 3vh, 38px);
+}
+
+.empty-tasks-notice {
+    grid-column: 1 / -1;
+    width: 100%;
+    text-align: center;
+    color: #666;
+    font-size: 18px;
+    margin-top: 24px;
+    list-style: none;
+}
+
+/* Category Color Tokens */
+.Personal {
+    color: #3C42BC;
+}
+
+.Urgent {
+    color: #B40E0E;
+}
+
+.Growth {
+    color: #BC773C;
+}
+
+.Academics {
+    color: #507939;
+}
+
+.Interactive {
+    color: #8F3070;
+}
+
+.Social {
+    color: #4AA0BF;
+}

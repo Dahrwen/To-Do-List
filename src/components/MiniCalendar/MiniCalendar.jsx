@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * FILE: src/components/MiniCalendar.jsx
+ * FILE: src/components/MiniCalendar/MiniCalendar.jsx
  * ============================================================================
  * PURPOSE:
  *   Renders a 14-day horizontal draggable carousel starting from today's date,
@@ -19,17 +19,16 @@
  *
  * IMPORTS FROM:
  *   - 'react': `useRef`, `useState`, `useEffect`
+ *   - './MiniCalendar.css': Scoped component styles
  *
  * EXPORTS TO:
+ *   - `src/components/MiniCalendar/index.js`
  *   - `src/App.jsx`: Default export `MiniCalendar`
  * ============================================================================
  */
 
-// Import React hooks:
-// - useRef: holds references to the carousel DOM element and drag coordinate tracking
-// - useState: manages whether the mouse is currently dragging the carousel
-// - useEffect: registers window mousemove and mouseup event listeners for smooth dragging
 import React, { useRef, useState, useEffect } from 'react';
+import './MiniCalendar.css';
 
 // Days of the week names for card headers
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

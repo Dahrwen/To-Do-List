@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * FILE: src/components/TaskList.jsx
+ * FILE: src/components/TaskList/TaskList.jsx
  * ============================================================================
  * PURPOSE:
  *   Renders the 5-column normalized task card grid and mounts the floating
@@ -13,25 +13,27 @@
  *      or up to 15 cards per page (5 columns × 3 rows) when expanded mode
  *      (`isExpanded === true`) is active via double-clicking "To-Do List" or "Archive".
  *   2. Task Card Rendering & Google Classroom Badge:
- *      Displays each task's title (`TaskName`), up to 2 color-coded category
- *      labels (plus `"..."` overflow indicator), formatted deadline date/time
- *      (`task.deadLine`), and the `/Pictures/GoogleClassroom.svg` icon badge.
+ *      Maps tasks to isolated `<TaskCard />` components.
  *   3. Floating Pagination Slider (`FloatingPagination`):
  *      Delegates slide indicator and `< • • • >` controls to the dedicated
  *      floating pill component pinned at the bottom-center of the viewport.
  *
  * IMPORTS FROM:
  *   - 'react': Core React library
- *   - './FloatingPagination': `FloatingPagination` component
+ *   - '../FloatingPagination': `FloatingPagination` component
+ *   - '../TaskCard': `TaskCard` component
+ *   - './TaskList.css': Scoped component styles
  *
  * EXPORTS TO:
+ *   - `src/components/TaskList/index.js`
  *   - `src/App.jsx`: Default export `TaskList`
  * ============================================================================
  */
 
 import React from 'react';
-import FloatingPagination from './FloatingPagination';
-import TaskCard from './TaskCard';
+import FloatingPagination from '../FloatingPagination';
+import TaskCard from '../TaskCard';
+import './TaskList.css';
 
 /**
  * TaskList Component

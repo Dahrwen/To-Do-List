@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * FILE: src/components/ActionButtons.jsx
+ * FILE: src/components/ActionButtons/ActionButtons.jsx
  * ============================================================================
  * PURPOSE:
  *   Primary navigation and filter toolbar rendering:
@@ -17,13 +17,16 @@
  *
  * IMPORTS FROM:
  *   - 'react': `useState`, `useRef`, `useEffect`
+ *   - './ActionButtons.css': Scoped component styles
  *
  * EXPORTS TO:
+ *   - `src/components/ActionButtons/index.js`
  *   - `src/App.jsx`: Default export `ActionButtons`
  * ============================================================================
  */
 
 import React, { useState, useRef, useEffect } from 'react';
+import './ActionButtons.css';
 
 // Deadline filter options displayed in the "Filter ⌵" dropdown menu
 const FILTER_OPTIONS = [

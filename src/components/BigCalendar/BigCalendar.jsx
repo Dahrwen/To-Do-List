@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * FILE: src/components/BigCalendar.jsx
+ * FILE: src/components/BigCalendar/BigCalendar.jsx
  * ============================================================================
  * PURPOSE:
  *   Renders a full-month 7-column calendar grid displaying previous-month
@@ -21,15 +21,16 @@
  *
  * IMPORTS FROM:
  *   - 'react': `useState` hook for tracking the active month/year
+ *   - './BigCalendar.css': Scoped component styles
  *
  * EXPORTS TO:
+ *   - `src/components/BigCalendar/index.js`
  *   - `src/App.jsx`: Default export `BigCalendar`
  * ============================================================================
  */
 
-// Import React hooks:
-// - useState: to manage the active month/year being viewed on the calendar
 import React, { useState } from 'react';
+import './BigCalendar.css';
 
 // Full month names for the calendar header
 const monthsFull = [

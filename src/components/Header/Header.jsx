@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * FILE: src/components/Header.jsx
+ * FILE: src/components/Header/Header.jsx
  * ============================================================================
  * PURPOSE:
  *   Top navigation bar displaying the real-time task search box, the user's
@@ -23,17 +23,16 @@
  *
  * IMPORTS FROM:
  *   - 'react': `useState`, `useEffect`, `useRef`
+ *   - './Header.css': Scoped component styles
  *
  * EXPORTS TO:
+ *   - `src/components/Header/index.js`
  *   - `src/App.jsx`: Default export `Header`
  * ============================================================================
  */
 
-// Import React hooks:
-// - useState: for local search input, avatar image source, and dropdown open/close state
-// - useEffect: to attach document click listener and keep user avatar synced
-// - useRef: references the dropdown DOM element to detect outside clicks
 import React, { useState, useEffect, useRef } from 'react';
+import './Header.css';
 
 /**
  * Header Component

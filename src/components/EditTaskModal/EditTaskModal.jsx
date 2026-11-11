@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * FILE: src/components/EditTaskModal.jsx
+ * FILE: src/components/EditTaskModal/EditTaskModal.jsx
  * ============================================================================
  * PURPOSE:
  *   Top-layer React Portal modal dialog (`createPortal` to `document.body`)
@@ -22,16 +22,19 @@
  * IMPORTS FROM:
  *   - 'react': `useState`, `useEffect`
  *   - 'react-dom': `createPortal`
- *   - './TaskDetailsModal': `getAdaptiveTitleClass`
+ *   - '../TaskDetailsModal': `getAdaptiveTitleClass`
+ *   - './EditTaskModal.css': Scoped component styles
  *
  * EXPORTS TO:
+ *   - `src/components/EditTaskModal/index.js`
  *   - `src/App.jsx`: Default export `EditTaskModal`
  * ============================================================================
  */
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { getAdaptiveTitleClass } from './TaskDetailsModal';
+import { getAdaptiveTitleClass } from '../TaskDetailsModal';
+import './EditTaskModal.css';
 
 // Definitions for the 6 task category options matching the database boolean columns (Type1 to Type6)
 const taskTypes = [

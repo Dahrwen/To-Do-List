@@ -50,13 +50,14 @@ import { supabase, getGoogleProviderToken } from './config/supabase';
 // Import application UI components
 import AuthModal from './components/AuthModal';
 import Header from './components/Header';
-import MiniCalendar from './components/MiniCalendar';
 import ActionButtons from './components/ActionButtons';
 import TaskList from './components/TaskList';
-import BigCalendar from './components/BigCalendar';
-import AddTaskModal from './components/AddTaskModal';
-import TaskDetailsModal from './components/TaskDetailsModal';
-import EditTaskModal from './components/EditTaskModal';
+import Calendar, { MiniCalendar, BigCalendar } from './components/Calendar';
+import TaskModal, {
+  TaskDetailsModal,
+  EditTaskModal,
+  AddTaskModal,
+} from './components/TaskModal';
 import {
   syncGoogleClassroomTasks,
   getHiddenClassroomCourses,

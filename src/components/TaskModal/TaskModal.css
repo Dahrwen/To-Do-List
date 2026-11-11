@@ -1,10 +1,27 @@
 /**
  * ============================================================================
- * STYLESHEET: TaskDetailsModal Scoped Styles
- * FILE: src/components/TaskDetailsModal/TaskDetailsModal.css
+ * STYLESHEET: TaskModal Scoped Styles (Details, Edit & Add Modals)
+ * FILE: src/components/TaskModal/TaskModal.css
  * ============================================================================
  */
 
+/* ============================================================================
+   1. TOP-LAYER MODAL CONTAINER & BACKDROP
+   ============================================================================ */
+.modal-portal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background-color: rgba(0, 0, 0, 0.42);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5vh 3vw;
+}
+
+.popUp,
+.popUp2,
 .popUpDesc {
     z-index: 10000;
     position: relative;
@@ -30,7 +47,14 @@
     max-width: 740px;
 }
 
-/* Close button */
+.modal-medium-dialog {
+    width: min(92vw, 560px);
+    max-width: 560px;
+}
+
+/* Close button across all task modals */
+.popUp .close-btn,
+.popUp2 .close-btn,
 .popUpDesc .close-btn {
     position: absolute;
     top: 14px;
@@ -52,12 +76,16 @@
     transition: background-color 0.15s ease, transform 0.1s ease;
 }
 
+.popUp .close-btn:hover,
+.popUp2 .close-btn:hover,
 .popUpDesc .close-btn:hover {
     background-color: #b5b5b5;
     transform: scale(1.05);
 }
 
-/* Compact Modal Header & Adaptive Title Typography */
+/* ============================================================================
+   2. HEADER & ADAPTIVE TYPOGRAPHY
+   ============================================================================ */
 .modal-header-block {
     padding-right: 40px;
     margin-bottom: 14px;
@@ -76,6 +104,10 @@
     margin-bottom: 4px;
 }
 
+.modal-eyebrow-label.edit-eyebrow {
+    color: #ad1313;
+}
+
 .modal-adaptive-title {
     margin: 0;
     color: #111111;
@@ -83,25 +115,33 @@
     word-break: break-word;
 }
 
-/* <= 30 chars: text-lg font-semibold */
 .modal-title-lg {
     font-size: clamp(17px, 2.2vh, 21px);
     font-weight: 700;
     line-height: 1.25;
 }
 
-/* 31-60 chars: text-base font-medium */
 .modal-title-md {
     font-size: clamp(15px, 1.9vh, 18px);
     font-weight: 600;
     line-height: 1.3;
 }
 
-/* > 60 chars: text-sm font-medium leading-snug */
 .modal-title-sm {
     font-size: clamp(13.5px, 1.7vh, 15.5px);
     font-weight: 600;
     line-height: 1.35;
+}
+
+/* ============================================================================
+   3. FORM LAYOUT & BODY SCROLL
+   ============================================================================ */
+.modal-form-layout {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .modal-body-scroll {
@@ -136,13 +176,63 @@
     margin: 0;
 }
 
+.modal-field-label small {
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: normal;
+    color: #6b7280;
+}
+
 .modal-field-value-muted {
     font-size: 13.5px;
     color: #6b7280;
     font-style: italic;
 }
 
-/* Category Pills */
+.popUp input[type="text"],
+.popUp2 input[type="text"] {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 2px solid #000000;
+    background-color: #ffffff;
+    width: 100%;
+    height: 40px;
+    outline: none;
+}
+
+/* ============================================================================
+   4. CHECKBOXES & CATEGORY PILLS
+   ============================================================================ */
+.modal-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 12px;
+    background-color: #f4f4f4;
+    border: 1.5px solid rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+
+.modal-checkbox-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #111111;
+    cursor: pointer;
+}
+
+form input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    vertical-align: middle;
+    margin: 0;
+}
+
 .modal-category-pills,
 .popUpDesc ul {
     display: flex;
@@ -193,6 +283,26 @@
     color: black;
 }
 
+/* ============================================================================
+   5. DEADLINE INPUTS & LOCKED CLASSROOM BOX
+   ============================================================================ */
+.modal-deadline-inputs {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+form input[type="date"],
+form input[type="time"] {
+    font-family: inherit;
+    font-size: 13.5px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 2px solid #000000;
+    background-color: #ffffff;
+}
+
 .modal-deadline-row {
     display: flex;
     align-items: center;
@@ -204,6 +314,25 @@
     font-size: 14px;
     font-weight: 600;
     color: #111111;
+}
+
+.locked-deadline-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    background-color: #dcdcdc;
+    border: 2px dashed #555555;
+    border-radius: 10px;
+    cursor: not-allowed;
+}
+
+.locked-deadline-inputs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    pointer-events: none;
+    opacity: 0.65;
 }
 
 .classroom-lock-badge {
@@ -220,6 +349,9 @@
     width: fit-content;
 }
 
+/* ============================================================================
+   6. DESCRIPTION BOX & TEXTAREA
+   ============================================================================ */
 .modal-description-box {
     background-color: #f7f7f7;
     border: 2px solid #000000;
@@ -235,7 +367,23 @@
     overflow-y: auto;
 }
 
-/* Dedicated Non-Overlapping Modal Footer Bar */
+#editForm textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid #000000;
+    border-radius: 10px;
+    outline: none;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+    background-color: #ffffff;
+    min-height: 90px;
+    resize: vertical;
+}
+
+/* ============================================================================
+   7. FOOTER ACTIONS
+   ============================================================================ */
 .modal-footer-bar {
     display: flex;
     align-items: center;
@@ -251,6 +399,41 @@
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+.modal-submit-btn,
+.modal-reset-btn {
+    flex: 1;
+    height: 40px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    border: 2px solid #000000;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.modal-submit-btn {
+    background-color: #0f0f0f;
+    color: #ffffff;
+}
+
+.modal-submit-btn:hover {
+    background-color: #262626;
+}
+
+.modal-reset-btn {
+    background-color: #d4d4d4;
+    color: #111111;
+}
+
+.modal-reset-btn:hover {
+    background-color: #c2c2c2;
+}
+
+.full-width-btn {
+    width: 100%;
 }
 
 .eButton {
@@ -315,4 +498,3 @@
     width: auto;
     display: block;
 }
-

@@ -220,3 +220,4 @@ export default function AddTaskModal({ isOpen, onClose, onAddTask }) {
     document.body
   );
 }
+

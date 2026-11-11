@@ -207,3 +207,4 @@ export default function MiniCalendar({ tasks = [], isHidden = false }) {
     </section>
   );
 }
+

@@ -324,3 +324,4 @@ export default function EditTaskModal({ isOpen, task, onClose, onUpdateTask }) {
     document.body
   );
 }
+

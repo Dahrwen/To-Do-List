@@ -221,3 +221,4 @@ export default function BigCalendar({ tasks = [], isHidden = true }) {
     </section>
   );
 }
+

@@ -1,259 +1,626 @@
 ================================================================================
-          PROJECT PORTING SUMMARY: VANILLA HTML/JS/CSS TO REACT.JS + VITE
+        MASTER ARCHITECTURE, OAUTH 2.0, GOOGLE CLASSROOM API & SETUP GUIDE
+             PRODUCTIVITY TRACKER (REACT 18 + VITE + SUPABASE)
 ================================================================================
 
-1. OVERVIEW & OBJECTIVE
+TABLE OF CONTENTS
 --------------------------------------------------------------------------------
-This project was originally built with vanilla JavaScript (script.js), plain HTML 
-(index.html), and CSS (main.css). 
-
-The goal was to port the entire application into a modern React.js + Vite codebase 
-without altering:
-- The visual design or CSS styling (colors, fonts, sizes, responsiveness, animations).
-- The functionalities (account authentication, Supabase database queries, 
-  mini-calendar carousel, big calendar month view, task creation/editing/archiving, 
-  search filtering, and account dropdown).
-- The user experience (including background blurs when logged out).
+  SECTION 1: EXECUTIVE ARCHITECTURAL OVERVIEW
+  SECTION 2: GOOGLE OAUTH 2.0 FLOW (END-TO-END HANDSHAKE & TOKEN LIFECYCLE)
+  SECTION 3: GOOGLE CLASSROOM API INTEGRATION (ENDPOINTS, SCOPES & MAPPING)
+  SECTION 4: ENVIRONMENT VARIABLES & SECURITY PROTOCOLS
+  SECTION 5: BUILD & RUN PIPELINE (LINE-BY-LINE CONFIGURATION & COMMANDS)
+  SECTION 6: FILE-BY-FILE ARCHITECTURE BREAKDOWN (EVERY FILE IN THE REPO)
+  SECTION 7: INTER-FILE COMMUNICATION, CALL HIERARCHY & ASCII SEQUENCE DIAGRAMS
+================================================================================
 
 
-2. NPM TOOLS & PACKAGES INSTALLED
+================================================================================
+SECTION 1: EXECUTIVE ARCHITECTURAL OVERVIEW
+================================================================================
+This application is a modern Single Page Application (SPA) built with React 18,
+Vite 6, and the official Supabase JavaScript SDK (`@supabase/supabase-js`).
+It serves as a centralized, privacy-first personal and academic productivity
+repository featuring:
+  1. Dual Authentication: Email/Password + Google OAuth 2.0 ("Continue with Google").
+  2. Read-Only Google Classroom Activity Sync: Imports active courses and
+     published assignments, auto-archives completed (`TURNED_IN` / `RETURNED`)
+     submissions, excludes archived/hidden classes, and displays the official
+     Google Classroom badge on imported task cards.
+  3. Full Date & Time (`timestamptz`) Deadlines: Supports exact date and time
+     deadlines (e.g., `Nov 06 2026 • 11:59 PM`) across Google Classroom imports,
+     manual task creation/editing, and calendar views.
+  4. Nearest-Deadline-First Priority Sorting: Automatically orders active and
+     archived tasks chronologically so the most urgent upcoming deadlines appear
+     first, with `"No due date"` tasks placed at the bottom.
+  5. Interactive Calendars: A 14-day horizontal draggable `MiniCalendar`
+     carousel and a full-month 7-column `BigCalendar` grid matched in the user's
+     local timezone.
+
+
+================================================================================
+SECTION 2: GOOGLE OAUTH 2.0 FLOW (END-TO-END HANDSHAKE & TOKEN LIFECYCLE)
+================================================================================
+
+2.1 Key OAuth 2.0 Concepts & Terminology
 --------------------------------------------------------------------------------
-The following packages were configured in package.json:
+  * `client_id` (Public Identifier):
+    A unique identifier generated in Google Cloud Console (`APIs & Services ->
+    Credentials -> OAuth 2.0 Client IDs`) that identifies your application to
+    Google's login servers.
+  * `client_secret` (Confidential Backend Secret):
+    A private cryptographic secret paired with your `client_id`. It is stored
+    ONLY inside your Supabase Dashboard (`Authentication -> Providers -> Google`)
+    and NEVER placed in frontend React code or committed to GitHub.
+  * `Redirect URI` (Callback URL):
+    The exact URL where Google is allowed to send the user after they approve
+    the consent screen:
+      1. Google -> Supabase Auth Callback:
+         `https://<your-project-ref>.supabase.co/auth/v1/callback`
+      2. Supabase Auth -> Your Frontend App (`redirectTo`):
+         `window.location.origin` (e.g., `http://localhost:5173`)
+  * `Authorization Code`:
+    A single-use temporary code Google sends to Supabase's `/auth/v1/callback`
+    endpoint after the user clicks "Continue" on the Google consent screen.
+    Supabase exchanges this code + `client_secret` on the backend for tokens.
+  * `access_token` (Supabase JWT) vs. `provider_token` (Google OAuth Token):
+    - `session.access_token`: A JSON Web Token (JWT) issued by Supabase that
+      authenticates the user with your Supabase PostgreSQL database.
+    - `session.provider_token`: The Google OAuth 2.0 Bearer token issued by
+      Google that authorizes read-only `GET` requests to
+      `https://classroom.googleapis.com/v1/*`.
+  * `refresh_token`:
+    A long-lived token issued by Google when `access_type: 'offline'` and
+    `prompt: 'consent'` are requested. Used by backend services (such as
+    `supabase/functions/sync-classroom/index.ts`) to request a new Google
+    `access_token` after the 1-hour expiry without prompting the user again.
 
-Production Dependencies:
-  1. react (^18.3.1)
-     - Purpose: Core React library used to build declarative, state-driven UI 
-       components (replacing procedural document.getElementById and innerHTML logic).
-  2. react-dom (^18.3.1)
-     - Purpose: The entry point to the DOM, mounting the React application tree 
-       to <div id="root"> using ReactDOM.createRoot().
-  3. @supabase/supabase-js (^2.49.1)
-     - Purpose: The official Supabase JavaScript client, replacing the old 
-       CDN <script> tag. Manages communication with your Supabase database 
-       (Accounts and Tasks tables) with typed query builder methods (.select(), 
-       .insert(), .update(), .delete(), .eq(), .ilike()).
-
-Developer Tooling (devDependencies):
-  4. vite (^6.2.0)
-     - Purpose: Modern frontend dev server and bundler. Provides near-instant 
-       Hot Module Replacement (HMR) during development and optimized, minified 
-       production bundles using Rollup on `npm run build`.
-  5. @vitejs/plugin-react (^4.3.4)
-     - Purpose: Vite plugin enabling JSX compilation and Fast Refresh (reloads 
-       components in browser instantly while preserving component state).
-
-
-3. WHAT CHANGED IN THE PROJECT STRUCTURE?
+2.2 Incremental Authorization (Why We Request Scopes in Two Stages)
 --------------------------------------------------------------------------------
+  1. Stage 1 — Basic Sign-In (`AuthModal.jsx` -> `handleGoogleAuth`):
+     Calls `supabase.auth.signInWithOAuth({ provider: 'google' })` with only
+     basic profile/email identity scopes. Users can log in immediately without
+     seeing extra permission prompts.
+  2. Stage 2 — Incremental Classroom Consent (`App.jsx` -> `handleConnectClassroom`):
+     Only when the user clicks **"Connect to Google Classroom"** in the top-right
+     profile dropdown does the app request the Google Classroom read-only scopes:
+     ```javascript
+     await supabase.auth.signInWithOAuth({
+       provider: 'google',
+       options: {
+         redirectTo: window.location.origin,
+         scopes:
+           'https://www.googleapis.com/auth/classroom.courses.readonly ' +
+           'https://www.googleapis.com/auth/classroom.coursework.me ' +
+           'https://www.googleapis.com/auth/classroom.coursework.me.readonly',
+         queryParams: {
+           access_type: 'offline',
+           prompt: 'consent',
+         },
+       },
+     });
+     ```
 
-BEFORE (Vanilla HTML/JS):
+2.3 How `provider_token` is Captured & Persisted (`src/config/supabase.js`)
+--------------------------------------------------------------------------------
+When Supabase redirects the browser back to `http://localhost:5173`, it appends
+the tokens to the URL hash fragment:
+  `http://localhost:5173/#access_token=...&provider_token=ya29.a0...&token_type=bearer`
+
+CRITICAL TECHNICAL DETAIL:
+When `createClient(SUPABASE_URL, SUPABASE_KEY)` runs, Supabase's internal
+`GoTrueClient` immediately parses and clears `window.location.hash` before React
+components finish mounting. To guarantee `provider_token` is never lost,
+`src/config/supabase.js` implements a 4-layer token capture & recovery strategy:
+  * Layer 1 (Pre-Init Hash Intercept — Lines 5-16 of `src/config/supabase.js`):
+    Reads `new URLSearchParams(window.location.hash.substring(1)).get('provider_token')`
+    at module load time BEFORE `createClient()` executes, saving it to
+    `sessionStorage` and `localStorage` under `'google_provider_token'`.
+  * Layer 2 (Module-Level `onAuthStateChange` — Lines 28-39 of `src/config/supabase.js`):
+    Captures `session.provider_token` the instant `INITIAL_SESSION` or `SIGNED_IN`
+    fires, and wipes it immediately on `SIGNED_OUT`.
+  * Layer 3 (`getGoogleProviderToken` Helper — Lines 48-84 of `src/config/supabase.js`):
+    Checks (a) passed `session.provider_token`, (b) `sessionStorage`,
+    (c) `localStorage`, and (d) Supabase's internal `sb-<project-ref>-auth-token`
+    JSON in `localStorage`.
+  * Layer 4 (Automatic 1-Hour Expired Token Detection & Seamless Re-Auth):
+    Google OAuth `access_token`s (`provider_token`) have a strict 1-hour (`3600s`)
+    lifetime. When a user returns to the app after >1 hour:
+      1. `fetchClassroomEndpoint` (`src/services/classroomSync.js`) detects
+         `response.status === 401`, immediately purges the expired
+         `google_provider_token` from `sessionStorage` and `localStorage`, and
+         throws a tagged `401` error.
+      2. `handleLoginSuccess` and `runBackgroundClassroomSync` (`src/App.jsx`)
+         catch the `401` (or missing token when `classroom_connected === 'true'`)
+         and automatically invoke `supabase.auth.signInWithOAuth` (without
+         `prompt: 'consent'`, guarded by `sessionStorage` key
+         `classroom_auto_reauth_done` to prevent redirect loops). Because the
+         user already approved the app, Google silently issues a fresh 1-hour
+         `provider_token` and redirects back into the app to complete the sync.
+
+
+================================================================================
+SECTION 3: GOOGLE CLASSROOM API INTEGRATION (ENDPOINTS, SCOPES & MAPPING)
+================================================================================
+
+3.1 Required Google Cloud Console Setup & OAuth Scopes
+--------------------------------------------------------------------------------
+  1. API Enabled: **Google Classroom API** enabled in Google Cloud Console
+     (`APIs & Services -> Library -> Google Classroom API`).
+  2. OAuth Consent Screen Mode: While in **Testing** mode (free, no Google review
+     required), your Google email must be listed under `Google Auth Platform ->
+     Audience -> Test users`.
+  3. Scopes Requested:
+     - `https://www.googleapis.com/auth/classroom.courses.readonly`
+       Allows listing the user's enrolled courses (`GET /v1/courses`).
+     - `https://www.googleapis.com/auth/classroom.coursework.me.readonly` &
+       `https://www.googleapis.com/auth/classroom.coursework.me`
+       Allows reading coursework assigned to the user and their submission status.
+     *Note on Central Repository Safety*: Even if Google's consent screen bundles
+     `coursework.me` description text, our application code (`src/services/classroomSync.js`)
+     executes **strictly `GET` requests** and contains zero `POST`, `PATCH`,
+     `PUT`, or `DELETE` calls to Google Classroom.
+
+3.2 Exact Google Classroom REST API Endpoints Called (`src/services/classroomSync.js`)
+--------------------------------------------------------------------------------
+Every request sends the header:
+  `Authorization: Bearer ${providerToken}`
+  `Accept: application/json`
+
+  1. Fetch Active Enrolled Courses (`fetchCourses` — Lines 75-97):
+     `GET https://classroom.googleapis.com/v1/courses?studentId=me&courseStates=ACTIVE&pageSize=100`
+     (with fallback to `teacherId=me&courseStates=ACTIVE`).
+     - Why `courseStates=ACTIVE`?
+       Automatically excludes `ARCHIVED`, `PROVISIONED`, `DECLINED`, and
+       `SUSPENDED` classes in Google Classroom so old/archived semesters never
+       clutter your tracker.
+
+  2. Fetch Published Coursework for Each Active Course (Line 364):
+     `GET https://classroom.googleapis.com/v1/courses/${course.id}/courseWork?courseWorkStates=PUBLISHED&pageSize=100`
+     - Retrieves `id`, `title`, `description`, `state`, `assigneeMode`,
+       `dueDate` (`{ year, month, day }`), `dueTime` (`{ hours, minutes, seconds }`),
+       and `alternateLink`.
+
+  3. 3-Tier Student Submission Lookup & Automatic Completion (`Lines 340-445`):
+     To reliably detect whether an assignment has been turned in across all
+     Google Workspace / Classroom permission configurations, `classroomSync.js`
+     uses a **3-tier submission lookup**:
+       * Tier 1 (Course-Wide Wildcard with `userId=me`):
+         `GET https://classroom.googleapis.com/v1/courses/${course.id}/courseWork/-/studentSubmissions?userId=me&pageSize=100`
+       * Tier 2 (Course-Wide Wildcard without `userId=me`):
+         `GET https://classroom.googleapis.com/v1/courses/${course.id}/courseWork/-/studentSubmissions?pageSize=100`
+       * Tier 3 (Per-Assignment Fallback):
+         If the course-wide `courseWork/-` wildcard returns 0 submissions (which
+         occurs on some student accounts due to Google Classroom wildcard
+         permission quirks), it queries each assignment directly:
+         `GET https://classroom.googleapis.com/v1/courses/${course.id}/courseWork/${cw.id}/studentSubmissions?pageSize=20`
+
+     Each submission record is evaluated by `processSubmissionRecord(sub)`:
+       - Inspects `sub.state === 'TURNED_IN'`, `sub.state === 'RETURNED'`, and
+         `sub.assignedGrade != null`.
+       - Also inspects `sub.submissionHistory` (`stateHistory.state`) for
+         `'TURNED_IN'` or `'RETURNED'`, only treating it as unsubmitted if the
+         latest state is `'RECLAIMED_BY_STUDENT'` or `'CREATED'`.
+       - Automatic Finish & Archive on Turn-In:
+         * New tasks that are already turned in are inserted with `finished: true`.
+         * Existing unfinished tasks (`finished: false`) in Supabase `Tasks`
+           whose Classroom submission is now `TURNED_IN` or `RETURNED` are
+           automatically updated to `finished: true` in Supabase (`tasksToUpdate`),
+           moving them out of the active To-Do List and Mini/Big Calendars and
+           into the **Archive** view.
+       - Background Auto-Sync (`runBackgroundClassroomSync` in `src/App.jsx`):
+         Runs automatically whenever the user switches back to the browser tab
+         (`visibilitychange` / `window.focus`) and every 2 minutes while the
+         tab is open, so turning in an assignment in Google Classroom
+         automatically finishes the task in the tracker without manual clicks.
+
+3.3 Hidden Classes Filtering & Database Cleanup
+--------------------------------------------------------------------------------
+In addition to excluding `ARCHIVED` classes from Google Classroom automatically:
+  1. `localStorage.getItem('hidden_classroom_courses')` stores any active classes
+     the user manually unchecked in the **"Filter Classes"** modal (`Header.jsx` ->
+     `onManageCourses` -> `App.jsx`).
+  2. During `syncGoogleClassroomTasks` (Lines 232-270) and when toggling a class
+     off in `handleToggleCourseVisibility` (`App.jsx`), any previously imported
+     tasks in Supabase `Tasks` belonging to an archived or hidden course are
+     automatically deleted from Supabase and filtered out of `displayedTasks`
+     and `allUnfinishedTasks`.
+
+3.4 UTC `dueDate` + `dueTime` to ISO `timestamptz` Conversion (Lines 458-482)
+--------------------------------------------------------------------------------
+Google Classroom's REST API returns `dueDate` and `dueTime` in **UTC** (Coordinated
+Universal Time). For example, an assignment due on **Nov 6, 2026 at 11:59 PM**
+in `UTC+8` (Philippines/Singapore/Taipei time) is returned by Google as:
+  `dueDate: { year: 2026, month: 11, day: 6 }`, `dueTime: { hours: 15, minutes: 59 }`
+
+To store and display the exact deadline with time in Supabase's `timestamptz` column:
+  ```javascript
+  const hours = cw.dueTime.hours ?? 0;
+  const minutes = cw.dueTime.minutes ?? 0;
+  const seconds = cw.dueTime.seconds ?? 0;
+  deadlineIso = new Date(
+    Date.UTC(year, month - 1, day, hours, minutes, seconds)
+  ).toISOString();
+  ```
+  - If an assignment has a `dueDate` but no `dueTime`, it defaults to `11:59 PM`
+    local time: `new Date(year, month - 1, day, 23, 59, 0).toISOString()`.
+  - If an assignment has no `dueDate` at all, `Deadline` is stored as `null`
+    and displayed as `"No due date"`.
+  - When `App.jsx` (`formatTask`) or `TaskDetailsModal.jsx` reads `task.Deadline`,
+    `new Date(task.Deadline)` converts the ISO UTC timestamp back into the user's
+    local timezone and formats it as:
+    `"Nov 06 2026 • 11:59 PM"`
+
+3.5 Task Mapping Schema, Multi-Row Indexing & Deduplication
+--------------------------------------------------------------------------------
+Each Google Classroom assignment is mapped to a row in Supabase `Tasks`:
+  - `userID`: Integer `userID` from `Accounts` table
+  - `TaskName`: `cw.title`
+  - `Description`:
+    Line 1: `[Google Classroom] <Course Name>`
+    Body:   `<cw.description>`
+    Footer: `Classroom Link: <cw.alternateLink>`
+  - `Deadline`: ISO-8601 `timestamptz` string (or `null`)
+  - `Type1..Type6`: `Type4: true` (`Academics`), all others `false`
+  - `finished`: `true` if `TURNED_IN` / `RETURNED`, otherwise `false`
+  - Multi-Row Lookup & Deduplication (`addToExistingMap` — Lines 301-337):
+    Existing rows in Supabase are indexed in `existingTaskMap` (storing an
+    **array of rows** per key so even duplicate rows are updated together) across
+    three composite keys:
+      1. `link::<alternateLink>`
+      2. `title_course::<title>::[google classroom] <course>`
+      3. `classroom_title::<title>` (fallback for legacy Classroom tasks)
+    If a matching task already exists in Supabase, it is never duplicated;
+    instead, if its `Deadline` changed or if `isCompleted && !matchedTask.finished`,
+    `classroomSync.js` updates all matching rows in `tasksToUpdate`.
+
+
+================================================================================
+SECTION 4: ENVIRONMENT VARIABLES & SECURITY PROTOCOLS
+================================================================================
+
+4.1 Complete Environment Variable Reference (`.env.local` vs Server Secrets)
+--------------------------------------------------------------------------------
+1. Client-Safe Environment Variables (Stored in local `.env.local` ONLY):
+   - `VITE_SUPABASE_URL=https://<your-project-ref>.supabase.co`
+     Your Supabase project's REST and Auth endpoint URL.
+   - `VITE_SUPABASE_KEY=eyJhbGciOiJIUzI1NiIs...`
+     Your Supabase **anon (public)** key. This key is safe to use in the browser
+     because it only grants access permitted by your database rules and cannot
+     bypass security like a service role key.
+
+2. Server-Only Secrets (Stored in Supabase Dashboard -> Auth / Edge Functions):
+   - `GOOGLE_CLIENT_ID`: Stored in Supabase Auth -> Providers -> Google.
+   - `GOOGLE_CLIENT_SECRET`: Stored strictly in Supabase Auth -> Providers ->
+     Google (and Edge Function Secrets if using `sync-classroom`). **NEVER**
+     placed in `.env.local` with a `VITE_` prefix and **NEVER** in frontend code.
+   - `SUPABASE_SERVICE_ROLE_KEY`: Admin key that bypasses Row Level Security.
+     Used exclusively inside Deno Edge Functions (`Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")`),
+     never on the client.
+
+4.2 Multi-Layer Security & Privacy Protections Implemented in Code
+--------------------------------------------------------------------------------
+  1. `.gitignore` Enforcement:
+     `.env`, `.env.local`, `node_modules`, `dist`, `.vite`, and `.build.txt` are
+     listed in `.gitignore` so local environment files are never committed to Git.
+  2. Zero Hardcoded Keys:
+     `src/config/supabase.js` reads `import.meta.env.VITE_SUPABASE_URL` and
+     `import.meta.env.VITE_SUPABASE_KEY`. No keys or secrets exist in source files.
+  3. First-Name-Only Greeting (`formatCapitalizedFirstName` in `App.jsx` & `Header.jsx`):
+     Parses `"LastName, FirstName"` or full names so only the single capitalized
+     first name (e.g. `"Dharwin"`) is shown in the header—never exposing surnames
+     or email addresses in the UI.
+  4. Avatar Referrer Privacy (`Header.jsx` Line 168):
+     Uses `referrerPolicy="no-referrer"` on the `<img>` tag so fetching the user's
+     Google profile picture never leaks the application's URL to external servers.
+  5. Strict Database User Isolation:
+     Every Supabase query (`select`, `insert`, `update`, `delete`) on `Tasks`
+     filters by `.eq('userID', userId)` so a user only ever accesses their own rows.
+
+
+================================================================================
+SECTION 5: BUILD & RUN PIPELINE (LINE-BY-LINE CONFIGURATION & COMMANDS)
+================================================================================
+
+5.1 `package.json` Line-by-Line Breakdown
+--------------------------------------------------------------------------------
+  - `"name": "productivity-tracker-react"`: Project identifier.
+  - `"private": true`: Prevents accidental publishing to the public npm registry.
+  - `"type": "module"`: Enables native ES Modules (`import` / `export`) across `.js`/`.jsx`.
+  - `"scripts"`:
+    * `"dev": "vite"` -> Starts local dev server with HMR at `http://localhost:5173`.
+    * `"build": "vite build"` -> Compiles, tree-shakes, and minifies production
+      assets into the `dist/` folder.
+    * `"preview": "vite preview"` -> Serves the compiled `dist/` folder locally
+      to test the production build.
+  - `"dependencies"` (Shipped to browser in production bundle):
+    * `"@supabase/supabase-js": "^2.118.0"`: Official Supabase Auth & Postgres client.
+    * `"react": "^18.3.1"`: Core React component & hook library.
+    * `"react-dom": "^18.3.1"`: DOM renderer for React 18.
+  - `"devDependencies"` (Used only during development/build time):
+    * `"@vitejs/plugin-react": "^4.3.4"`: Compiles JSX and provides Fast Refresh.
+    * `"vite": "^6.2.0"`: Ultra-fast ES module dev server and Rollup bundler.
+
+5.2 Step-by-Step Local Setup & Execution Commands
+--------------------------------------------------------------------------------
+  1. Install Dependencies:
+     ```bash
+     npm install
+     ```
+     Reads `package.json` and `package-lock.json` and installs all packages into `node_modules/`.
+
+  2. Configure Local Environment (`.env.local`):
+     Copy `.env.example` to `.env.local` and fill in your two client variables:
+     ```env
+     VITE_SUPABASE_URL=https://your-project-id.supabase.co
+     VITE_SUPABASE_KEY=your-supabase-anon-public-key
+     ```
+
+  3. Start Development Server:
+     ```bash
+     npm run dev
+     ```
+     Launches Vite with Hot Module Replacement (HMR). Open `http://localhost:5173`.
+
+  4. Build for Production:
+     ```bash
+     npm run build
+     ```
+     Verifies all imports, bundles JSX/CSS, and outputs optimized static files to `dist/`.
+
+
+================================================================================
+SECTION 6: FILE-BY-FILE ARCHITECTURE BREAKDOWN (EVERY FILE IN THE REPO)
+================================================================================
+
+Directory Structure:
   To-Do-List/
-  ├── index.html        (Contained ALL markup for the page, forms, and modals)
-  ├── script.js         (Contained ALL 789 lines of procedural JavaScript code)
-  ├── main.css          (All styling)
-  ├── config.js         (Hardcoded Supabase URL & Key, git-ignored)
-  ├── build.js          (Script that generated config.js)
-  └── Pictures/         (Static images referenced directly in HTML)
-
-AFTER (React.js + Vite):
-  To-Do-List/
-  ├── package.json               (Defines scripts and npm dependencies)
-  ├── vite.config.js             (Vite build tool configuration with React plugin)
-  ├── index.html                 (Clean single-page-app entry point that loads /src/main.jsx)
-  ├── .env.local                 (Stores VITE_SUPABASE_URL and VITE_SUPABASE_KEY; git-ignored)
+  ├── index.html
+  ├── package.json
+  ├── vite.config.js
+  ├── .gitignore
+  ├── .env.example
+  ├── build.js
+  ├── build.txt
   ├── public/
-  │   └── Pictures/              (Static images: Find.png, Gmail.png, TrashCan.png)
+  │   └── Pictures/
+  │       ├── Find.png
+  │       ├── Gmail.png
+  │       ├── GoogleClassroom.svg
+  │       └── TrashCan.png
   ├── src/
-  │   ├── main.jsx               (React application entrypoint)
-  │   ├── main.css               (Exact original styles, imported directly into React)
-  │   ├── App.jsx                (Central state, authentication check, data fetching)
+  │   ├── main.jsx
+  │   ├── main.css
+  │   ├── App.jsx
   │   ├── config/
-  │   │   └── supabase.js        (Supabase client initialized via import.meta.env)
+  │   │   └── supabase.js
+  │   ├── services/
+  │   │   └── classroomSync.js
   │   └── components/
-  │       ├── AuthModal.jsx      (Login & Registration form with sliding panel)
-  │       ├── Header.jsx         (Top bar with search input and user profile dropdown)
-  │       ├── MiniCalendar.jsx   (14-day horizontal carousel with drag and click scroll)
-  │       ├── ActionButtons.jsx  (To-Do List, Calendar, Archive, and Add Task buttons)
-  │       ├── TaskList.jsx       (Task cards list, categories, deadlines, empty states)
-  │       ├── BigCalendar.jsx    (Full month calendar view with day grid and navigation)
-  │       ├── AddTaskModal.jsx   (Popup form to create tasks with categories & date)
-  │       ├── TaskDetailsModal.jsx (Popup to view task, finish/restore, edit, delete)
-  │       └── EditTaskModal.jsx  (Popup to edit task details and update Supabase)
+  │       ├── AuthModal.jsx
+  │       ├── Header.jsx
+  │       ├── ActionButtons.jsx
+  │       ├── MiniCalendar.jsx
+  │       ├── BigCalendar.jsx
+  │       ├── TaskList.jsx
+  │       ├── AddTaskModal.jsx
+  │       ├── TaskDetailsModal.jsx
+  │       └── EditTaskModal.jsx
+  └── supabase/
+      └── functions/
+          └── sync-classroom/
+              └── index.ts
 
-
-4. STATIC ASSETS & THE "PICTURES" FOLDERS EXPLAINED
+Detailed File Reference:
 --------------------------------------------------------------------------------
-- In Vanilla HTML:
-  Images were kept in a root folder named "Pictures/". The HTML directly referenced 
-  `<img src="Pictures/Find.png">`.
-  
-- In Vite + React:
-  Vite has a dedicated folder named "public/". Anything placed inside "public/" is 
-  automatically served at the root URL (e.g. "/Pictures/Find.png") during both 
-  local development (`npm run dev`) and production builds (`npm run build`).
+1. `index.html`
+   - Purpose: Single HTML entry document loaded by the browser.
+   - Responsibilities: Loads FontAwesome 6.5.1 icons, Google Fonts (`Poppins`
+     and `Jeju Gothic`), defines `<div id="root"></div>`, and boots `/src/main.jsx`.
 
-- In the "dist/" folder:
-  When you run `npm run build`, Vite packages everything into the "dist/" folder. 
-  It copies "public/Pictures/" into "dist/Pictures/". The "dist/" folder is the 
-  final distribution build ready to be hosted on the web.
+2. `vite.config.js`
+   - Purpose: Vite bundler configuration.
+   - Exports: Default Vite config registering `@vitejs/plugin-react`.
 
-- Cleanup Done:
-  The duplicate root "Pictures/" folder was removed so that only the Vite-standard 
-  "public/Pictures/" remains as your single source for static images.
+3. `src/main.jsx`
+   - Purpose: React DOM entry point.
+   - Imports: `React`, `ReactDOM`, `App` (`./App.jsx`), `./main.css`.
+   - Responsibilities: Mounts `<App />` inside `#root`.
+
+4. `src/config/supabase.js`
+   - Purpose: Supabase client singleton & Google OAuth `provider_token` manager.
+   - Exports:
+     * `supabase`: Configured Supabase client instance.
+     * `getGoogleProviderToken(session)`: 4-layer token resolver checking live
+       session, `sessionStorage`, `localStorage`, and `sb-*-auth-token`.
+
+5. `src/services/classroomSync.js`
+   - Purpose: Read-only Google Classroom REST API client & Supabase `Tasks` synchronizer.
+   - Imports: `supabase` from `../config/supabase`.
+   - Exports & Key Internal Helpers:
+     * `getHiddenClassroomCourses()`: Returns a `Set<string>` of lowercase course
+       names hidden by the user in `localStorage`.
+     * `fetchClassroomEndpoint(url, providerToken)`: Executes authenticated `GET`
+       requests to Google Classroom; detects `HTTP 401` (expired 1-hour token),
+       purges stale tokens from `sessionStorage`/`localStorage`, and throws a
+       tagged `401` error for automatic re-auth.
+     * `addToExistingMap(key, row)`: Multi-row index helper mapping `link::`,
+       `title_course::`, and `classroom_title::` keys to arrays of Supabase `Tasks` rows.
+     * `processSubmissionRecord(sub)`: Evaluates `sub.state === 'TURNED_IN'`,
+       `'RETURNED'`, `sub.assignedGrade`, and `sub.submissionHistory` to detect
+       completed assignments.
+     * `syncGoogleClassroomTasks(userId, providerToken)`: Fetches active courses,
+       filters hidden classes, cleans up stale tasks from archived/hidden courses,
+       fetches published coursework and 3-tier student submissions, converts UTC
+       `dueDate` + `dueTime` into ISO `timestamptz`, automatically marks turned-in
+       existing tasks as `finished: true` (moving them to Archive), upgrades
+       changed deadlines, and inserts new tasks into Supabase `Tasks`.
+
+6. `src/App.jsx`
+   - Purpose: Root state controller, auth bridge, sorter, and view router.
+   - Imports: `supabase`, `getGoogleProviderToken`, `syncGoogleClassroomTasks`,
+     `getHiddenClassroomCourses`, and all 9 UI components in `src/components/`.
+   - Key Functions:
+     * `formatCapitalizedFirstName(name)`: Extracts and capitalizes only the
+       user's first name (handles `"LastName, FirstName"` commas).
+     * `isTaskFromHiddenCourse(task)`: Returns `true` if a Classroom task belongs
+       to a hidden course.
+     * `sortTasksByNearestDeadline(tasks)`: Sorts tasks with a valid `Deadline`
+       in ascending chronological order (`timeA - timeB`), placing `"No due date"`
+       tasks at the end.
+     * `formatTask(task)`: Maps `Type1..Type6` booleans to category names, formats
+       `task.Deadline` as `"Mon DD YYYY • h:mm AM/PM"`, and sets
+       `source: 'google_classroom' | 'manual'`.
+     * `loadTasks(searchTerm, mode, userId)` & `loadAllUnfinishedTasks(userId)`:
+       Fetches tasks from Supabase, excludes hidden courses, and sorts by nearest
+       deadline first.
+     * `syncAccountRecord(rawUser)`: Links Supabase Auth UUID users to integer
+       `userID` rows in the `Accounts` table.
+     * `handleLoginSuccess(rawUser, token)`: Unlocks UI, loads tasks, and
+       automatically runs `syncGoogleClassroomTasks` (or triggers silent OAuth
+       token refresh if the 1-hour Google token expired).
+     * `runBackgroundClassroomSync()`: Silently syncs Google Classroom on window
+       focus / tab return (`visibilitychange`) and every 2 minutes so assignments
+       turned in on Google Classroom automatically finish and move to Archive.
+     * `handleConnectClassroom()`: Syncs immediately if a valid `provider_token`
+       is available, or triggers incremental Google OAuth with Classroom scopes.
+     * `handleOpenManageCourses()` & `handleToggleCourseVisibility(courseName)`:
+       Powers the "Filter Classroom Classes" modal to hide/unhide courses.
+
+7. `src/components/AuthModal.jsx`
+   - Purpose: Sign In, Sign Up, and Google OAuth modal with sliding panel animation.
+   - Props: `isOpen`, `onLoginSuccess`.
+   - Key Handlers: `handleRegister`, `handleLogin`, `handleGoogleAuth`.
+
+8. `src/components/Header.jsx`
+   - Purpose: Top bar with search input, user avatar/name pill, and profile dropdown.
+   - Props: `userName`, `userAvatar`, `isClassroomConnected`, `isSyncingClassroom`,
+     `onConnectClassroom`, `onManageCourses`, `onDisconnectClassroom`, `onSearch`, `onLogout`.
+
+9. `src/components/ActionButtons.jsx`
+   - Purpose: 4-button navigation toolbar (`To-Do List`, `Calendar`, `Archive`, `+ Add task`).
+   - Props: `onTodoClick`, `onCalendarClick`, `onArchiveClick`, `onAddTaskClick`.
+
+10. `src/components/MiniCalendar.jsx`
+    - Purpose: 14-day horizontal draggable carousel showing up to 3 tasks per day.
+    - Props: `tasks` (`allUnfinishedTasks`), `isHidden`.
+    - Key Logic: `toLocalDateKey` matches `timestamptz` deadlines in local time;
+      sorts each day's tasks by earliest deadline time first.
+
+11. `src/components/BigCalendar.jsx`
+    - Purpose: Full-month 7-column calendar grid with month navigation.
+    - Props: `tasks` (`allUnfinishedTasks`), `isHidden`.
+    - Key Logic: `getTasksForDate(checkDate)` matches local dates and sorts
+      intra-day tasks chronologically.
+
+12. `src/components/TaskList.jsx`
+    - Purpose: Renders task cards for To-Do List or Archive view, including
+      category pills, `"Mon DD YYYY • h:mm AM/PM"` deadline, and the Google
+      Classroom badge (`GoogleClassroom.svg`) right of the date.
+    - Props: `tasks` (`displayedTasks`), `currentViewMode`, `isHidden`, `onTaskClick`.
+
+13. `src/components/AddTaskModal.jsx`
+    - Purpose: Popup form to create a new task with date (`<input type="date">`)
+      and time (`<input type="time">`, defaulting to `23:59`), combined into an
+      ISO `timestamptz` string.
+    - Props: `isOpen`, `onClose`, `onAddTask`.
+
+14. `src/components/TaskDetailsModal.jsx`
+    - Purpose: Popup displaying full task details (all categories, formatted
+      date+time deadline, full description/Classroom link) and `Finish`/`Restore`,
+      `Edit`, and `Delete` actions.
+    - Props: `isOpen`, `task`, `onClose`, `onFinish`, `onEdit`, `onDelete`.
+
+15. `src/components/EditTaskModal.jsx`
+    - Purpose: Popup form pre-filled with an existing task's local date and time
+      to update its name, categories, `timestamptz` deadline, and description.
+    - Props: `isOpen`, `task`, `onClose`, `onUpdateTask`.
+
+16. `supabase/functions/sync-classroom/index.ts`
+    - Purpose: Optional Deno server-side Edge Function demonstrating backend
+      token refresh (`oauth2.googleapis.com/token`) using `Deno.env.get(...)`.
 
 
-5. API KEYS & ENVIRONMENT SECURITY
+================================================================================
+SECTION 7: INTER-FILE COMMUNICATION, CALL HIERARCHY & ASCII SEQUENCE DIAGRAMS
+================================================================================
+
+7.1 Component & Service Dependency Graph
 --------------------------------------------------------------------------------
-- Credentials Architecture:
-  Your Supabase credentials are now loaded securely using Vite environment variables:
-  * Local file: `.env.local`
-      VITE_SUPABASE_URL=https://...
-      VITE_SUPABASE_KEY=sb_publishable_...
-  * Protected by `.gitignore`:
-      Both `config.js` and `.env.local` are in `.gitignore`. They are NEVER tracked 
-      or committed to GitHub.
-  * Application code: `src/config/supabase.js`
-      Does NOT contain any hardcoded fallback keys or secrets. It reads cleanly:
-      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-      const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
+```text
+                         [ index.html (#root) ]
+                                   │
+                                   ▼
+                            [ src/main.jsx ]
+                                   │
+                                   ▼
+                             [ src/App.jsx ]
+              ┌────────────────────┼────────────────────┐
+              ▼                    ▼                    ▼
+  [ src/config/supabase.js ]  [ UI Components ]  [ src/services/classroomSync.js ]
+    • supabase client          ├── AuthModal.jsx        • syncGoogleClassroomTasks()
+    • getGoogleProviderToken() ├── Header.jsx           • getHiddenClassroomCourses()
+                               ├── ActionButtons.jsx            │
+                               ├── MiniCalendar.jsx             ▼
+                               ├── BigCalendar.jsx     (Google Classroom REST API)
+                               ├── TaskList.jsx        GET /v1/courses?courseStates=ACTIVE
+                               ├── AddTaskModal.jsx    GET /v1/courses/{id}/courseWork
+                               ├── TaskDetailsModal.jsx GET /v1/courses/{id}/studentSubmissions
+                               └── EditTaskModal.jsx
+```
 
-
-6. COMPONENT BREAKDOWN (HOW VANILLA JS WAS REPLACED BY REACT)
+7.2 End-to-End Execution Flow: Login -> Classroom Sync -> Nearest-Deadline Render
 --------------------------------------------------------------------------------
-
-1. Supabase Client (src/config/supabase.js)
-   - Uses the official `@supabase/supabase-js` package.
-   - Reads environment variables dynamically via `import.meta.env`.
-
-2. Authentication Component (src/components/AuthModal.jsx)
-   - Replaces the raw `#logcontainer` DOM manipulation.
-   - Preserves the sliding toggle animation (`active` class toggle between Sign In 
-     and Sign Up).
-   - Handles account registration check against Supabase `Accounts` table, 
-     error/success banners, and login verification.
-
-3. Top Header & User Profile (src/components/Header.jsx)
-   - Controlled search input with Enter keydown support and search button click.
-   - Profile dropdown showing active username in uppercase (or "Guest" when logged out).
-   - Automatically closes when clicking outside via a document event listener.
-   - Logout button that resets session state and blurs the main UI.
-
-4. Mini Calendar (src/components/MiniCalendar.jsx)
-   - 14-day horizontal carousel starting from the current date.
-   - Full drag-to-scroll mouse gesture support as well as `<` and `>` arrow button 
-     scrolling based on card width and gap.
-   - Displays up to 3 task names per day matching task deadlines, with "..." overflow.
-
-5. Action Buttons (src/components/ActionButtons.jsx)
-   - Navigation bar triggering clear view-switch callbacks:
-     `onTodoClick`, `onCalendarClick`, `onArchiveClick`, and `onAddTaskClick`.
-
-6. Task List (src/components/TaskList.jsx)
-   - Declarative rendering of task cards.
-   - Displays task name, up to 2 category badges (with "..." if more than 2 categories), 
-     formatted deadline dates, and "No tasks found" / "No archived tasks found" states.
-   - Clicking a card opens that task's details modal.
-
-7. Task Modals (AddTaskModal, TaskDetailsModal, EditTaskModal)
-   - AddTaskModal: 6 category checkboxes, date picker with minDate set to today, 
-     validates required name and inserts into Supabase `Tasks` table.
-   - TaskDetailsModal: Shows all assigned categories, deadline, description, 
-     with action buttons for "Finish/Restore", "Edit", and "Delete".
-   - EditTaskModal: Prefilled with existing task values, supports a "Reset" 
-     button to restore original values, and updates Supabase on submit.
-
-8. Big Calendar (src/components/BigCalendar.jsx)
-   - Month navigation (`<` and `>`), rendering:
-     * Leading days from previous month with `.fade` styling.
-     * All days of the current month (with `.today` highlighting today's date).
-     * Trailing days of next month with `.fade` styling.
-     * Task badges matching each day's deadline date.
-
-9. Main Application Controller (src/App.jsx)
-   - Central state manager holding currentUser, view modes, task lists, search 
-     queries, and open modals.
-   - Applies `.locked-content` (blur) to the app when unauthenticated.
-
-
-7. DATABASE COMPATIBILITY (100% PRESERVED)
---------------------------------------------------------------------------------
-- Accounts table:
-  * Select query on login: `eq('eMail', logEmail).eq('password', logPass)`
-  * Registration check: `select('eMail').eq('eMail', emailInput)`
-  * Registration insert: `{ userName, eMail, password }`
-- Tasks table:
-  * Fetching tasks: `eq('userID', accountID).eq('finished', isArchive)`
-  * Searching tasks: `ilike('TaskName', '%search%')`
-  * Inserting tasks: `{ userID, TaskName, Type1..Type6, Deadline }`
-  * Updating tasks: `{ TaskName, Type1..Type6, Deadline, Description }`
-  * Deleting tasks: `delete().eq('id', taskId).eq('userID', accountID)`
-  * Toggle finish/restore: `update({ finished: !finished })`
-
-
-8. GIT COMMIT HISTORY ON ReactBranch
---------------------------------------------------------------------------------
-All commits on `ReactBranch` have been scrubbed of all hardcoded credentials. 
-The chronological history is as follows:
-
-  1. Initialize Vite and React setup with dependencies and configuration
-     - Added package.json, package-lock.json, vite.config.js, .gitignore, 
-       public/Pictures, clean src/config/supabase.js
-  2. Setup root index.html, main styling, and React entrypoint
-     - Added index.html, src/main.jsx, src/main.css
-  3. Create AuthModal component for Login and Registration
-     - Added src/components/AuthModal.jsx
-  4. Create Header component with search and account dropdown
-     - Added src/components/Header.jsx
-  5. Create MiniCalendar component with draggable carousel
-     - Added src/components/MiniCalendar.jsx
-  6. Create ActionButtons component for view navigation
-     - Added src/components/ActionButtons.jsx
-  7. Create TaskList and task management modal components
-     - Added TaskList.jsx, AddTaskModal.jsx, TaskDetailsModal.jsx, EditTaskModal.jsx
-  8. Create BigCalendar component with month view and task deadlines
-     - Added src/components/BigCalendar.jsx
-  9. Assemble App component with integrated state management and data flows
-     - Added src/App.jsx
- 10. Remove legacy vanilla script.js and root main.css
-     - Cleaned up obsolete script.js and root main.css
- 11. Remove legacy root Pictures folder in favor of public/Pictures
-     - Removed redundant root Pictures directory
- 12. Add .vite cache directory to .gitignore
-     - Kept working tree clean of dev cache files
- 13. Fix action buttons toggle state and view routing
-     - Replaced fragile shared boolean toggle state with deterministic view routing
-     - Prevented buttons from becoming unresponsive or toggling opposite states
- 14. Migrate authentication to Supabase Auth and add Google OAuth support
-     - Upgraded AuthModal to use official supabase.auth (email/password & Google OAuth)
-     - Added auth state listener and session restoration in App.jsx
-     - Added Google auth buttons and styling in main.css
- 15. Sync Google OAuth and Supabase Auth with public Accounts table
-     - Added syncAccountRecord in App.jsx to ensure Google users are stored in the Accounts table
-     - Links integer userID required by Tasks table foreign key and type constraints
-     - Automatically matches existing accounts by email to load existing tasks
- 16. Fix infinite loop in account sync and restore clean Accounts table
-     - Broke cyclic useEffect re-renders by setting empty dependency array []
-     - Changed query from .maybeSingle() to .limit(1) to avoid multiple-row query errors
-     - Added isSyncingRef mutual exclusion lock during account synchronization
-     - Purged duplicate generated rows in Accounts table and restored original 5 user records
- 17. Declare useRef for isSyncingRef in App.jsx
-     - Imported useRef from react and declared isSyncingRef state ref in App component
-
-TO UPDATE GITHUB:
-To overwrite the remote GitHub branch with this cleaned history:
-    git push --force origin ReactBranch
-
-
-9. HOW TO RUN THE PROJECT
---------------------------------------------------------------------------------
-- To run development server:
-    npm run dev
-  (Access the app in your browser at: http://localhost:5173/)
-
-- To create a production build:
-    npm run build
-  (The compiled static website will be created in the `dist/` directory)
-
-- To preview the production build locally:
-    npm run preview
+```text
+USER / BROWSER              Header / App.jsx           supabase.js            classroomSync.js          Google / Supabase DB
+──────                      ────────────────           ───────────            ────────────────          ────────────────────
+1. Clicks "Connect to  ───► handleConnectClassroom()
+   Google Classroom"               │
+                                   ├──► getGoogleProviderToken()
+                                   │    (If no token yet, calls
+                                   │     supabase.auth.signInWithOAuth
+                                   │     with Classroom read-only scopes)
+                                   │
+2. Approves Google     ◄───────────┴──────────────────────────────────────────────────────────────────► Google OAuth Consent
+   Consent Screen                                                                                       Redirects back with
+                                                                                                        #provider_token=...
+3. Page Loads          ───► Pre-Init Hash Capture ───► Saves provider_token
+                            & onAuthStateChange        to sessionStorage &
+                                   │                   localStorage
+                                   ▼
+                            handleLoginSuccess()
+                                   │
+                                   ├──► syncAccountRecord() ──────────────────────────────────────────► SELECT/INSERT on
+                                   │    (Extracts "Dharwin", links integer userID)                      Supabase `Accounts`
+                                   │
+                                   ├──► syncGoogleClassroomTasks(userId, token) ─► 1. GET /v1/courses ──► Returns ACTIVE
+                                   │    (If HTTP 401 expired token,                   (courseStates=ACTIVE) courses only
+                                   │     purges token & silently                   2. Filter hidden
+                                   │     refreshes via Google OAuth)                  courses & DELETE ──► Deletes archived/
+                                   │                                                  stale tasks          hidden class tasks
+                                   │                                               3. GET /courseWork &
+                                   │                                                  3-Tier Submissions ► Checks TURNED_IN /
+                                   │                                                  (/courseWork/- &     RETURNED / Grade /
+                                   │                                                   /courseWork/{id})   submissionHistory
+                                   │                                               4. Convert UTC dueDate
+                                   │                                                  + dueTime to ISO
+                                   │                                                  timestamptz
+                                   │                                               5. INSERT new tasks ──► Marks turned-in
+                                   │                                                  & UPDATE existing    tasks `finished: true`
+                                   │                                                  (`finished: true`)   (moves to Archive!)
+                                   ▼
+                            refreshAllData()
+                                   │
+                                   ├──► loadTasks() & loadAllUnfinishedTasks() ───────────────────────► SELECT * FROM `Tasks`
+                                   │    • Filters !isTaskFromHiddenCourse(t)
+                                   │    • Sorts via sortTasksByNearestDeadline()
+                                   │      (Nearest deadline first, "No due date" last)
+                                   │    • Formats via formatTask():
+                                   │      "Nov 06 2026 • 11:59 PM" + source: 'google_classroom'
+                                   ▼
+4. Views Updated UI    ◄─── Renders <TaskList />, <MiniCalendar />, <BigCalendar />
+   & Auto-Finishes on       with GoogleClassroom.svg badge next to deadline date & time.
+   Tab Focus / 2-Min        When user turns in work on Classroom and focuses tab,
+   Background Poll          `runBackgroundClassroomSync()` auto-moves task to Archive!
+```
 ================================================================================

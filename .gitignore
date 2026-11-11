@@ -4,3 +4,5 @@ dist
 .env
 .env.local
 .build.txt
+techstack.txt
+techstack

@@ -31,6 +31,7 @@
 
 import React from 'react';
 import FloatingPagination from './FloatingPagination';
+import TaskCard from './TaskCard';
 
 /**
  * TaskList Component
@@ -75,52 +76,15 @@ export default function TaskList({
               : 'No tasks found.'}
           </li>
         ) : (
-          tasks.map((task) => {
-            // Display up to 2 category badges on the card; show "..." if more exist
-            let categoriesToDisplay = [...(task.categories || [])];
-            let hasMore = false;
-            if (categoriesToDisplay.length > 2) {
-              categoriesToDisplay = categoriesToDisplay.slice(0, 2);
-              hasMore = true;
-            }
-
-            return (
-              <li
-                key={task.id}
-                className={`taskList ${isExpanded ? 'taskList-expanded' : ''}`}
-                data-id={task.id || ''}
-                onClick={() => onTaskClick(task)}
-              >
-                {/* Task Title */}
-                <h2>{task.name || task.TaskName}</h2>
-
-                {/* Category Tags */}
-                <div className="category-container">
-                  {categoriesToDisplay.map((cat, idx) => (
-                    <div key={idx} className={`task-category-tag ${cat}`}>
-                      {cat}
-                    </div>
-                  ))}
-                  {hasMore && (
-                    <div className="task-category-tag more-categories">...</div>
-                  )}
-                </div>
-
-                {/* Deadline formatted string with Google Classroom badge */}
-                <h4 className="task-deadline">
-                  <span>{task.deadLine}</span>
-                  {task.source === 'google_classroom' && (
-                    <img
-                      src="/Pictures/GoogleClassroom.svg"
-                      alt="Google Classroom"
-                      className="classroom-badge-icon"
-                      title="Imported from Google Classroom"
-                    />
-                  )}
-                </h4>
-              </li>
-            );
-          })
+          tasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              isArchive={currentViewMode === 'archive'}
+              isExpanded={isExpanded}
+              onClick={onTaskClick}
+            />
+          ))
         )}
       </ul>
 

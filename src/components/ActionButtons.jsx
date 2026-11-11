@@ -9,11 +9,8 @@
  *   - Right side: "+ Add task" button anchored to the far right (`margin-left: auto`).
  *
  * CORE RESPONSIBILITIES:
- *   1. Deterministic Click State Machine:
- *      - First click on "To-Do List" or "Archive" activates that tab in Standard View
- *        (MiniCalendar visible, 2 rows × 5 columns = 10 cards max).
- *      - Second click on the already-active tab toggles Expanded View
- *        (MiniCalendar collapsed, 3 rows × 5 columns = 15 cards max).
+ *   1. Dispatches view-switching (`onTodoClick`, `onCalendarClick`, `onArchiveClick`)
+ *      and double-click expanded-view toggles (`onTodoDoubleClick`, `onArchiveDoubleClick`).
  *   2. Manages the "Filter ⌵" dropdown state and outside-click dismissal,
  *      notifying `App.jsx` via `onFilterChange(filterKey)`.
  *   3. Dispatches `onAddTaskClick` to open `AddTaskModal`.
@@ -44,23 +41,25 @@ const FILTER_OPTIONS = [
  * @param {Object} props
  * @param {string} props.currentViewMode - 'todo' | 'archive'
  * @param {boolean} props.showBigCalendar - True when full-month Calendar view is open
- * @param {boolean} props.isExpanded - True when the active tab is in 3-row expanded mode
  * @param {string} props.activeFilter - Currently active deadline filter key
  * @param {Function} props.onFilterChange - Callback `(filterKey) => void`
- * @param {Function} props.onTodoClick - Click handler for "To-Do List" (1st click selects, 2nd click toggles expanded view)
+ * @param {Function} props.onTodoClick - Single-click handler for "To-Do List"
+ * @param {Function} props.onTodoDoubleClick - Double-click handler to toggle 3-row expanded view on "To-Do List"
  * @param {Function} props.onCalendarClick - Handler to toggle full-month BigCalendar view
- * @param {Function} props.onArchiveClick - Click handler for "Archive" (1st click selects, 2nd click toggles expanded view)
+ * @param {Function} props.onArchiveClick - Single-click handler for "Archive"
+ * @param {Function} props.onArchiveDoubleClick - Double-click handler to toggle 3-row expanded view on "Archive"
  * @param {Function} props.onAddTaskClick - Handler to open the Add Task modal
  */
 export default function ActionButtons({
   currentViewMode = 'todo',
   showBigCalendar = false,
-  isExpanded = false,
   activeFilter = 'all',
   onFilterChange,
   onTodoClick,
+  onTodoDoubleClick,
   onCalendarClick,
   onArchiveClick,
+  onArchiveDoubleClick,
   onAddTaskClick,
 }) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -95,29 +94,23 @@ export default function ActionButtons({
     setIsFilterOpen(false);
   };
 
-  const isTodoActive = !showBigCalendar && currentViewMode === 'todo';
-  const isArchiveActive = !showBigCalendar && currentViewMode === 'archive';
-
   return (
     <section className="sectButton">
       {/* Left group: Tab pills + Filter dropdown */}
       <div className="sectButton-left">
-        {/* To-Do List button (1st click switches tab; 2nd click on active tab toggles 3-row expanded view) */}
+        {/* To-Do List button (single-click switches tab; double-click toggles 3-row expanded mode) */}
         <div
-          className={`tab-pill-wrapper ${isTodoActive ? 'active-tab' : ''}`}
+          className={`tab-pill-wrapper ${
+            !showBigCalendar && currentViewMode === 'todo' ? 'active-tab' : ''
+          }`}
         >
           <button
             id="todo"
             className="mybutton"
             type="button"
             onClick={onTodoClick}
-            title={
-              isTodoActive
-                ? isExpanded
-                  ? 'Click to restore weekday strip (2 rows)'
-                  : 'Click again to expand to 3 rows'
-                : 'Switch to To-Do List'
-            }
+            onDoubleClick={onTodoDoubleClick}
+            title="Click to view To-Do List • Double-click to toggle full-screen 3-row view"
           >
             <i className="fa-regular fa-clipboard"></i>
             <b> To-Do List</b>
@@ -139,22 +132,19 @@ export default function ActionButtons({
           </button>
         </div>
 
-        {/* Archive view button (1st click switches tab; 2nd click on active tab toggles 3-row expanded view) */}
+        {/* Archive view button (single-click switches tab; double-click toggles 3-row expanded mode) */}
         <div
-          className={`tab-pill-wrapper ${isArchiveActive ? 'active-tab' : ''}`}
+          className={`tab-pill-wrapper ${
+            !showBigCalendar && currentViewMode === 'archive' ? 'active-tab' : ''
+          }`}
         >
           <button
             id="archived"
             className="mybutton"
             type="button"
             onClick={onArchiveClick}
-            title={
-              isArchiveActive
-                ? isExpanded
-                  ? 'Click to restore weekday strip (2 rows)'
-                  : 'Click again to expand to 3 rows'
-                : 'Switch to Archive'
-            }
+            onDoubleClick={onArchiveDoubleClick}
+            title="Click to view Archive • Double-click to toggle full-screen 3-row view"
           >
             <i className="fa-solid fa-archive"></i>
             <b>Archive</b>

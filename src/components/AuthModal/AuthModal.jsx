@@ -40,7 +40,7 @@ import './AuthModal.css';
  * - isOpen: boolean, whether the modal is visible on screen
  * - onLoginSuccess: callback function called with the authenticated user object
  */
-export default function AuthModal({ isOpen, onLoginSuccess }) {
+export function AuthModal({ isOpen, onLoginSuccess }) {
   // Controls the animated sliding panel:
   // false = Sign In view, true = Sign Up view
   const [isActive, setIsActive] = useState(false);
@@ -373,4 +373,7 @@ export default function AuthModal({ isOpen, onLoginSuccess }) {
     </div>
   );
 }
+
+export default AuthModal;
+
 

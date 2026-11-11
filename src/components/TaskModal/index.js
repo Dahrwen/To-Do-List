@@ -1,8 +1,4 @@
-export {
-  default,
-  TaskModal,
-  TaskDetailsModal,
-  EditTaskModal,
-  AddTaskModal,
-  getAdaptiveTitleClass,
-} from './TaskModal';
+export { default } from './TaskModal';
+export * from './TaskModal';
+
+

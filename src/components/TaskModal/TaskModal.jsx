@@ -652,7 +652,7 @@ export function AddTaskModal({ isOpen, onClose, onAddTask }) {
  * @param {Object} props
  * @param {'details'|'edit'|'create'} [props.mode='details'] - Mode of the modal
  */
-export default function TaskModal({ mode = 'details', ...props }) {
+export function TaskModal({ mode = 'details', ...props }) {
   if (mode === 'create' || mode === 'add') {
     return <AddTaskModal {...props} />;
   }
@@ -665,3 +665,6 @@ export default function TaskModal({ mode = 'details', ...props }) {
 TaskModal.Details = TaskDetailsModal;
 TaskModal.Edit = EditTaskModal;
 TaskModal.Add = AddTaskModal;
+
+export default TaskModal;
+

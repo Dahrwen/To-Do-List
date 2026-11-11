@@ -109,7 +109,7 @@ export function getDeadlineUrgencyColor(deadlineIso) {
  * @param {boolean} [props.isExpanded=false] - Whether the grid is in 3-row expanded mode
  * @param {Function} props.onClick - Click handler dispatched to parent
  */
-export default function TaskCard({
+export function TaskCard({
   task,
   isArchive = false,
   isExpanded = false,
@@ -183,4 +183,6 @@ export default function TaskCard({
     </li>
   );
 }
+
+export default TaskCard;
 

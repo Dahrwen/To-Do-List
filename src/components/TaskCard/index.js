@@ -5,5 +5,7 @@
  * ============================================================================
  */
 
-export { default, getDeadlineUrgencyColor } from './TaskCard';
+export { default } from './TaskCard';
+export * from './TaskCard';
+
 

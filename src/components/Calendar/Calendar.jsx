@@ -354,7 +354,7 @@ export function BigCalendar({ tasks = [], isHidden = true }) {
  * @param {Array<Object>} props.tasks - Tasks array
  * @param {boolean} [props.isHidden=false] - Hidden state
  */
-export default function Calendar({ view = 'mini', tasks = [], isHidden = false, ...rest }) {
+export function Calendar({ view = 'mini', tasks = [], isHidden = false, ...rest }) {
   if (view === 'month' || view === 'big') {
     return <BigCalendar tasks={tasks} isHidden={isHidden} {...rest} />;
   }
@@ -363,3 +363,6 @@ export default function Calendar({ view = 'mini', tasks = [], isHidden = false, 
 
 Calendar.Mini = MiniCalendar;
 Calendar.Month = BigCalendar;
+
+export default Calendar;
+

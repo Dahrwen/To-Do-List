@@ -1,1 +1,4 @@
-export { default, Calendar, MiniCalendar, BigCalendar } from './Calendar';
+export { default } from './Calendar';
+export * from './Calendar';
+
+

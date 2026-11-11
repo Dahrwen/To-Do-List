@@ -132,7 +132,7 @@ export function FloatingPagination({
  * @param {Function} props.onPageChange - Callback `(newPageIndex) => void`
  * @param {Function} props.onTaskClick - Callback `(task) => void` to open TaskDetailsModal
  */
-export default function TaskList({
+export function TaskList({
   tasks = [],
   currentViewMode = 'todo',
   isHidden = false,
@@ -184,3 +184,5 @@ export default function TaskList({
     </section>
   );
 }
+
+export default TaskList;

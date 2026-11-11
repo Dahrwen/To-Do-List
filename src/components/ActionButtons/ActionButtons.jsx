@@ -53,7 +53,7 @@ const FILTER_OPTIONS = [
  * @param {Function} props.onArchiveDoubleClick - Double-click handler to toggle 3-row expanded view on "Archive"
  * @param {Function} props.onAddTaskClick - Handler to open the Add Task modal
  */
-export default function ActionButtons({
+export function ActionButtons({
   currentViewMode = 'todo',
   showBigCalendar = false,
   activeFilter = 'all',
@@ -207,4 +207,7 @@ export default function ActionButtons({
     </section>
   );
 }
+
+export default ActionButtons;
+
 

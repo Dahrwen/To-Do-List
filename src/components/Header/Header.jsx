@@ -50,7 +50,7 @@ import './Header.css';
  * - onSearch: function, callback invoked when user presses Enter or clicks search icon
  * - onLogout: function, callback invoked when user clicks "Log out"
  */
-export default function Header({
+export function Header({
   userName,
   userAvatar,
   isClassroomConnected = false,
@@ -252,4 +252,7 @@ export default function Header({
     </header>
   );
 }
+
+export default Header;
+
 

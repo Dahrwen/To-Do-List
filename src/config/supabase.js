@@ -64,8 +64,8 @@ if (typeof window !== 'undefined' && window.location.hash) {
 // Read the Supabase project URL and anon public key from Vite's environment variables (.env.local).
 // In Vite, only variables prefixed with "VITE_" are exposed to browser client code.
 // Secret keys (like SUPABASE_SERVICE_ROLE_KEY or GOOGLE_CLIENT_SECRET) are never placed here.
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY || 'placeholder-anon-key';
 
 // Create and export the shared Supabase client instance used across the entire frontend
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);

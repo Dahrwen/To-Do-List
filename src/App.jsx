@@ -48,6 +48,9 @@ import { createPortal } from 'react-dom';
 import {
   supabase,
   getGoogleProviderToken,
+  getMicrosoftProviderToken,
+  MICROSOFT_GRAPH_READONLY_SCOPES,
+  MICROSOFT_TENANT_ID,
   KEEP_SIGNED_IN_KEY,
 } from './config/supabase';
 
@@ -66,6 +69,10 @@ import {
   syncGoogleClassroomTasks,
   getHiddenClassroomCourses,
 } from './services/classroomSync';
+import {
+  syncMicrosoftTeamsTasks,
+  getHiddenTeamsCourses,
+} from './services/teamsSync';
 
 // Immediately capture Google OAuth provider_token from URL hash on module load
 if (typeof window !== 'undefined' && window.location.hash) {
@@ -110,9 +117,10 @@ export const formatCapitalizedFirstName = (name) => {
 };
 
 export default function App() {
-  // Concurrency locks: prevent multiple account-sync or classroom-sync requests from running simultaneously
+  // Concurrency locks: prevent multiple account-sync or classroom/teams-sync requests from running simultaneously
   const isSyncingRef = useRef(false);
   const isClassroomSyncingRef = useRef(false);
+  const isTeamsSyncingRef = useRef(false);
   const currentUserRef = useRef(null);
 
   // Authentication & active session state
@@ -146,6 +154,12 @@ export default function App() {
     return localStorage.getItem('classroom_connected') === 'true';
   });
   const [isSyncingClassroom, setIsSyncingClassroom] = useState(false);
+
+  // Microsoft Teams integration state
+  const [isTeamsConnected, setIsTeamsConnected] = useState(() => {
+    return localStorage.getItem('ms_teams_connected') === 'true';
+  });
+  const [isSyncingTeams, setIsSyncingTeams] = useState(false);
   const [isManageCoursesOpen, setIsManageCoursesOpen] = useState(false);
   const [classroomCourses, setClassroomCourses] = useState(() => {
     try {
@@ -165,18 +179,27 @@ export default function App() {
   });
 
   /**
-   * Checks whether a task belongs to a hidden Google Classroom course.
+   * Checks whether a task belongs to a hidden Google Classroom or Microsoft Teams course.
    */
   const isTaskFromHiddenCourse = (task) => {
     const desc = task?.Description || '';
-    if (!desc.startsWith('[Google Classroom]')) return false;
-    const courseName = desc
-      .split('\n')[0]
-      .replace('[Google Classroom]', '')
-      .trim()
-      .toLowerCase();
-    const hiddenSet = getHiddenClassroomCourses();
-    return hiddenSet.has(courseName);
+    if (desc.startsWith('[Google Classroom]')) {
+      const courseName = desc
+        .split('\n')[0]
+        .replace('[Google Classroom]', '')
+        .trim()
+        .toLowerCase();
+      return getHiddenClassroomCourses().has(courseName);
+    }
+    if (desc.startsWith('[Microsoft Teams]')) {
+      const courseName = desc
+        .split('\n')[0]
+        .replace('[Microsoft Teams]', '')
+        .trim()
+        .toLowerCase();
+      return getHiddenTeamsCourses().has(courseName);
+    }
+    return false;
   };
 
   /**
@@ -288,12 +311,20 @@ export default function App() {
       task.source === 'google_classroom' ||
       Boolean(task.Description && task.Description.includes('[Google Classroom]'));
 
+    const isMsTeams =
+      task.source === 'ms_teams' ||
+      Boolean(task.Description && task.Description.includes('[Microsoft Teams]'));
+
+    let taskSource = 'manual';
+    if (isGoogleClassroom) taskSource = 'google_classroom';
+    else if (isMsTeams) taskSource = 'ms_teams';
+
     return {
       ...task,
       name: task.TaskName,
       categories: selectedTypes,
       deadLine: dateString,
-      source: isGoogleClassroom ? 'google_classroom' : 'manual',
+      source: taskSource,
     };
   };
 
@@ -589,6 +620,62 @@ export default function App() {
             setIsSyncingClassroom(false);
           });
       }
+
+      // If user is resolved and Microsoft Teams is connected (or pending OAuth callback), trigger sync
+      const activeMsToken = getMicrosoftProviderToken();
+      const wasTeamsOAuthPending =
+        sessionStorage.getItem('ms_teams_oauth_pending') === 'true';
+
+      if (
+        resolvedUserId &&
+        activeMsToken &&
+        !isTeamsSyncingRef.current &&
+        (localStorage.getItem('ms_teams_connected') === 'true' ||
+          wasTeamsOAuthPending)
+      ) {
+        isTeamsSyncingRef.current = true;
+        setIsSyncingTeams(true);
+
+        syncMicrosoftTeamsTasks(resolvedUserId, activeMsToken)
+          .then(({ syncedCount, activeSyncedCount, archivedSyncedCount, autoFinishedCount, totalFound }) => {
+            localStorage.setItem('ms_teams_connected', 'true');
+            setIsTeamsConnected(true);
+            refreshAllData(resolvedUserId, 'todo');
+
+            if (wasTeamsOAuthPending) {
+              sessionStorage.removeItem('ms_teams_oauth_pending');
+              if (syncedCount > 0) {
+                let alertMsg = `Successfully imported ${syncedCount} assignment(s) from Microsoft Teams!`;
+                if (archivedSyncedCount > 0 && activeSyncedCount > 0) {
+                  alertMsg = `Imported ${activeSyncedCount} active assignment(s) to To-Do List and ${archivedSyncedCount} completed assignment(s) to Archive from Microsoft Teams!`;
+                }
+                if (autoFinishedCount > 0) {
+                  alertMsg += ` Also automatically finished ${autoFinishedCount} submitted task(s)!`;
+                }
+                alert(alertMsg);
+              } else if (totalFound > 0) {
+                alert(`Synced ✓ All ${totalFound} Microsoft Teams assignment(s) are up to date!`);
+              } else {
+                alert('Microsoft Teams connected ✓ No published assignments found.');
+              }
+            }
+          })
+          .catch((e) => {
+            console.warn('Microsoft Teams sync error:', e.message);
+            if (e.needsReauth) {
+              sessionStorage.removeItem('ms_provider_token');
+              localStorage.removeItem('ms_provider_token');
+            }
+            if (wasTeamsOAuthPending) {
+              sessionStorage.removeItem('ms_teams_oauth_pending');
+              alert('Microsoft Teams Sync Notice:\n\n' + e.message);
+            }
+          })
+          .finally(() => {
+            isTeamsSyncingRef.current = false;
+            setIsSyncingTeams(false);
+          });
+      }
     },
     [syncAccountRecord, refreshAllData]
   );
@@ -604,9 +691,12 @@ export default function App() {
     }
     sessionStorage.removeItem('google_provider_token');
     localStorage.removeItem('google_provider_token');
+    sessionStorage.removeItem('ms_provider_token');
+    localStorage.removeItem('ms_provider_token');
     localStorage.removeItem(KEEP_SIGNED_IN_KEY);
     sessionStorage.removeItem('classroom_oauth_pending');
     sessionStorage.removeItem('classroom_auto_reauth_done');
+    sessionStorage.removeItem('ms_teams_oauth_pending');
     currentUserRef.current = null;
     setCurrentUser(null);
     setIsAuthOpen(true);
@@ -955,10 +1045,20 @@ export default function App() {
           existingTask.Description.includes('[Google Classroom]')
       );
 
-    // 2. Backend/Service Mutation Guard: reject any attempt to alter a Google Classroom deadline
+    const isTeamsOrigin =
+      selectedTask?.source === 'ms_teams' ||
+      Boolean(
+        existingTask.Description &&
+          existingTask.Description.includes('[Microsoft Teams]')
+      );
+
+    // 2. Backend/Service Mutation Guard: reject any attempt to alter an external LMS deadline or MS Teams title
     const sanitizedPayload = { ...updatedData };
-    if (isClassroomOrigin && 'Deadline' in sanitizedPayload) {
+    if ((isClassroomOrigin || isTeamsOrigin) && 'Deadline' in sanitizedPayload) {
       delete sanitizedPayload.Deadline;
+    }
+    if (isTeamsOrigin && 'TaskName' in sanitizedPayload) {
+      delete sanitizedPayload.TaskName;
     }
 
     const { error } = await supabase
@@ -1224,16 +1324,135 @@ export default function App() {
     }
   };
 
-  // Disconnects Google Classroom integration
+  // Disconnects Google Classroom integration (without clearing KEEP_SIGNED_IN_KEY or MS Teams)
   const handleDisconnectClassroom = () => {
     localStorage.removeItem('classroom_connected');
     sessionStorage.removeItem('google_provider_token');
     localStorage.removeItem('google_provider_token');
-    localStorage.removeItem(KEEP_SIGNED_IN_KEY);
     sessionStorage.removeItem('classroom_oauth_pending');
     sessionStorage.removeItem('classroom_auto_reauth_done');
     setIsClassroomConnected(false);
     alert('Google Classroom disconnected.');
+  };
+
+  // ============================================================================
+  // MICROSOFT TEAMS INTEGRATION HANDLERS (STRICTLY READ-ONLY)
+  // ============================================================================
+
+  // Connects or syncs Microsoft Teams assignments via Microsoft Graph Education API
+  const handleConnectTeams = async () => {
+    if (isSyncingTeams || isTeamsSyncingRef.current) return;
+    const activeUserId = currentUser?.userID || currentUserRef.current?.userID;
+    if (!activeUserId) {
+      alert('Please log in first to connect Microsoft Teams.');
+      return;
+    }
+
+    setIsSyncingTeams(true);
+    try {
+      const storedMsToken = getMicrosoftProviderToken();
+
+      if (storedMsToken) {
+        try {
+          const {
+            syncedCount,
+            updatedCount,
+            autoFinishedCount,
+            removedCount,
+            activeSyncedCount,
+            archivedSyncedCount,
+            totalFound,
+            coursesCount,
+          } = await syncMicrosoftTeamsTasks(activeUserId, storedMsToken);
+
+          localStorage.setItem('ms_teams_connected', 'true');
+          setIsTeamsConnected(true);
+          refreshAllData(activeUserId, currentViewMode);
+
+          if (syncedCount > 0) {
+            let alertMsg = '';
+            if (archivedSyncedCount > 0 && activeSyncedCount > 0) {
+              alertMsg = `Successfully imported ${activeSyncedCount} active assignment(s) to To-Do List and ${archivedSyncedCount} completed assignment(s) to Archive from Microsoft Teams!`;
+            } else if (archivedSyncedCount > 0) {
+              alertMsg = `Imported ${archivedSyncedCount} completed Microsoft Teams assignment(s) into Archive!`;
+            } else {
+              alertMsg = `Successfully imported ${syncedCount} new assignment(s) from Microsoft Teams!`;
+            }
+            if (autoFinishedCount > 0) {
+              alertMsg += ` Also automatically finished ${autoFinishedCount} submitted task(s)!`;
+            }
+            alert(alertMsg);
+            return;
+          } else if (autoFinishedCount > 0) {
+            alert(
+              `Synced ✓ Automatically finished ${autoFinishedCount} task(s) submitted on Microsoft Teams and moved to Archive!`
+            );
+            return;
+          } else if (updatedCount > 0 || removedCount > 0) {
+            alert(
+              `Synced ✓ Updated ${updatedCount} Microsoft Teams task(s) and cleaned up ${removedCount} hidden class task(s).`
+            );
+            return;
+          } else if (totalFound > 0) {
+            alert(
+              `Synced ✓ All ${totalFound} Microsoft Teams assignment(s) across ${coursesCount} class(es) are already up to date!`
+            );
+            return;
+          } else {
+            alert(
+              `Synced ✓ Scanned ${coursesCount || 0} Microsoft Teams class(es), no published assignments found.`
+            );
+            return;
+          }
+        } catch (syncErr) {
+          console.warn('Microsoft Teams sync attempt error:', syncErr);
+          if (syncErr.needsReauth === false) {
+            alert(syncErr.message);
+            return;
+          }
+          sessionStorage.removeItem('ms_provider_token');
+          localStorage.removeItem('ms_provider_token');
+        }
+      }
+
+      // Initiate read-only Microsoft OAuth authorization via Supabase Azure provider
+      localStorage.setItem('ms_teams_connected', 'true');
+      sessionStorage.setItem('ms_teams_oauth_pending', 'true');
+      setIsTeamsConnected(true);
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'azure',
+        options: {
+          redirectTo: window.location.origin,
+          scopes: MICROSOFT_GRAPH_READONLY_SCOPES,
+          queryParams: {
+            tenant: MICROSOFT_TENANT_ID,
+            prompt: 'select_account',
+          },
+        },
+      });
+
+      if (error) throw error;
+    } catch (err) {
+      sessionStorage.removeItem('ms_teams_oauth_pending');
+      console.error('Microsoft Teams sync error:', err);
+      alert(
+        'Could not sync with Microsoft Teams: ' +
+          (err.message || 'Please grant read-only permissions to sync assignments.')
+      );
+    } finally {
+      setIsSyncingTeams(false);
+    }
+  };
+
+  // Disconnects Microsoft Teams integration without affecting Google Classroom
+  const handleDisconnectTeams = () => {
+    localStorage.removeItem('ms_teams_connected');
+    sessionStorage.removeItem('ms_provider_token');
+    localStorage.removeItem('ms_provider_token');
+    sessionStorage.removeItem('ms_teams_oauth_pending');
+    setIsTeamsConnected(false);
+    alert('Microsoft Teams disconnected.');
   };
 
   // ============================================================================
@@ -1280,6 +1499,10 @@ export default function App() {
           onConnectClassroom={handleConnectClassroom}
           onManageCourses={handleOpenManageCourses}
           onDisconnectClassroom={handleDisconnectClassroom}
+          isTeamsConnected={isTeamsConnected}
+          isSyncingTeams={isSyncingTeams}
+          onConnectTeams={handleConnectTeams}
+          onDisconnectTeams={handleDisconnectTeams}
           onSearch={handleSearch}
           onLogout={handleLogout}
         />

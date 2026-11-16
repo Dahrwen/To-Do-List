@@ -2,7 +2,8 @@ node_modules
 dist
 .vite
 .env
-.env.local
+.env.*
+!.env.example
 .build.txt
 techstack.txt
 techstack

@@ -5,22 +5,20 @@
  * ============================================================================
  */
 
-/*LogIn CSS*/
+/* LogIn / SignUp Modal Container */
 .logcontainer {
-    background-color: #f4f4f6;
-    border-style: solid;
-    border-color: #000000;
-    border-width: 3px;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    background-color: #ffffff;
+    border: 2.5px solid #000000;
+    border-radius: 22px;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.22);
     position: fixed;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%) scale(1.25);
+    transform: translate(-50%, -50%) scale(1.1);
     overflow: hidden;
-    width: 768px;
-    max-width: 100%;
-    min-height: 480px;
+    width: 780px;
+    max-width: 92vw;
+    min-height: 500px;
     opacity: 1;
     visibility: visible;
     transition: opacity 300ms ease, transform 300ms ease, visibility 300ms ease;
@@ -32,60 +30,58 @@
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate(-50%, -50%) scale(0.95);
     transition: opacity 300ms ease, transform 300ms ease, visibility 300ms ease;
 }
 
 .logcontainer form {
-    background-color: #f4f4f6;
+    background-color: #ffffff;
     display: flex;
     justify-content: center;
     flex-direction: column;
     align-items: flex-start;
-    padding: 0 45px;
+    padding: 32px 42px;
     height: 100%;
     text-align: left;
 }
 
-.sign-in form h1::before {
-    content: "WELCOME BACK";
+/* Blue Eyebrow ("WELCOME BACK" / "Create an account") */
+.auth-eyebrow {
     display: block;
     font-size: 11px;
     font-weight: 800;
-    color: #6BA1F0;
+    color: #2B96DE;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 4px;
+    letter-spacing: 0.7px;
+    margin-bottom: 2px;
 }
 
-.sign-up form h1::before {
-    content: "START FOR FREE";
-    display: block;
-    font-size: 11px;
-    font-weight: 800;
-    color: #6BA1F0;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 4px;
+.auth-eyebrow-signup {
+    text-transform: none;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1px;
 }
 
 .logcontainer h1 {
     font-family: 'Poppins', sans-serif;
-    font-size: 2.1rem;
+    font-size: 1.9rem;
     font-weight: 800;
-    color: #111111;
-    margin-top: 0;
-    margin-bottom: 16px;
+    color: #000000;
+    margin: 0 0 14px 0;
+    line-height: 1.15;
     text-align: left !important;
 }
 
 .logcontainer label {
     font-family: 'Poppins', sans-serif;
-    margin-top: 12px;
-    margin-bottom: 6px;
-    font-size: 13.5px;
+    margin-top: 10px;
+    margin-bottom: 4px;
+    margin-left: 6px;
+    font-size: 11px;
     font-weight: 700;
     color: #111111;
+    letter-spacing: 0.4px;
     text-align: left;
     display: block;
 }
@@ -93,8 +89,8 @@
 .logcontainer input {
     font-family: 'Poppins', sans-serif;
     background-color: #ffffff;
-    border: 2px solid #000000;
-    padding: 11px 14px;
+    border: 1.75px solid #000000;
+    padding: 10px 14px;
     font-size: 13.5px;
     border-radius: 10px;
     width: 100%;
@@ -103,70 +99,114 @@
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.logcontainer input:focus {
+    border-color: #1B5E98;
+    box-shadow: 0 0 0 2px rgba(27, 94, 152, 0.18);
+}
+
 .logcontainer input::placeholder {
-    color: #999999;
+    color: #a3a3a3;
     opacity: 1;
 }
 
-.logcontainer a {
-    font-family: 'Poppins', sans-serif;
-    color: #6BA1F0;
-    font-size: 13px;
-    font-weight: 600;
-    text-decoration: none;
-    margin: 12px 0 18px;
-    display: inline-block;
+/* Keep me signed in row */
+.login-options-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin: 12px 0 10px;
 }
 
-.logcontainer a:hover {
-    text-decoration: underline;
+.logcontainer .keep-signed-in-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: #222222;
+    letter-spacing: 0;
+    cursor: pointer;
+    user-select: none;
 }
 
-.logcontainer p {
-    font-family: 'Poppins', sans-serif;
-    font-size: 14px;
-    line-height: 20px;
-    letter-spacing: 0.3px;
-    margin: 20px 0;
+.logcontainer .keep-signed-in-label input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    padding: 0;
+    margin: 0;
+    border: 1.75px solid #000000;
+    border-radius: 4px;
+    accent-color: #1B5E98;
+    cursor: pointer;
+    flex-shrink: 0;
 }
 
-.logcontainer form button[type="submit"] {
+/* Primary Submit Button (Deep Blue) */
+.logcontainer form .auth-submit-btn {
     font-family: 'Poppins', sans-serif;
-    background-color: #6BA1F0;
+    background-color: #1B5E98;
     color: #ffffff;
-    font-size: 15px;
+    font-size: 13.5px;
     font-weight: 700;
-    padding: 12px 0;
-    border: 2.5px solid #000000;
+    padding: 11px 0;
+    border: 1.75px solid #000000;
     border-radius: 10px;
-    letter-spacing: normal;
-    text-transform: none;
-    margin-top: 8px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    margin-top: 12px;
     cursor: pointer;
     width: 100%;
-    box-shadow: 1px 3px 6px rgba(0, 0, 0, 0.15);
     transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
-.logcontainer form button[type="submit"]:hover {
-    background-color: #5591e6;
+.logcontainer form .auth-submit-btn:hover:not(:disabled) {
+    background-color: #154d7e;
 }
 
+.logcontainer form .auth-submit-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Divider ("──── or ────") */
+.auth-divider {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin: 14px 0 12px 0;
+    color: #111111;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #333333;
+}
+
+.auth-divider span {
+    padding: 0 12px;
+}
+
+/* Google OAuth Button */
 .google-btn {
     font-family: 'Poppins', sans-serif;
     background-color: #ffffff;
     color: #111111;
-    font-size: 13.5px;
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 600;
     padding: 10px 0;
-    border: 2px solid #000000;
+    border: 1.75px solid #000000;
     border-radius: 10px;
     letter-spacing: normal;
     text-transform: none;
-    margin-top: 6px;
+    margin-top: 0;
     cursor: pointer;
     width: 100%;
-    box-shadow: 1px 3px 6px rgba(0, 0, 0, 0.12);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -175,41 +215,14 @@
 }
 
 .google-btn:hover {
-    background-color: #f2f2f2;
+    background-color: #f5f5f5;
 }
 
-.google-btn i {
-    font-size: 16px;
-    color: #ea4335;
+.google-svg-icon {
+    flex-shrink: 0;
 }
 
-.auth-divider {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    margin: 8px 0 2px 0;
-    color: #777777;
-    font-size: 11px;
-    font-weight: 700;
-}
-
-.auth-divider::before,
-.auth-divider::after {
-    content: '';
-    flex: 1;
-    border-bottom: 1.5px solid #cccccc;
-}
-
-.auth-divider span {
-    padding: 0 10px;
-    letter-spacing: 0.5px;
-}
-
-.logcontainer button.hidden {
-    background-color: transparent;
-    border-color: #fff;
-}
-
+/* Sliding Form Containers */
 .form-container {
     position: absolute;
     top: 0;
@@ -242,7 +255,6 @@
 }
 
 @keyframes move {
-
     0%,
     49.99% {
         opacity: 0;
@@ -256,6 +268,7 @@
     }
 }
 
+/* Black Sliding Overlay Panel */
 .toggle-container {
     position: absolute;
     top: 0;
@@ -272,8 +285,8 @@
 }
 
 .toggle {
-    background: #141414;
-    color: #fff;
+    background: #000000;
+    color: #ffffff;
     height: 100%;
     position: relative;
     left: -100%;
@@ -294,7 +307,7 @@
     justify-content: center;
     flex-direction: column;
     align-items: flex-start;
-    padding: 0 45px;
+    padding: 0 42px;
     text-align: left;
     top: 0;
     transition: all 0.6s ease-in-out;
@@ -302,45 +315,77 @@
 
 .toggle-panel h1 {
     font-family: 'Poppins', sans-serif;
-    font-size: 2.2rem;
+    font-size: 1.85rem;
     font-weight: 800;
     color: #ffffff;
-    margin-top: 0;
-    margin-bottom: 16px;
+    margin: 0 0 18px 0;
     line-height: 1.2;
-    letter-spacing: -0.5px;
+    letter-spacing: -0.3px;
 }
 
 .toggle-panel p {
     font-family: 'Poppins', sans-serif;
-    font-size: 14.5px;
+    font-size: 13.5px;
     line-height: 1.5;
-    color: #b3b3b3;
-    margin: 0 0 36px 0;
+    color: #a8a8a8;
+    margin: 0 0 28px 0;
     max-width: 290px;
 }
 
-.toggle-panel button {
-    font-family: 'Poppins', sans-serif !important;
-    background-color: transparent !important;
-    color: #ffffff !important;
-    border: 2.5px solid #ffffff !important;
-    border-radius: 10px !important;
-    font-size: 15px !important;
-    font-weight: 700 !important;
-    padding: 11px 0 !important;
-    width: 170px !important;
-    text-align: center !important;
-    text-transform: none !important;
-    cursor: pointer;
-    letter-spacing: normal !important;
-    margin-top: 0 !important;
-    transition: background-color 0.2s ease, color 0.2s ease;
+/* Feature Checklist inside "Create an account to:" */
+.promo-feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 32px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
 }
 
-.toggle-panel button:hover {
-    background-color: #ffffff !important;
-    color: #141414 !important;
+.promo-feature-list li {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    color: #d4d4d4;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.promo-feature-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background-color: #161616;
+    border: 1px solid #333333;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #e5e5e5;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+/* White Solid CTA Button inside Black Panel */
+.toggle-panel .promo-cta-btn {
+    font-family: 'Poppins', sans-serif;
+    background-color: #ffffff;
+    color: #000000;
+    border: none;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-weight: 800;
+    padding: 11px 0;
+    width: 185px;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.toggle-panel .promo-cta-btn:hover {
+    background-color: #e6e6e6;
 }
 
 .toggle-left {
@@ -360,22 +405,13 @@
     transform: translateX(200%);
 }
 
-.logcontainer h1 {
-    margin-top: 0;
-    margin-bottom: 12px;
-}
-
-.logcontainer label {
-    margin-top: 8px;
-    margin-bottom: 4px;
-    font-size: 13px;
-}
-
-/*Error and Success messsage*/
+/* Error and Success Messages */
 .success {
     background-color: #30df2a;
-    margin: 8px 0;
-    padding: 10px 15px;
+    color: #000000;
+    font-weight: 600;
+    margin: 0 0 10px 0;
+    padding: 9px 12px;
     font-size: 12px;
     border-radius: 8px;
     width: 100%;
@@ -385,12 +421,13 @@
 
 .error {
     background-color: #db1616;
-    margin: 8px 0;
-    padding: 10px 15px;
-    font-size: 13px;
+    color: #ffffff;
+    font-weight: 600;
+    margin: 0 0 10px 0;
+    padding: 9px 12px;
+    font-size: 12px;
     border-radius: 8px;
     width: 100%;
     outline: none;
     text-align: center;
 }
-

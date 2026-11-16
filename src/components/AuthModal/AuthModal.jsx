@@ -29,8 +29,40 @@
  */
 
 import React, { useState } from 'react';
-import { supabase } from '../../config/supabase';
+import { supabase, setAuthPersistence } from '../../config/supabase';
 import './AuthModal.css';
+
+/**
+ * Multi-color Google "G" SVG icon for OAuth buttons.
+ */
+function GoogleLogo() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="google-svg-icon"
+    >
+      <path
+        fill="#EA4335"
+        d="M12 5c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.09 14.97 0 12 0 7.39 0 3.44 2.64 1.52 6.49l3.67 2.84C6.06 6.72 8.79 5 12 5z"
+      />
+      <path
+        fill="#4285F4"
+        d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.51-1.14 2.79-2.4 3.65l3.73 2.9c2.18-2.01 3.69-4.97 3.69-8.79z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.19 14.67A7.22 7.22 0 0 1 4.8 12c0-.93.16-1.83.39-2.67L1.52 6.49A11.97 11.97 0 0 0 0 12c0 1.94.46 3.77 1.52 5.51l3.67-2.84z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.73-2.9c-1.08.72-2.45 1.16-4.2 1.16-3.21 0-5.94-1.72-6.81-4.33l-3.67 2.84C3.44 21.36 7.39 24 12 24z"
+      />
+    </svg>
+  );
+}
 
 /**
  * AuthModal Component
@@ -60,9 +92,11 @@ export function AuthModal({ isOpen, onLoginSuccess }) {
   // ============================================================================
   const [logEmail, setLogEmail] = useState('');               // Login email
   const [logPass, setLogPass] = useState('');                 // Login password
+  const [keepSignedIn, setKeepSignedIn] = useState(false);    // Secure-by-default: ephemeral unless checked
   const [logMessage, setLogMessage] = useState('');           // Error or success banner text
   const [logMessageType, setLogMessageType] = useState('');   // 'error' | 'success'
   const [isLogLoading, setIsLogLoading] = useState(false);     // Disables submit button while requesting
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false); // Prevents duplicate Google OAuth redirects
 
   /**
    * Handles user registration:
@@ -156,6 +190,9 @@ export function AuthModal({ isOpen, onLoginSuccess }) {
     setIsLogLoading(true);
 
     try {
+      // Configure session persistence preference before signing in
+      setAuthPersistence(keepSignedIn);
+
       // 1. Attempt official Supabase Auth login
       const { data, error } = await supabase.auth.signInWithPassword({
         email: logEmail,
@@ -203,7 +240,12 @@ export function AuthModal({ isOpen, onLoginSuccess }) {
    * Redirects user to Google OAuth consent screen, then back to the application.
    */
   const handleGoogleAuth = async () => {
+    if (isGoogleLoading) return;
+    setIsGoogleLoading(true);
     try {
+      // Preserve the user's persistence preference across the OAuth redirect
+      setAuthPersistence(keepSignedIn);
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -212,12 +254,14 @@ export function AuthModal({ isOpen, onLoginSuccess }) {
       });
 
       if (error) {
+        setIsGoogleLoading(false);
         setLogMessage(error.message);
         setLogMessageType('error');
         setRegMessage(error.message);
         setRegMessageType('error');
       }
     } catch (err) {
+      setIsGoogleLoading(false);
       const msg = err.message || 'An error occurred connecting to Google.';
       setLogMessage(msg);
       setLogMessageType('error');
@@ -240,49 +284,56 @@ export function AuthModal({ isOpen, onLoginSuccess }) {
               {regMessage}
             </div>
           )}
-          <h1>Create Account</h1>
-          <label htmlFor="regisName">Name</label>
+          <span className="auth-eyebrow auth-eyebrow-signup">Create an account</span>
+          <h1>SIGN UP</h1>
+
+          <label htmlFor="regisName">NAME</label>
           <input
             type="text"
             id="regisName"
-            placeholder="Name"
+            placeholder="Enter your name"
             required
             value={regName}
             onChange={(e) => setRegName(e.target.value)}
           />
-          <label htmlFor="regisEmail">Email</label>
+
+          <label htmlFor="regisEmail">EMAIL</label>
           <input
             type="email"
             id="regisEmail"
-            placeholder="Email"
+            placeholder="Enter your email"
             required
             value={regEmail}
             onChange={(e) => setRegEmail(e.target.value)}
           />
-          <label htmlFor="regisPassword">Password</label>
+
+          <label htmlFor="regisPassword">PASSWORD</label>
           <input
             type="password"
             id="regisPassword"
-            placeholder="password"
+            placeholder="Create a password"
             required
             value={regPassword}
             onChange={(e) => setRegPassword(e.target.value)}
           />
-          <button type="submit" disabled={isRegLoading}>
-            {isRegLoading ? 'Signing Up...' : 'Sign Up'}
+
+          <button type="submit" className="auth-submit-btn" disabled={isRegLoading}>
+            {isRegLoading ? 'SIGNING UP...' : 'SIGN UP'}
           </button>
-          
+
           <div className="auth-divider">
-            <span>OR</span>
+            <span>or</span>
           </div>
 
           {/* Google OAuth Sign Up Button */}
           <button
             type="button"
             className="google-btn"
+            disabled={isGoogleLoading}
             onClick={handleGoogleAuth}
           >
-            <i className="fa-brands fa-google"></i> Sign Up with Google
+            <GoogleLogo />
+            <span>{isGoogleLoading ? 'Redirecting...' : 'Continue with Google'}</span>
           </button>
         </form>
       </div>
@@ -295,41 +346,58 @@ export function AuthModal({ isOpen, onLoginSuccess }) {
               {logMessage}
             </div>
           )}
-          <h1 style={{ textAlign: 'center' }}>Sign In</h1>
-          <label htmlFor="logEmail">Email</label>
+          <span className="auth-eyebrow">WELCOME BACK</span>
+          <h1>SIGN IN</h1>
+
+          <label htmlFor="logEmail">EMAIL</label>
           <input
             type="email"
             id="logEmail"
-            placeholder="Email"
+            placeholder="Enter your email"
             required
             value={logEmail}
             onChange={(e) => setLogEmail(e.target.value)}
           />
-          <label htmlFor="logPass">Password</label>
+
+          <label htmlFor="logPass">PASSWORD</label>
           <input
             type="password"
             id="logPass"
-            placeholder="password"
+            placeholder="Enter your password"
             required
             value={logPass}
             onChange={(e) => setLogPass(e.target.value)}
           />
-          <a href="#">Forgot Your Password?</a>
-          <button type="submit" disabled={isLogLoading}>
-            {isLogLoading ? 'Signing In...' : 'Sign In'}
+
+          <div className="login-options-row">
+            <label htmlFor="keepSignedIn" className="keep-signed-in-label">
+              <input
+                type="checkbox"
+                id="keepSignedIn"
+                checked={keepSignedIn}
+                onChange={(e) => setKeepSignedIn(e.target.checked)}
+              />
+              <span>Keep me signed in</span>
+            </label>
+          </div>
+
+          <button type="submit" className="auth-submit-btn" disabled={isLogLoading}>
+            {isLogLoading ? 'SIGNING IN...' : 'SIGN IN'}
           </button>
 
           <div className="auth-divider">
-            <span>OR</span>
+            <span>or</span>
           </div>
 
           {/* Google OAuth Sign In Button */}
           <button
             type="button"
             className="google-btn"
+            disabled={isGoogleLoading}
             onClick={handleGoogleAuth}
           >
-            <i className="fa-brands fa-google"></i> Continue with Google
+            <GoogleLogo />
+            <span>{isGoogleLoading ? 'Redirecting...' : 'Continue with Google'}</span>
           </button>
         </form>
       </div>
@@ -339,33 +407,65 @@ export function AuthModal({ isOpen, onLoginSuccess }) {
         <div className="toggle">
           {/* Left panel (shown when in Sign Up view, invites user to Sign In) */}
           <div className="toggle-panel toggle-left">
-            <h1>Welcome Back!</h1>
-            <p>Enter your personal details to use all of the site features</p>
+            <h1>Already have an account</h1>
+            <p>
+              Sign in to pick up your tasks, deadlines, and classes right where
+              you left off.
+            </p>
             <button
               type="button"
-              className="hidden"
+              className="promo-cta-btn"
               id="login"
               onClick={() => setIsActive(false)}
             >
-              Sign In
+              SIGN IN
             </button>
           </div>
 
           {/* Right panel (shown when in Sign In view, invites user to Sign Up) */}
           <div className="toggle-panel toggle-right">
-            <h1>Hello, Friend!</h1>
-            <p>
-              Create an account to start tracking your tasks, deadlines , and
-              classes in one place.
-            </p>
+            <h1>
+              Create an account
+              <br />
+              to:
+            </h1>
+            <ul className="promo-feature-list">
+              <li>
+                <span className="promo-feature-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                  </svg>
+                </span>
+                <span>Track activities.</span>
+              </li>
+              <li>
+                <span className="promo-feature-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                  </svg>
+                </span>
+                <span>Create tasks.</span>
+              </li>
+              <li>
+                <span className="promo-feature-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                </span>
+                <span>Schedule your week.</span>
+              </li>
+            </ul>
             <button
               type="button"
-              style={{ width: '50%' }}
-              className="hidden"
+              className="promo-cta-btn"
               id="register"
               onClick={() => setIsActive(true)}
             >
-              Sign Up
+              SIGN UP
             </button>
           </div>
         </div>

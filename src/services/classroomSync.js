@@ -42,6 +42,31 @@
 import { supabase } from '../config/supabase';
 
 /**
+ * Enforces the strict read-only Google Classroom invariant at the transport layer.
+ * Only permits HTTP GET requests to `https://classroom.googleapis.com/v1/` and
+ * explicitly blocks any assignment turn-in, reclaim, or mutation endpoints.
+ *
+ * @param {string} url - Google Classroom REST API URL
+ * @param {string} providerToken - User's short-lived Google OAuth access token
+ * @returns {Promise<Response>}
+ */
+function classroomReadOnlyGet(url, providerToken) {
+  if (typeof url !== 'string' || !url.startsWith('https://classroom.googleapis.com/v1/')) {
+    throw new Error('Blocked non-Classroom API request.');
+  }
+  if (/:(turnIn|reclaim|modifyAttachments|patch)\b/i.test(url)) {
+    throw new Error('Blocked write/turn-in action: Google Classroom integration is strictly read-only.');
+  }
+  return fetch(url, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${providerToken}`,
+      Accept: 'application/json',
+    },
+  });
+}
+
+/**
  * Reads the list of user-hidden Google Classroom course names from `localStorage`.
  *
  * @returns {Set<string>} A Set of lowercase, trimmed course names that the user chose to hide
@@ -121,12 +146,7 @@ export async function syncGoogleClassroomTasks(userId, providerToken) {
   for (const url of endpoints) {
     try {
       // Send a read-only GET request with the user's OAuth Bearer token
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${providerToken}`,
-          Accept: 'application/json',
-        },
-      });
+      const res = await classroomReadOnlyGet(url, providerToken);
 
       if (res.ok) {
         anyEndpointSucceeded = true;
@@ -385,14 +405,9 @@ export async function syncGoogleClassroomTasks(userId, providerToken) {
   for (const course of visibleActiveCourses) {
     try {
       // Fetch published coursework items for this course (read-only GET)
-      const cwRes = await fetch(
+      const cwRes = await classroomReadOnlyGet(
         `https://classroom.googleapis.com/v1/courses/${course.id}/courseWork?courseWorkStates=PUBLISHED&pageSize=100`,
-        {
-          headers: {
-            Authorization: `Bearer ${providerToken}`,
-            Accept: 'application/json',
-          },
-        }
+        providerToken
       );
 
       if (!cwRes.ok) {
@@ -435,12 +450,7 @@ export async function syncGoogleClassroomTasks(userId, providerToken) {
               subUrl += `&pageToken=${encodeURIComponent(subPageToken)}`;
             }
 
-            const subRes = await fetch(subUrl, {
-              headers: {
-                Authorization: `Bearer ${providerToken}`,
-                Accept: 'application/json',
-              },
-            });
+            const subRes = await classroomReadOnlyGet(subUrl, providerToken);
 
             if (subRes.ok) {
               submissionsChecked = true;
@@ -468,14 +478,9 @@ export async function syncGoogleClassroomTasks(userId, providerToken) {
           courseWorkList.map(async (cw) => {
             if (!cw || !cw.id) return;
             try {
-              const cwSubRes = await fetch(
+              const cwSubRes = await classroomReadOnlyGet(
                 `https://classroom.googleapis.com/v1/courses/${course.id}/courseWork/${cw.id}/studentSubmissions`,
-                {
-                  headers: {
-                    Authorization: `Bearer ${providerToken}`,
-                    Accept: 'application/json',
-                  },
-                }
+                providerToken
               );
               if (cwSubRes.ok) {
                 submissionsChecked = true;

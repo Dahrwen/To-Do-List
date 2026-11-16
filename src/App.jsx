@@ -44,8 +44,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
-// Import the configured Supabase client instance and token helper
-import { supabase, getGoogleProviderToken } from './config/supabase';
+// Import the configured Supabase client instance and token/persistence helpers
+import {
+  supabase,
+  getGoogleProviderToken,
+  KEEP_SIGNED_IN_KEY,
+} from './config/supabase';
 
 // Import application UI components
 import AuthModal from './components/AuthModal';
@@ -112,8 +116,9 @@ export default function App() {
   const currentUserRef = useRef(null);
 
   // Authentication & active session state
-  const [currentUser, setCurrentUser] = useState(null); // Holds the currently logged-in user object
-  const [isAuthOpen, setIsAuthOpen] = useState(true);     // Whether the login/register modal is open
+  const [currentUser, setCurrentUser] = useState(null);       // Holds the currently logged-in user object
+  const [isAuthChecking, setIsAuthChecking] = useState(true);   // Blocks UI render until initial session check completes
+  const [isAuthOpen, setIsAuthOpen] = useState(false);          // Whether the login/register modal is open
 
   // View state: controls which main views are active or visible
   const [currentViewMode, setCurrentViewMode] = useState('todo'); // 'todo' for active tasks, 'archive' for completed tasks
@@ -570,26 +575,11 @@ export default function App() {
           .catch((e) => {
             console.warn('Classroom sync error:', e.message);
             if (e.needsReauth) {
+              // Clear expired/invalid Google token quietly; never auto-redirect to Google OAuth
               sessionStorage.removeItem('google_provider_token');
               localStorage.removeItem('google_provider_token');
-              // Automatically refresh expired Google OAuth token once per browser session
-              if (
-                localStorage.getItem('classroom_connected') === 'true' &&
-                sessionStorage.getItem('classroom_auto_reauth_done') !== 'true'
-              ) {
-                sessionStorage.setItem('classroom_auto_reauth_done', 'true');
-                supabase.auth.signInWithOAuth({
-                  provider: 'google',
-                  options: {
-                    redirectTo: window.location.origin,
-                    scopes:
-                      'https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me.readonly',
-                  },
-                });
-                return;
-              }
             }
-            if (wasOAuthPending || e.needsReauth === false) {
+            if (wasOAuthPending) {
               sessionStorage.removeItem('classroom_oauth_pending');
               alert('Google Classroom Sync Notice:\n\n' + e.message);
             }
@@ -614,7 +604,9 @@ export default function App() {
     }
     sessionStorage.removeItem('google_provider_token');
     localStorage.removeItem('google_provider_token');
+    localStorage.removeItem(KEEP_SIGNED_IN_KEY);
     sessionStorage.removeItem('classroom_oauth_pending');
+    sessionStorage.removeItem('classroom_auto_reauth_done');
     currentUserRef.current = null;
     setCurrentUser(null);
     setIsAuthOpen(true);
@@ -643,13 +635,23 @@ export default function App() {
       }
     }
 
-    // 2. Check initial active session ONCE on mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const activeToken = getGoogleProviderToken(session);
-      if (session?.user) {
-        handleLoginSuccess(session.user, activeToken);
-      }
-    });
+    // 2. Execute initial authentication check before rendering the UI
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        const activeToken = getGoogleProviderToken(session);
+        if (session?.user) {
+          handleLoginSuccess(session.user, activeToken);
+        } else {
+          setIsAuthOpen(true);
+        }
+      })
+      .catch(() => {
+        setIsAuthOpen(true);
+      })
+      .finally(() => {
+        setIsAuthChecking(false);
+      });
 
     // 3. Listen for auth state changes (e.g. Google OAuth redirect callback)
     const {
@@ -663,12 +665,15 @@ export default function App() {
         session?.user
       ) {
         handleLoginSuccess(session.user, activeToken);
+        setIsAuthChecking(false);
       } else if (event === 'SIGNED_OUT') {
         sessionStorage.removeItem('google_provider_token');
         localStorage.removeItem('google_provider_token');
+        localStorage.removeItem(KEEP_SIGNED_IN_KEY);
         currentUserRef.current = null;
         setCurrentUser(null);
         setIsAuthOpen(true);
+        setIsAuthChecking(false);
         setDisplayedTasks([]);
         setAllUnfinishedTasks([]);
       }
@@ -984,6 +989,7 @@ export default function App() {
 
   // Connects or syncs Google Classroom coursework
   const handleConnectClassroom = async () => {
+    if (isSyncingClassroom || isClassroomSyncingRef.current) return;
     const activeUserId = currentUser?.userID || currentUserRef.current?.userID;
     if (!activeUserId) {
       alert('Please log in first to connect Google Classroom.');
@@ -1223,7 +1229,9 @@ export default function App() {
     localStorage.removeItem('classroom_connected');
     sessionStorage.removeItem('google_provider_token');
     localStorage.removeItem('google_provider_token');
+    localStorage.removeItem(KEEP_SIGNED_IN_KEY);
     sessionStorage.removeItem('classroom_oauth_pending');
+    sessionStorage.removeItem('classroom_auto_reauth_done');
     setIsClassroomConnected(false);
     alert('Google Classroom disconnected.');
   };
@@ -1240,6 +1248,11 @@ export default function App() {
     safeCurrentPage * cardsPerPage,
     (safeCurrentPage + 1) * cardsPerPage
   );
+
+  // Prevent flashing the login modal or dashboard until the initial auth check resolves
+  if (isAuthChecking) {
+    return null;
+  }
 
   return (
     <>

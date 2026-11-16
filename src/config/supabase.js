@@ -36,25 +36,78 @@
 // Import createClient helper from the official Supabase JavaScript SDK
 import { createClient } from '@supabase/supabase-js';
 
-// ============================================================================
-// STEP 1: PRE-INITIALIZATION OAUTH HASH CAPTURE
-// ============================================================================
-// When Google OAuth redirects back to the app (e.g., https://app/#access_token=...&provider_token=...),
-// Supabase's GoTrueClient immediately parses and clears window.location.hash during createClient().
-// We intercept the hash first so the Google OAuth `provider_token` is never lost.
-if (typeof window !== 'undefined' && window.location.hash) {
-  try {
-    // Strip the leading '#' character and parse key-value parameters from the URL fragment
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const providerToken = hashParams.get('provider_token');
+// Key used to remember whether the user opted into persistent sessions ("Keep me signed in")
+export const KEEP_SIGNED_IN_KEY = 'auth_keep_signed_in';
 
-    // If Google returned a provider_token, cache it in browser storage for Classroom API calls
-    if (providerToken) {
-      sessionStorage.setItem('google_provider_token', providerToken);
-      localStorage.setItem('google_provider_token', providerToken);
+/**
+ * Returns whether the user has opted to stay signed in across browser restarts.
+ * Defaults to `false` (secure-by-default ephemeral session).
+ *
+ * @returns {boolean}
+ */
+export function getKeepSignedInPreference() {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem(KEEP_SIGNED_IN_KEY) === 'true';
+}
+
+/**
+ * Configures the session persistence preference before signing in.
+ *
+ * @param {boolean} keepSignedIn - True for persistent session, false for ephemeral tab session
+ */
+export function setAuthPersistence(keepSignedIn) {
+  if (typeof window === 'undefined') return;
+  sessionStorage.setItem('auth_tab_active', 'true');
+  localStorage.setItem(KEEP_SIGNED_IN_KEY, keepSignedIn ? 'true' : 'false');
+}
+
+// ============================================================================
+// STEP 1: EPHEMERAL SESSION ENFORCEMENT & PRE-INIT OAUTH HASH CAPTURE
+// ============================================================================
+if (typeof window !== 'undefined') {
+  const isOAuthCallback =
+    window.location.hash.includes('access_token=') ||
+    window.location.hash.includes('provider_token=') ||
+    window.location.search.includes('code=');
+
+  // If the user logged in with "Keep me signed in" OFF ('false') and closed the
+  // browser/tab (so sessionStorage 'auth_tab_active' is gone), clear the persisted
+  // Supabase auth token before createClient() initializes.
+  if (
+    !isOAuthCallback &&
+    localStorage.getItem(KEEP_SIGNED_IN_KEY) === 'false' &&
+    sessionStorage.getItem('auth_tab_active') !== 'true'
+  ) {
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('sb-') && k.endsWith('-auth-token')) {
+          localStorage.removeItem(k);
+        }
+      }
+      localStorage.removeItem('google_provider_token');
+    } catch {
+      // ignore storage errors
     }
-  } catch (e) {
-    console.warn('Could not parse provider_token from URL hash:', e);
+  }
+
+  // Mark current tab as active so refreshes and OAuth redirects preserve the session
+  sessionStorage.setItem('auth_tab_active', 'true');
+
+  if (window.location.hash) {
+    try {
+      // Strip the leading '#' character and parse key-value parameters from the URL fragment
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const providerToken = hashParams.get('provider_token');
+
+      // If Google returned a provider_token, cache it in browser storage for Classroom API calls
+      if (providerToken) {
+        sessionStorage.setItem('google_provider_token', providerToken);
+        localStorage.setItem('google_provider_token', providerToken);
+      }
+    } catch (e) {
+      console.warn('Could not parse provider_token from URL hash:', e);
+    }
   }
 }
 
@@ -87,6 +140,7 @@ if (typeof window !== 'undefined') {
     if (event === 'SIGNED_OUT') {
       sessionStorage.removeItem('google_provider_token');
       localStorage.removeItem('google_provider_token');
+      localStorage.removeItem(KEEP_SIGNED_IN_KEY);
     }
   });
 }

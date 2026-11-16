@@ -83,6 +83,10 @@ export function TaskDetailsModal({
     task.source === 'google_classroom' ||
     Boolean(task.Description && task.Description.includes('[Google Classroom]'));
 
+  const isMsTeams =
+    task.source === 'ms_teams' ||
+    Boolean(task.Description && task.Description.includes('[Microsoft Teams]'));
+
   const formatDeadlineDisplay = (t) => {
     if (t.deadLine && t.deadLine !== 'No due date') return t.deadLine;
     if (!t.Deadline) return 'No Due Date';
@@ -161,6 +165,20 @@ export function TaskDetailsModal({
                     />
                     <i className="fa-solid fa-lock" aria-hidden="true"></i>
                     <span>Managed by Classroom</span>
+                  </span>
+                )}
+                {isMsTeams && (
+                  <span
+                    className="classroom-lock-badge teams-lock-badge"
+                    title="Deadline managed by Microsoft Teams (Read-Only)"
+                  >
+                    <img
+                      src="/Pictures/MicrosoftTeams.svg"
+                      alt="Microsoft Teams"
+                      className="classroom-badge-icon"
+                    />
+                    <i className="fa-solid fa-lock" aria-hidden="true"></i>
+                    <span>Managed by MS Teams</span>
                   </span>
                 )}
               </div>
@@ -286,8 +304,13 @@ export function EditTaskModal({ isOpen, task, onClose, onUpdateTask }) {
     task.source === 'google_classroom' ||
     Boolean(task.Description && task.Description.includes('[Google Classroom]'));
 
+  const isMsTeams =
+    task.source === 'ms_teams' ||
+    Boolean(task.Description && task.Description.includes('[Microsoft Teams]'));
+
   const displayTitle = taskName || task.TaskName || 'Edit Task';
   const titleSizeClass = getAdaptiveTitleClass(displayTitle);
+  const isExternalLocked = isGoogleClassroom || isMsTeams;
 
   const handleTypeChange = (key) => {
     setTypes((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -297,12 +320,15 @@ export function EditTaskModal({ isOpen, task, onClose, onUpdateTask }) {
     e.preventDefault();
 
     const updatePayload = {
-      TaskName: taskName,
       ...types,
       Description: description,
     };
 
-    if (!isGoogleClassroom) {
+    if (!isMsTeams) {
+      updatePayload.TaskName = taskName;
+    }
+
+    if (!isExternalLocked) {
       let deadlineIso = null;
       if (deadline) {
         const timePart = deadlineTime || '23:59';
@@ -366,6 +392,9 @@ export function EditTaskModal({ isOpen, task, onClose, onUpdateTask }) {
                 required
                 placeholder={task.TaskName}
                 value={taskName}
+                disabled={isMsTeams}
+                readOnly={isMsTeams}
+                title={isMsTeams ? 'Assignment title managed by Microsoft Teams' : undefined}
                 onChange={(e) => setTaskName(e.target.value)}
               />
             </div>
@@ -394,10 +423,14 @@ export function EditTaskModal({ isOpen, task, onClose, onUpdateTask }) {
                 <label className="modal-field-label" htmlFor="edeadLine">
                   Deadline
                 </label>
-                {isGoogleClassroom ? (
+                {isExternalLocked ? (
                   <div
                     className="locked-deadline-box"
-                    title="Deadline managed by Google Classroom"
+                    title={
+                      isMsTeams
+                        ? 'Deadline managed by Microsoft Teams'
+                        : 'Deadline managed by Google Classroom'
+                    }
                   >
                     <div className="locked-deadline-inputs">
                       <input
@@ -419,12 +452,20 @@ export function EditTaskModal({ isOpen, task, onClose, onUpdateTask }) {
                     </div>
                     <div className="classroom-lock-badge">
                       <img
-                        src="/Pictures/GoogleClassroom.svg"
-                        alt="Google Classroom"
+                        src={
+                          isMsTeams
+                            ? '/Pictures/MicrosoftTeams.svg'
+                            : '/Pictures/GoogleClassroom.svg'
+                        }
+                        alt={isMsTeams ? 'Microsoft Teams' : 'Google Classroom'}
                         className="classroom-badge-icon"
                       />
                       <i className="fa-solid fa-lock" aria-hidden="true"></i>
-                      <span>Deadline managed by Google Classroom</span>
+                      <span>
+                        {isMsTeams
+                          ? 'Deadline managed by Microsoft Teams'
+                          : 'Deadline managed by Google Classroom'}
+                      </span>
                     </div>
                   </div>
                 ) : (

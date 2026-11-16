@@ -58,6 +58,10 @@ export function Header({
   onConnectClassroom,
   onManageCourses,
   onDisconnectClassroom,
+  isTeamsConnected = false,
+  isSyncingTeams = false,
+  onConnectTeams,
+  onDisconnectTeams,
   onSearch,
   onLogout,
 }) {
@@ -227,6 +231,46 @@ export function Header({
                       }}
                     >
                       <i className="fa-solid fa-link-slash"></i> Disconnect
+                    </button>
+                  )}
+
+                  <div className="dropdown-divider"></div>
+
+                  {/* Microsoft Teams Connect / Sync action (Read-Only) */}
+                  <button
+                    id="teamsSyncBtn"
+                    className="dropdown-item classroom-item"
+                    type="button"
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      if (onConnectTeams) onConnectTeams();
+                    }}
+                    disabled={isSyncingTeams}
+                  >
+                    <img
+                      src="/Pictures/MicrosoftTeams.svg"
+                      alt=""
+                      className="classroom-dropdown-icon"
+                    />
+                    {isSyncingTeams
+                      ? 'Syncing MS Teams...'
+                      : isTeamsConnected
+                      ? 'MS Teams Synced ✓ (Resync)'
+                      : 'Connect to Microsoft Teams'}
+                  </button>
+
+                  {isTeamsConnected && (
+                    <button
+                      id="teamsDisconnectBtn"
+                      className="dropdown-item"
+                      style={{ color: '#666', fontSize: '13px' }}
+                      type="button"
+                      onClick={() => {
+                        setDropdownOpen(false);
+                        if (onDisconnectTeams) onDisconnectTeams();
+                      }}
+                    >
+                      <i className="fa-solid fa-link-slash"></i> Disconnect MS Teams
                     </button>
                   )}
 

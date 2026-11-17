@@ -62,6 +62,7 @@ import TaskModal, {
   EditTaskModal,
   AddTaskModal,
 } from './components/TaskModal';
+import ChatbotButton from './components/ChatbotButton';
 import {
   syncGoogleClassroomTasks,
   getHiddenClassroomCourses,
@@ -1454,6 +1455,9 @@ export default function App() {
             </div>,
             document.body
           )}
+
+        {/* Floating bottom-left AI chatbot placeholder button */}
+        <ChatbotButton />
       </div>
     </>
   );

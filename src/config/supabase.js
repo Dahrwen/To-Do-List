@@ -39,14 +39,6 @@ import { createClient } from '@supabase/supabase-js';
 // Key used to remember whether the user opted into persistent sessions ("Keep me signed in")
 export const KEEP_SIGNED_IN_KEY = 'auth_keep_signed_in';
 
-// Strict read-only OAuth scopes for Microsoft Graph Education API
-export const MICROSOFT_GRAPH_READONLY_SCOPES =
-  'openid profile email offline_access User.Read EduAssignments.ReadBasic EduRoster.ReadBasic';
-
-// Optional Microsoft Tenant ID configured via environment variables (defaults to 'common')
-export const MICROSOFT_TENANT_ID =
-  import.meta.env.VITE_MICROSOFT_TENANT_ID || 'common';
-
 /**
  * Returns whether the user has opted to stay signed in across browser restarts.
  * Defaults to `false` (secure-by-default ephemeral session).
@@ -94,7 +86,6 @@ if (typeof window !== 'undefined') {
         }
       }
       localStorage.removeItem('google_provider_token');
-      localStorage.removeItem('ms_provider_token');
     } catch {
       // ignore storage errors
     }
@@ -109,15 +100,10 @@ if (typeof window !== 'undefined') {
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const providerToken = hashParams.get('provider_token');
 
-      // Route provider_token to Microsoft or Google storage without overwriting the other
+      // If Google returned a provider_token, cache it in browser storage for Classroom API calls
       if (providerToken) {
-        const isTeamsPending =
-          sessionStorage.getItem('ms_teams_oauth_pending') === 'true';
-        const tokenKey = isTeamsPending
-          ? 'ms_provider_token'
-          : 'google_provider_token';
-        sessionStorage.setItem(tokenKey, providerToken);
-        localStorage.setItem(tokenKey, providerToken);
+        sessionStorage.setItem('google_provider_token', providerToken);
+        localStorage.setItem('google_provider_token', providerToken);
       }
     } catch (e) {
       console.warn('Could not parse provider_token from URL hash:', e);
@@ -144,22 +130,16 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 // so any `SIGNED_IN` or `INITIAL_SESSION` event carrying `session.provider_token` is captured.
 if (typeof window !== 'undefined') {
   supabase.auth.onAuthStateChange((event, session) => {
-    // Persist the OAuth access token to its respective provider slot
+    // Persist the Google OAuth access token whenever Supabase delivers a fresh session
     if (session?.provider_token) {
-      const isAzure =
-        session?.user?.app_metadata?.provider === 'azure' ||
-        sessionStorage.getItem('ms_teams_oauth_pending') === 'true';
-      const tokenKey = isAzure ? 'ms_provider_token' : 'google_provider_token';
-      sessionStorage.setItem(tokenKey, session.provider_token);
-      localStorage.setItem(tokenKey, session.provider_token);
+      sessionStorage.setItem('google_provider_token', session.provider_token);
+      localStorage.setItem('google_provider_token', session.provider_token);
     }
 
-    // Purge cached OAuth tokens immediately when the user signs out for security
+    // Purge cached Google tokens immediately when the user signs out for security
     if (event === 'SIGNED_OUT') {
       sessionStorage.removeItem('google_provider_token');
       localStorage.removeItem('google_provider_token');
-      sessionStorage.removeItem('ms_provider_token');
-      localStorage.removeItem('ms_provider_token');
       localStorage.removeItem(KEEP_SIGNED_IN_KEY);
     }
   });
@@ -222,38 +202,6 @@ export function getGoogleProviderToken(session = null) {
   }
 
   // No token available — caller should initiate incremental OAuth consent
-  return null;
-}
-
-// ============================================================================
-// STEP 5: MULTI-LAYER MICROSOFT GRAPH PROVIDER TOKEN RESOLVER
-// ============================================================================
-/**
- * Retrieves the user's Microsoft Graph OAuth 2.0 `provider_token` from browser
- * session locations without colliding with Google Classroom tokens.
- *
- * @param {Object|null} [session=null] - Optional Supabase Auth session object
- * @returns {string|null} The Microsoft Graph access token string, or `null` if unavailable
- */
-export function getMicrosoftProviderToken(session = null) {
-  if (typeof window === 'undefined') return null;
-
-  const isAzureSession =
-    session?.user?.app_metadata?.provider === 'azure' ||
-    sessionStorage.getItem('ms_teams_oauth_pending') === 'true';
-
-  if (session?.provider_token && isAzureSession) {
-    sessionStorage.setItem('ms_provider_token', session.provider_token);
-    localStorage.setItem('ms_provider_token', session.provider_token);
-    return session.provider_token;
-  }
-
-  const fromSession = sessionStorage.getItem('ms_provider_token');
-  if (fromSession) return fromSession;
-
-  const fromLocal = localStorage.getItem('ms_provider_token');
-  if (fromLocal) return fromLocal;
-
   return null;
 }
 

@@ -58,10 +58,7 @@ export function Header({
   onConnectClassroom,
   onManageCourses,
   onDisconnectClassroom,
-  isTeamsConnected = false,
-  isSyncingTeams = false,
   onConnectTeams,
-  onDisconnectTeams,
   onSearch,
   onLogout,
 }) {
@@ -236,7 +233,7 @@ export function Header({
 
                   <div className="dropdown-divider"></div>
 
-                  {/* Microsoft Teams Connect / Sync action (Read-Only) */}
+                  {/* Microsoft Teams placeholder sync button (integration disabled for now) */}
                   <button
                     id="teamsSyncBtn"
                     className="dropdown-item classroom-item"
@@ -245,34 +242,10 @@ export function Header({
                       setDropdownOpen(false);
                       if (onConnectTeams) onConnectTeams();
                     }}
-                    disabled={isSyncingTeams}
                   >
-                    <img
-                      src="/Pictures/MicrosoftTeams.svg"
-                      alt=""
-                      className="classroom-dropdown-icon"
-                    />
-                    {isSyncingTeams
-                      ? 'Syncing MS Teams...'
-                      : isTeamsConnected
-                      ? 'MS Teams Synced ✓ (Resync)'
-                      : 'Connect to Microsoft Teams'}
+                    <i className="fa-solid fa-people-group"></i>
+                    Connect to Microsoft Teams
                   </button>
-
-                  {isTeamsConnected && (
-                    <button
-                      id="teamsDisconnectBtn"
-                      className="dropdown-item"
-                      style={{ color: '#666', fontSize: '13px' }}
-                      type="button"
-                      onClick={() => {
-                        setDropdownOpen(false);
-                        if (onDisconnectTeams) onDisconnectTeams();
-                      }}
-                    >
-                      <i className="fa-solid fa-link-slash"></i> Disconnect MS Teams
-                    </button>
-                  )}
 
                   <div className="dropdown-divider"></div>
 

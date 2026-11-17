@@ -134,10 +134,6 @@ export function TaskCard({
     task.source === 'google_classroom' ||
     Boolean(task.Description && task.Description.includes('[Google Classroom]'));
 
-  const isTeams =
-    task.source === 'ms_teams' ||
-    Boolean(task.Description && task.Description.includes('[Microsoft Teams]'));
-
   return (
     <li
       className={`taskList task-card ${isExpanded ? 'taskList-expanded task-card-expanded' : ''}`}
@@ -172,7 +168,7 @@ export function TaskCard({
         )}
       </div>
 
-      {/* Deadline Formatted String & External LMS Source Badge */}
+      {/* Deadline Formatted String & Google Classroom Badge */}
       <h4 className="task-deadline">
         <span>{task.deadLine}</span>
         {isClassroom && (
@@ -181,14 +177,6 @@ export function TaskCard({
             alt="Google Classroom"
             className="classroom-badge-icon"
             title="Imported from Google Classroom"
-          />
-        )}
-        {isTeams && (
-          <img
-            src="/Pictures/MicrosoftTeams.svg"
-            alt="Microsoft Teams"
-            className="classroom-badge-icon teams-badge-icon"
-            title="Imported from Microsoft Teams"
           />
         )}
       </h4>

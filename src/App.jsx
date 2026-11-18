@@ -288,12 +288,20 @@ export default function App() {
       task.source === 'google_classroom' ||
       Boolean(task.Description && task.Description.includes('[Google Classroom]'));
 
+    const isGeminiAnnouncement =
+      task.source === 'gemini_announcement' ||
+      Boolean(task.Description && task.Description.includes('[Gemini Announcement]'));
+
+    let taskSource = 'manual';
+    if (isGoogleClassroom) taskSource = 'google_classroom';
+    else if (isGeminiAnnouncement) taskSource = 'gemini_announcement';
+
     return {
       ...task,
       name: task.TaskName,
       categories: selectedTypes,
       deadLine: dateString,
-      source: isGoogleClassroom ? 'google_classroom' : 'manual',
+      source: taskSource,
     };
   };
 
@@ -1456,8 +1464,11 @@ export default function App() {
             document.body
           )}
 
-        {/* Floating bottom-left AI chatbot placeholder button */}
-        <ChatbotButton />
+        {/* Floating bottom-right Gemini AI Announcement Assistant chatbot */}
+        <ChatbotButton
+          currentUser={currentUser}
+          onTasksAdded={() => refreshAllData(currentUser?.userID, currentViewMode)}
+        />
       </div>
     </>
   );

@@ -17,7 +17,12 @@
 
 const GEMINI_INTERACTIONS_URL =
   'https://generativelanguage.googleapis.com/v1beta/interactions';
-const GEMINI_MODEL = 'gemini-4-hydrogen';
+const GEMINI_FALLBACK_MODELS = [
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
+  'gemini-4-hydrogen',
+  'gemma-4-31b-it',
+];
 const MAX_BODY_BYTES = 64 * 1024; // 64 KB cap for pasted announcements
 
 const ANNOUNCEMENT_RESPONSE_FORMAT = {
@@ -197,6 +202,25 @@ function buildSystemInstruction(currentLocalDateString, timezone) {
 }
 
 /**
+ * Determines whether an upstream Gemini API error is transient or capacity-related
+ * so the handler can automatically fall back to the next free-tier model.
+ */
+function shouldFallbackToNextModel(status, rawMsg = '') {
+  if (
+    status === 503 ||
+    status === 429 ||
+    status === 500 ||
+    status === 502 ||
+    status === 504
+  ) {
+    return true;
+  }
+  return /high demand|overloaded|try again later|unavailable|resource exhausted/i.test(
+    rawMsg
+  );
+}
+
+/**
  * Core processor accepting parsed JSON body from an incoming HTTP request.
  */
 export async function processAnnouncementRequest(body, apiKey = process.env.GEMINI_API_KEY) {
@@ -221,43 +245,68 @@ export async function processAnnouncementRequest(body, apiKey = process.env.GEMI
       ? body.currentLocalDateString.trim()
       : now.toISOString().slice(0, 10);
   const timezone = typeof body?.timezone === 'string' ? body.timezone.trim() : 'UTC';
+  const systemInstruction = buildSystemInstruction(currentLocalDateString, timezone);
 
-  const geminiResponse = await fetch(GEMINI_INTERACTIONS_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-goog-api-key': String(apiKey).trim(),
-    },
-    body: JSON.stringify({
-      model: GEMINI_MODEL,
-      system_instruction: buildSystemInstruction(currentLocalDateString, timezone),
-      input: userMessage,
-      store: false,
-      response_format: ANNOUNCEMENT_RESPONSE_FORMAT,
-    }),
-  });
+  let lastErr = null;
 
-  if (!geminiResponse.ok) {
-    const errPayload = await geminiResponse.json().catch(() => ({}));
-    const rawMsg = errPayload?.error?.message || `HTTP ${geminiResponse.status}`;
+  for (let i = 0; i < GEMINI_FALLBACK_MODELS.length; i++) {
+    const model = GEMINI_FALLBACK_MODELS[i];
+    const hasNextModel = i < GEMINI_FALLBACK_MODELS.length - 1;
 
-    if (geminiResponse.status === 429) {
-      const rateErr = new Error(
-        'Gemini free-tier rate limit reached. Please wait a few seconds and try again.'
-      );
-      rateErr.statusCode = 429;
-      throw rateErr;
+    const geminiResponse = await fetch(GEMINI_INTERACTIONS_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': String(apiKey).trim(),
+      },
+      body: JSON.stringify({
+        model,
+        system_instruction: systemInstruction,
+        input: userMessage,
+        store: false,
+        response_format: ANNOUNCEMENT_RESPONSE_FORMAT,
+      }),
+    });
+
+    if (!geminiResponse.ok) {
+      const errPayload = await geminiResponse.json().catch(() => ({}));
+      const rawMsg = errPayload?.error?.message || `HTTP ${geminiResponse.status}`;
+
+      if (hasNextModel && shouldFallbackToNextModel(geminiResponse.status, rawMsg)) {
+        lastErr = Object.assign(
+          new Error(`Gemini API request failed: ${rawMsg}`),
+          { statusCode: geminiResponse.status }
+        );
+        continue;
+      }
+
+      if (geminiResponse.status === 429) {
+        const rateErr = new Error(
+          'Gemini free-tier rate limit reached across available models. Please wait a few seconds and try again.'
+        );
+        rateErr.statusCode = 429;
+        throw rateErr;
+      }
+
+      const upstreamErr = new Error(`Gemini API request failed: ${rawMsg}`);
+      upstreamErr.statusCode =
+        geminiResponse.status >= 400 ? geminiResponse.status : 502;
+      throw upstreamErr;
     }
 
-    const upstreamErr = new Error(`Gemini API request failed: ${rawMsg}`);
-    upstreamErr.statusCode = geminiResponse.status >= 400 ? geminiResponse.status : 502;
-    throw upstreamErr;
+    const interactionPayload = await geminiResponse.json();
+    const textOutput = extractTextFromInteraction(interactionPayload);
+    const parsedJson = parseStructuredJson(textOutput);
+    return sanitizeParsedAnnouncement(parsedJson);
   }
 
-  const interactionPayload = await geminiResponse.json();
-  const textOutput = extractTextFromInteraction(interactionPayload);
-  const parsedJson = parseStructuredJson(textOutput);
-  return sanitizeParsedAnnouncement(parsedJson);
+  throw (
+    lastErr ||
+    Object.assign(
+      new Error('All Gemini fallback models are temporarily busy. Please try again in a moment.'),
+      { statusCode: 503 }
+    )
+  );
 }
 
 /**

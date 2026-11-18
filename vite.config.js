@@ -22,23 +22,27 @@ import react from '@vitejs/plugin-react';
 import { createGeminiMiddleware } from './src/server/geminiAnnouncementHandler.js';
 
 function geminiAnnouncementApiPlugin() {
-  let serverGeminiKey = process.env.GEMINI_API_KEY || '';
+  let currentMode = 'development';
+
+  const resolveKey = () => {
+    const env = loadEnv(currentMode, process.cwd(), '');
+    return env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || '';
+  };
 
   return {
     name: 'gemini-announcement-api-middleware',
     config(_, { mode }) {
-      // Load ALL env vars server-side (empty prefix) without exposing non-VITE_ keys to the browser
-      const env = loadEnv(mode, process.cwd(), '');
-      if (env.GEMINI_API_KEY) {
-        serverGeminiKey = env.GEMINI_API_KEY;
-        process.env.GEMINI_API_KEY = env.GEMINI_API_KEY;
+      currentMode = mode || 'development';
+      const key = resolveKey();
+      if (key) {
+        process.env.GEMINI_API_KEY = key;
       }
     },
     configureServer(server) {
-      server.middlewares.use(createGeminiMiddleware(() => serverGeminiKey));
+      server.middlewares.use(createGeminiMiddleware(resolveKey));
     },
     configurePreviewServer(server) {
-      server.middlewares.use(createGeminiMiddleware(() => serverGeminiKey));
+      server.middlewares.use(createGeminiMiddleware(resolveKey));
     },
   };
 }

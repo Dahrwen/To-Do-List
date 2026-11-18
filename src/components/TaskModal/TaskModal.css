@@ -488,9 +488,14 @@ form input[type="time"] {
     transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-.modal-delete-btn:hover {
+.modal-delete-btn:hover:not(:disabled) {
     background-color: #fee2e2;
     border-color: #dc2626;
+}
+
+.modal-delete-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
 }
 
 .modal-delete-btn img {

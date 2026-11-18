@@ -197,9 +197,22 @@ export function TaskDetailsModal({
           <button
             type="button"
             className="modal-delete-btn"
-            onClick={() => onDelete && onDelete(task.id)}
-            title="Delete task"
-            aria-label="Delete task"
+            disabled={isGoogleClassroom}
+            onClick={() => {
+              if (!isGoogleClassroom && onDelete) {
+                onDelete(task.id);
+              }
+            }}
+            title={
+              isGoogleClassroom
+                ? 'Google Classroom tasks cannot be deleted to prevent losing schoolwork'
+                : 'Delete task'
+            }
+            aria-label={
+              isGoogleClassroom
+                ? 'Delete disabled for Google Classroom task'
+                : 'Delete task'
+            }
           >
             <img
               id="delete"

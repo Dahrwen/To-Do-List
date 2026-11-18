@@ -918,9 +918,33 @@ export default function App() {
     refreshAllData();
   };
 
-  // Deletes a task from Supabase
+  // Deletes a task from Supabase (strictly blocks deletion of Google Classroom tasks)
   const handleDeleteTask = async (taskId) => {
     if (!currentUser?.userID) return;
+
+    // Verify ownership and inspect origin before allowing deletion
+    const { data: existingTask, error: fetchError } = await supabase
+      .from('Tasks')
+      .select('id, Description')
+      .eq('id', taskId)
+      .eq('userID', currentUser.userID)
+      .maybeSingle();
+
+    if (fetchError || !existingTask) {
+      return;
+    }
+
+    const isClassroomOrigin =
+      selectedTask?.source === 'google_classroom' ||
+      Boolean(
+        existingTask.Description &&
+          existingTask.Description.includes('[Google Classroom]')
+      );
+
+    if (isClassroomOrigin) {
+      console.warn('Blocked attempt to delete a Google Classroom task.');
+      return;
+    }
 
     await supabase
       .from('Tasks')

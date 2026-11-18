@@ -5,9 +5,8 @@
  * ============================================================================
  * PURPOSE:
  *   Floating lower-right AI assistant toggle bubble and expandable chat panel.
- *   Accepts raw school announcements or general questions, calls the server-side
- *   Gemini parser (`parseAndInsertAnnouncementTasks`), auto-inserts extracted
- *   tasks into Supabase for the authenticated user, and renders confirmation cards.
+ *   Uses `/Pictures/ROBOT.svg` avatar, speech-tail bubbles, `"..."` loading
+ *   indicator, and auto-inserts parsed tasks into Supabase.
  * ============================================================================
  */
 
@@ -18,7 +17,7 @@ import './ChatbotButton.css';
 const INITIAL_GREETING = {
   id: 'welcome-msg',
   role: 'assistant',
-  text: 'Paste any school announcement, class reminder, or assignment post below — I will extract tasks and deadlines and add them straight to your To-Do List.',
+  text: 'Paste school announcements, class reminders, or assignment post; I will extract the tasks and add them to your list.',
   insertedTasks: [],
   isError: false,
 };
@@ -134,31 +133,21 @@ export function ChatbotButton({ currentUser = null, onTasksAdded }) {
         <section
           className="chatbot-panel"
           role="dialog"
-          aria-label="AI Announcement Assistant"
+          aria-label="AI Task Creator"
         >
           <header className="chatbot-panel-header">
             <div className="chatbot-header-title">
-              <span className="chatbot-header-badge" aria-hidden="true">
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 8V4H8" />
-                  <rect width="16" height="12" x="4" y="8" rx="2" />
-                  <path d="M15 13v2" />
-                  <path d="M9 13v2" />
-                </svg>
+              <span className="chatbot-header-badge">
+                <img
+                  src="/Pictures/ROBOT.svg"
+                  alt="AI Robot"
+                  className="chatbot-robot-img"
+                />
               </span>
-              <div>
-                <h2>AI Task Assistant</h2>
+              <div className="chatbot-header-copy">
+                <h2>AI Task Creator</h2>
                 <span className="chatbot-header-subtitle">
-                  Paste announcements to auto-add tasks
+                  Task Creator Assistant
                 </span>
               </div>
             </div>
@@ -186,48 +175,75 @@ export function ChatbotButton({ currentUser = null, onTasksAdded }) {
           </header>
 
           <div className="chatbot-messages" role="log" aria-live="polite">
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`chatbot-msg chatbot-msg-${msg.role} ${
-                  msg.isError ? 'chatbot-msg-error' : ''
-                }`}
-              >
-                <p className="chatbot-msg-text">{msg.text}</p>
+            {messages.map((msg) =>
+              msg.role === 'assistant' ? (
+                <div key={msg.id} className="chatbot-assistant-row">
+                  <span className="chatbot-msg-avatar" aria-hidden="true">
+                    <img
+                      src="/Pictures/ROBOT.svg"
+                      alt=""
+                      className="chatbot-robot-img"
+                    />
+                  </span>
+                  <div
+                    className={`chatbot-msg chatbot-msg-assistant chatbot-speech-bubble ${
+                      msg.isError ? 'chatbot-msg-error' : ''
+                    }`}
+                  >
+                    <p className="chatbot-msg-text">{msg.text}</p>
 
-                {msg.insertedTasks && msg.insertedTasks.length > 0 && (
-                  <ul className="chatbot-added-tasks-list">
-                    {msg.insertedTasks.map((task) => (
-                      <li key={task.id} className="chatbot-added-task-card">
-                        <div className="chatbot-task-card-top">
-                          <strong className="chatbot-task-title">{task.title}</strong>
-                          <span className="chatbot-task-status-pill">Added ✓</span>
-                        </div>
-                        <div className="chatbot-task-card-meta">
-                          <span className="chatbot-task-category">
-                            {task.category}
-                          </span>
-                          <span className="chatbot-task-deadline">
-                            {task.deadlineDisplay}
-                          </span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ))}
+                    {msg.insertedTasks && msg.insertedTasks.length > 0 && (
+                      <ul className="chatbot-added-tasks-list">
+                        {msg.insertedTasks.map((task) => (
+                          <li key={task.id} className="chatbot-added-task-card">
+                            <div className="chatbot-task-card-top">
+                              <strong className="chatbot-task-title">
+                                {task.title}
+                              </strong>
+                              <span className="chatbot-task-status-pill">
+                                Added ✓
+                              </span>
+                            </div>
+                            <div className="chatbot-task-card-meta">
+                              <span className="chatbot-task-category">
+                                {task.category}
+                              </span>
+                              <span className="chatbot-task-deadline">
+                                {task.deadlineDisplay}
+                              </span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div key={msg.id} className="chatbot-msg chatbot-msg-user">
+                  <p className="chatbot-msg-text">{msg.text}</p>
+                </div>
+              )
+            )}
 
             {isLoading && (
-              <div className="chatbot-msg chatbot-msg-assistant chatbot-msg-loading">
-                <span className="chatbot-typing-dots" aria-label="Analyzing announcement">
-                  <span></span>
-                  <span></span>
-                  <span></span>
+              <div className="chatbot-assistant-row">
+                <span className="chatbot-msg-avatar" aria-hidden="true">
+                  <img
+                    src="/Pictures/ROBOT.svg"
+                    alt=""
+                    className="chatbot-robot-img"
+                  />
                 </span>
-                <span className="chatbot-loading-label">
-                  Extracting tasks & deadlines...
-                </span>
+                <div
+                  className="chatbot-msg chatbot-msg-assistant chatbot-speech-bubble chatbot-msg-loading"
+                  aria-label="Thinking"
+                >
+                  <span className="chatbot-typing-ellipsis" aria-hidden="true">
+                    <span>.</span>
+                    <span>.</span>
+                    <span>.</span>
+                  </span>
+                </div>
               </div>
             )}
 
@@ -238,8 +254,8 @@ export function ChatbotButton({ currentUser = null, onTasksAdded }) {
             <textarea
               ref={textareaRef}
               className="chatbot-textarea"
-              rows={2}
-              placeholder="Paste a school announcement or ask anything..."
+              rows={1}
+              placeholder="Type a message"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -253,18 +269,18 @@ export function ChatbotButton({ currentUser = null, onTasksAdded }) {
               title="Send (Enter)"
             >
               <svg
-                width="18"
-                height="18"
+                width="24"
+                height="24"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="currentColor"
-                strokeWidth="2.4"
+                stroke="#000000"
+                strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 aria-hidden="true"
               >
-                <line x1="22" y1="2" x2="11" y2="13" />
-                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                <path d="M22 2 11 13" />
+                <path d="M22 2 15 22 11 13 2 9z" />
               </svg>
             </button>
           </form>
@@ -276,8 +292,8 @@ export function ChatbotButton({ currentUser = null, onTasksAdded }) {
         className={`chatbot-floating-btn ${isOpen ? 'is-open' : ''}`}
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
-        aria-label={isOpen ? 'Close AI Assistant' : 'Open AI Assistant'}
-        title="AI Announcement Assistant"
+        aria-label={isOpen ? 'Close AI Task Creator' : 'Open AI Task Creator'}
+        title="AI Task Creator"
       >
         {isOpen ? (
           <svg
@@ -295,24 +311,11 @@ export function ChatbotButton({ currentUser = null, onTasksAdded }) {
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         ) : (
-          <svg
-            width="28"
-            height="28"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M12 8V4H8" />
-            <rect width="16" height="12" x="4" y="8" rx="2" />
-            <path d="M2 14h2" />
-            <path d="M20 14h2" />
-            <path d="M15 13v2" />
-            <path d="M9 13v2" />
-          </svg>
+          <img
+            src="/Pictures/ROBOT.svg"
+            alt="AI Assistant"
+            className="chatbot-toggle-robot-img"
+          />
         )}
       </button>
     </div>

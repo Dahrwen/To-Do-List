@@ -96,7 +96,6 @@ export function AuthModal({ isOpen, onLoginSuccess }) {
   const [logMessage, setLogMessage] = useState('');           // Error or success banner text
   const [logMessageType, setLogMessageType] = useState('');   // 'error' | 'success'
   const [isLogLoading, setIsLogLoading] = useState(false);     // Disables submit button while requesting
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false); // Prevents duplicate Google OAuth redirects
 
   /**
    * Handles user registration:
@@ -240,8 +239,6 @@ export function AuthModal({ isOpen, onLoginSuccess }) {
    * Redirects user to Google OAuth consent screen, then back to the application.
    */
   const handleGoogleAuth = async () => {
-    if (isGoogleLoading) return;
-    setIsGoogleLoading(true);
     try {
       // Preserve the user's persistence preference across the OAuth redirect
       setAuthPersistence(keepSignedIn);
@@ -254,14 +251,12 @@ export function AuthModal({ isOpen, onLoginSuccess }) {
       });
 
       if (error) {
-        setIsGoogleLoading(false);
         setLogMessage(error.message);
         setLogMessageType('error');
         setRegMessage(error.message);
         setRegMessageType('error');
       }
     } catch (err) {
-      setIsGoogleLoading(false);
       const msg = err.message || 'An error occurred connecting to Google.';
       setLogMessage(msg);
       setLogMessageType('error');
@@ -329,11 +324,10 @@ export function AuthModal({ isOpen, onLoginSuccess }) {
           <button
             type="button"
             className="google-btn"
-            disabled={isGoogleLoading}
             onClick={handleGoogleAuth}
           >
             <GoogleLogo />
-            <span>{isGoogleLoading ? 'Redirecting...' : 'Continue with Google'}</span>
+            <span>Continue with Google</span>
           </button>
         </form>
       </div>
@@ -393,11 +387,10 @@ export function AuthModal({ isOpen, onLoginSuccess }) {
           <button
             type="button"
             className="google-btn"
-            disabled={isGoogleLoading}
             onClick={handleGoogleAuth}
           >
             <GoogleLogo />
-            <span>{isGoogleLoading ? 'Redirecting...' : 'Continue with Google'}</span>
+            <span>Continue with Google</span>
           </button>
         </form>
       </div>
